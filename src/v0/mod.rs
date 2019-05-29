@@ -5,9 +5,12 @@ use bit_reverse::ParallelReverse;
 use core::ptr;
 use hashbrown::HashMap;
 use schnorrkel::{signing_context, PublicKey, Signature};
+#[cfg(std)]
+use std::fmt;
 
 use crate::error::DoughnutErr;
 
+// TODO: this should be b`doughnut`?
 const SIGNING_CTX: &[u8] = b"substrate";
 
 const VERSION: u16 = 0;
@@ -37,6 +40,31 @@ fn has_not_before(buf: &[u8]) -> bool {
     buf[2] & NOT_BEFORE_MASK == 1
 }
 
+#[cfg(std)]
+impl<'a> fmt::Display for DoughnutV0<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "signature version: {}\
+             payload version: {}\
+             issuer: {:?}\
+             holder: {:?}\
+             expiry: {}\
+             not before: {}\
+             domains: {:?}\
+             signature: {:?}",
+            self.signature_version(),
+            self.payload_version(),
+            self.issuer(),
+            self.holder(),
+            self.expiry(),
+            self.not_before(),
+            self.domains(),
+            self.signature(),
+        )
+    }
+}
+
 impl<'a> DoughnutV0<'a> {
     /// Create a new v0 Doughnut from encoded bytes verifying it's correctness.
     /// Returns an error if encoding is invalid
@@ -55,13 +83,6 @@ impl<'a> DoughnutV0<'a> {
         });
         let permission_domain_length = permission_domain_count(encoded) as u16 * (18 + 1); // + 1 byte per domain expected in payload
 
-        println!("domain count: {:?}", permission_domain_count(encoded));
-        println!("expect domain length: {:?}", permission_domain_length);
-        println!("offset: {:?}", offset);
-        println!(
-            "expect total length: {:?}",
-            offset + permission_domain_length + 64
-        );
         if (encoded.len() as u16) < offset + permission_domain_length + 64 {
             return Err(DoughnutErr::BadEncoding(&"Too short"));
         }
@@ -160,6 +181,11 @@ impl<'a> DoughnutV0<'a> {
         }
 
         domains
+    }
+
+    /// Return the signature bytes
+    pub fn signature(&self) -> [u8; 64] {
+        unsafe { ptr::read(self.0[(self.0.len() - 64)..].as_ptr() as *const [u8; 64]) }
     }
 
     /// Verify the doughnut signature. Returns true if the signature is good.
