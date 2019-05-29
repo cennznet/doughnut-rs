@@ -20,8 +20,8 @@ pub struct DoughnutV0<'a>(&'a [u8]);
 
 /// Return the payload version from the given byte slice
 fn payload_version(buf: &[u8]) -> u16 {
-    let payload_version: u16 = unsafe { ptr::read(buf[..2].as_ptr() as *const u16) };
-    payload_version.swap_bits() & VERSION_MASK
+    let payload_version = u16::from_le_bytes([buf[0].swap_bits(), buf[0].swap_bits()]);
+    payload_version & VERSION_MASK
 }
 
 /// Returns the doughnut "permission domain count"
@@ -55,7 +55,10 @@ impl<'a> DoughnutV0<'a> {
         println!("domain count: {:?}", permission_domain_count(encoded));
         println!("expect domain length: {:?}", permission_domain_length);
         println!("offset: {:?}", offset);
-        println!("expect total length: {:?}", offset + permission_domain_length + 64);
+        println!(
+            "expect total length: {:?}",
+            offset + permission_domain_length + 64
+        );
         if (encoded.len() as u16) < offset + permission_domain_length + 64 {
             return Err(DoughnutErr::BadEncoding(&"Too short"));
         }
@@ -141,10 +144,12 @@ impl<'a> DoughnutV0<'a> {
                 self.0[(offset + 17) as usize].swap_bits(),
             ]);
 
-            let key = core::str::from_utf8(&self.0[offset as usize..(offset + 16) as usize]).unwrap();
-
+            // TODO: Raise error on invalid UTF-8
+            let key = core::str::from_utf8(&self.0[offset as usize..(offset + 16) as usize])
+                .unwrap_or("<sentinel>");
+            let key_clean = key.trim_matches(char::from(0));
             domains.insert(
-                key,
+                key_clean,
                 &self.0[domain_offset as usize..(domain_offset + domain_len) as usize],
             );
             offset += 18;
