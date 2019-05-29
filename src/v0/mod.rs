@@ -4,8 +4,11 @@
 use bit_reverse::ParallelReverse;
 use core::ptr;
 use hashbrown::HashMap;
+use schnorrkel::{signing_context, PublicKey, Signature};
 
 use crate::error::DoughnutErr;
+
+const SIGNING_CTX: &[u8] = b"substrate";
 
 const VERSION: u16 = 0;
 const VERSION_MASK: u16 = 0x7FF;
@@ -157,5 +160,20 @@ impl<'a> DoughnutV0<'a> {
         }
 
         domains
+    }
+
+    /// Verify the doughnut signature. Returns true if the signature is good.
+    pub fn verify_signature(&self) -> bool {
+        let signature: Signature = match Signature::from_bytes(&self.0[(self.0.len() - 64)..]) {
+            Ok(some_signature) => some_signature,
+            Err(_) => return false,
+        };
+        match PublicKey::from_bytes(self.issuer().as_ref()) {
+            Ok(pk) => pk.verify(
+                signing_context(SIGNING_CTX).bytes(&self.0[..(self.0.len() - 64)]),
+                &signature,
+            ),
+            Err(_) => false,
+        }
     }
 }
