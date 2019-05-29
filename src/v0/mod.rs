@@ -6,55 +6,57 @@ use hashbrown::HashMap;
 
 use crate::error::DoughnutErr;
 
+const VERSION: u16 = 0;
 const VERSION_MASK: u16 = 0x7FF;
 const WITHOUT_NOT_BEFORE_OFFSET: u8 = 71;
 const WITH_NOT_BEFORE_OFFSET: u8 = 75;
-// const SIGNATURE_MASK: u8 = 0x1F;
-// const NOT_BEFORE_MASK: u8 = 0x1;
-// const PERMISSION_DOMAIN_COUNT_MASK: u8 = 0x7F;
+const SIGNATURE_MASK: u8 = 0x1F;
+const NOT_BEFORE_MASK: u8 = 0x1;
+const PERMISSION_DOMAIN_COUNT_MASK: u8 = 0x7F;
 
 #[derive(Debug)]
 pub struct DoughnutV0<'a>(&'a [u8]);
 
 /// Return the payload version from the given byte slice
 fn payload_version(buf: &[u8]) -> u16 {
-    let payload_version: u16 = unsafe {
-        ptr::read(buf[..2].as_ptr() as *const u16)
-    };
+    let payload_version: u16 = unsafe { ptr::read(buf[..2].as_ptr() as *const u16) };
     payload_version & VERSION_MASK
 }
 
 /// Returns the doughnut "permission domain count"
 fn permission_domain_count(buf: &[u8]) -> u8 {
-    (buf[2] << 1) + 1
+    (buf[2].to_le() << 1 & PERMISSION_DOMAIN_COUNT_MASK) + 1
 }
 
 /// Whether the doughnut has "not before" bit set
 fn has_not_before(buf: &[u8]) -> bool {
-    buf[2] & 0x1 == 1
+    buf[2].to_le() & NOT_BEFORE_MASK == 1
 }
 
 impl<'a> DoughnutV0<'a> {
-
     /// Create a new v0 Doughnut from encoded bytes verifying it's correctness.
     /// Returns an error if encoding is invalid
-    pub fn new(encoded: &'a [u8]) -> Result<Self, DoughnutErr> {
+    pub fn new(encoded: &'a [u8]) -> Result<Self, DoughnutErr<'a>> {
         if encoded.len() < 2 {
-            return Err(DoughnutErr::BadEncoding("Missing header"))
+            return Err(DoughnutErr::BadEncoding(&"Missing header"));
         }
-        if payload_version(encoded) != 0 {
-            return Err(DoughnutErr::UnsupportedVersion)
+        if payload_version(encoded) != VERSION {
+            return Err(DoughnutErr::UnsupportedVersion);
         }
 
         let offset = u16::from(if has_not_before(encoded) {
-            WITHOUT_NOT_BEFORE_OFFSET
-        } else {
             WITH_NOT_BEFORE_OFFSET
+        } else {
+            WITHOUT_NOT_BEFORE_OFFSET
         });
-        let permission_domain_length = u16::from(permission_domain_count(encoded) * (18 + 1)); // + 1 byte per domain expected in payload
+        let permission_domain_length = permission_domain_count(encoded) as u16 * (18 + 1); // + 1 byte per domain expected in payload
 
+        // println!("domain count: {:?}", permission_domain_count(encoded));
+        // println!("expect domain length: {:?}", permission_domain_length);
+        // println!("offset: {:?}", offset);
+        // println!("expect total length: {:?}", offset + permission_domain_length);
         if (encoded.len() as u16) < offset + permission_domain_length {
-            return Err(DoughnutErr::BadEncoding("Too short"))
+            return Err(DoughnutErr::BadEncoding(&"Too short"));
         }
 
         Ok(DoughnutV0(encoded))
@@ -67,7 +69,7 @@ impl<'a> DoughnutV0<'a> {
 
     /// Returns the doughnut signature scheme version
     pub fn signature_version(&self) -> u8 {
-        self.0[1] << 3
+        self.0[1].to_le() & SIGNATURE_MASK
     }
 
     /// Returns the doughnut "permission domain count"
@@ -77,16 +79,14 @@ impl<'a> DoughnutV0<'a> {
 
     /// Whether the doughnut has "not before" bit set
     fn has_not_before(&self) -> bool {
-        self.0[2] & 0x1 == 1
+        has_not_before(self.0)
     }
 
     /// Returns the doughnut "not before" unix timestamp
     pub fn not_before(&self) -> u32 {
         if self.has_not_before() {
             let offset = 71;
-            unsafe {
-                ptr::read(self.0[offset..offset + 4].as_ptr() as *const u32)
-            }
+            unsafe { ptr::read(self.0[offset..offset + 4].as_ptr() as *const u32) }
         } else {
             0
         }
@@ -95,31 +95,24 @@ impl<'a> DoughnutV0<'a> {
     /// Returns the doughnut expiry unix timestamp
     pub fn expiry(&self) -> u32 {
         let offset = 67;
-        unsafe {
-            ptr::read(self.0[offset..offset + 4].as_ptr() as *const u32)
-        }
+        unsafe { ptr::read(self.0[offset..offset + 4].as_ptr() as *const u32) }.to_le()
     }
 
     /// Returns the doughnut holder public key
     pub fn holder(&self) -> [u8; 32] {
         let offset = 35;
-        unsafe {
-            ptr::read(self.0[offset..offset + 32].as_ptr() as *const [u8; 32])
-        }
+        unsafe { ptr::read(self.0[offset..offset + 32].as_ptr() as *const [u8; 32]) }
     }
 
     /// Returns the doughnut issuer public key
     pub fn issuer(&self) -> [u8; 32] {
         let offset = 3;
-        unsafe {
-            ptr::read(self.0[offset..offset + 32].as_ptr() as *const [u8; 32])
-        }
+        unsafe { ptr::read(self.0[offset..offset + 32].as_ptr() as *const [u8; 32]) }
     }
 
     /// Returns a mapping from key to payload offset of each domain embedded within this doughnut
     /// The payload offsets are not validated, domain decoders should ensure they check bounds before reading
     pub fn domains(&self) -> HashMap<&'a [u8], &'a [u8]> {
-
         // Dependent on 'not before' inclusion
         let mut offset = if self.has_not_before() {
             WITH_NOT_BEFORE_OFFSET
@@ -132,7 +125,11 @@ impl<'a> DoughnutV0<'a> {
         let mut domains: HashMap<&'a [u8], &'a [u8]> = HashMap::new();
         for _ in 0..self.permission_domain_count() {
             // 16 bytes per key, 2 bytes for payload length
-            let domain_len: u16 = unsafe { ptr::read(self.0[(offset + 16) as usize..(offset + 18) as usize].as_ptr() as *const u16) };
+            let domain_len: u16 = unsafe {
+                ptr::read(
+                    self.0[(offset + 16) as usize..(offset + 18) as usize].as_ptr() as *const u16,
+                )
+            };
             domains.insert(
                 &self.0[offset as usize..(offset + 16) as usize],
                 &self.0[domain_offset as usize..(domain_offset + domain_len) as usize],
