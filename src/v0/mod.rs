@@ -21,7 +21,7 @@ const WITH_NOT_BEFORE_OFFSET: u8 = 75;
 const SIGNATURE_MASK: u8 = 0x1F;
 const NOT_BEFORE_MASK: u8 = 0b1000_0000;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct DoughnutV0<'a>(&'a [u8]);
 
 /// Return the payload version from the given byte slice
