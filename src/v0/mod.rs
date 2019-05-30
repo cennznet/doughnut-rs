@@ -4,6 +4,7 @@
 use bit_reverse::ParallelReverse;
 use core::ptr;
 use hashbrown::HashMap;
+use parity_codec::Encode;
 use schnorrkel::{signing_context, PublicKey, Signature};
 #[cfg(std)]
 use std::fmt;
@@ -200,5 +201,12 @@ impl<'a> DoughnutV0<'a> {
             ),
             Err(_) => false,
         }
+    }
+}
+
+impl<'a> Encode for DoughnutV0<'a> {
+    /// Convert self to an owned vector.
+    fn encode(&self) -> Vec<u8> {
+        self.0.to_vec()
     }
 }

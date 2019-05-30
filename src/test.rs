@@ -1,5 +1,6 @@
 #![cfg(test)]
 use crate::v0;
+use parity_codec::Encode;
 
 #[test]
 fn it_works_v0() {
@@ -39,4 +40,6 @@ fn it_works_v0() {
     assert!(d.domains().contains_key("somethingElse"));
     assert_eq!(d.domains()["somethingElse"], [0]);
     assert!(d.verify_signature());
+
+    assert_eq!(d.encode(), payload);
 }
