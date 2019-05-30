@@ -13,6 +13,6 @@ std = []
 
 [dependencies]
 hashbrown = { version = "0.3.0", features = ["nightly"] }
-bit_reverse = "0.1.7"
+bit_reverse = { version = "0.1.7", default-features = false }
 schnorrkel = "0.1.0"
-parity-codec = { version = "3.5.1", default-features = false}
+parity-codec = { version = "3.5.1", default-features = false }
