@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[cfg_attr(feature = "std", derive(Debug))]
 pub enum DoughnutErr<'a> {
     /// The doughnut version is unsupported by the current codec
     UnsupportedVersion,

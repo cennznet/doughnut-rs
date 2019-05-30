@@ -7,7 +7,7 @@ use hashbrown::HashMap;
 use parity_codec::Encode;
 use schnorrkel::{signing_context, PublicKey, Signature};
 
-#[cfg(std)]
+#[cfg(feature = "std")]
 use std::fmt;
 
 use crate::alloc::vec::Vec;
@@ -23,7 +23,8 @@ const WITH_NOT_BEFORE_OFFSET: u8 = 75;
 const SIGNATURE_MASK: u8 = 0x1F;
 const NOT_BEFORE_MASK: u8 = 0b1000_0000;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "std", derive(Debug))]
 pub struct DoughnutV0<'a>(&'a [u8]);
 
 /// Return the payload version from the given byte slice
@@ -42,7 +43,7 @@ fn has_not_before(buf: &[u8]) -> bool {
     buf[2] & NOT_BEFORE_MASK == 1
 }
 
-#[cfg(std)]
+#[cfg(feature = "std")]
 impl<'a> fmt::Display for DoughnutV0<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
@@ -62,7 +63,7 @@ impl<'a> fmt::Display for DoughnutV0<'a> {
             self.expiry(),
             self.not_before(),
             self.domains(),
-            self.signature(),
+            self.signature().to_vec(),
         )
     }
 }
