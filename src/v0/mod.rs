@@ -5,16 +5,11 @@ use bit_reverse::ParallelReverse;
 use core::ptr;
 use hashbrown::HashMap;
 use parity_codec::Encode;
-use schnorrkel::{signing_context, PublicKey, Signature};
-
 #[cfg(feature = "std")]
 use std::fmt;
 
 use crate::alloc::vec::Vec;
 use crate::error::DoughnutErr;
-
-// TODO: this should be b`doughnut`?
-const SIGNING_CTX: &[u8] = b"substrate";
 
 const VERSION: u16 = 0;
 const VERSION_MASK: u16 = 0x7FF;
@@ -189,21 +184,6 @@ impl<'a> DoughnutV0<'a> {
     /// Return the signature bytes
     pub fn signature(&self) -> [u8; 64] {
         unsafe { ptr::read(self.0[(self.0.len() - 64)..].as_ptr() as *const [u8; 64]) }
-    }
-
-    /// Verify the doughnut signature. Returns true if the signature is good.
-    pub fn verify_signature(&self) -> bool {
-        let signature: Signature = match Signature::from_bytes(&self.0[(self.0.len() - 64)..]) {
-            Ok(some_signature) => some_signature,
-            Err(_) => return false,
-        };
-        match PublicKey::from_bytes(self.issuer().as_ref()) {
-            Ok(pk) => pk.verify(
-                signing_context(SIGNING_CTX).bytes(&self.0[..(self.0.len() - 64)]),
-                &signature,
-            ),
-            Err(_) => false,
-        }
     }
 }
 

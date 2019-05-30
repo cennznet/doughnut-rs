@@ -39,7 +39,6 @@ fn it_works_v0() {
     assert_eq!(d.domains()["something"], [0]);
     assert!(d.domains().contains_key("somethingElse"));
     assert_eq!(d.domains()["somethingElse"], [0]);
-    assert!(d.verify_signature());
 
     assert_eq!(d.encode(), payload);
 }
