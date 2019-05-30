@@ -6,9 +6,11 @@ use core::ptr;
 use hashbrown::HashMap;
 use parity_codec::Encode;
 use schnorrkel::{signing_context, PublicKey, Signature};
+
 #[cfg(std)]
 use std::fmt;
 
+use crate::alloc::vec::Vec;
 use crate::error::DoughnutErr;
 
 // TODO: this should be b`doughnut`?
