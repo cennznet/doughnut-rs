@@ -1,8 +1,15 @@
 [package]
-name = "doughnut"
+name = "doughnut_rs"
 version = "0.1.0"
 authors = ["Centrality Developers <developers@centrality.ai>"]
 edition = "2018"
+
+[lib]
+name = "doughnut_rs"
+
+[features]
+default = ["std"]
+std = []
 
 [dependencies]
 hashbrown = "0.3.0"

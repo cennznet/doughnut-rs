@@ -86,7 +86,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "doughnut"
+name = "doughnut_rs"
 version = "0.1.0"
 dependencies = [
  "bit_reverse 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
