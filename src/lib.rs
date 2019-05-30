@@ -7,7 +7,7 @@ extern crate alloc;
 
 #[cfg(feature = "std")]
 pub mod alloc {
-  pub use std::vec;
+    pub use std::vec;
 }
 
 pub mod error;

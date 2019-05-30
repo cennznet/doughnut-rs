@@ -12,7 +12,7 @@ default = ["std"]
 std = []
 
 [dependencies]
-hashbrown = { version = "0.3.0", default-features = false }
+hashbrown = { version = "0.3.0", features = ["nightly"] }
 bit_reverse = "0.1.7"
 schnorrkel = "0.1.0"
 parity-codec = { version = "3.5.1", default-features = false}
