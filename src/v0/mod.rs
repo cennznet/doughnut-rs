@@ -5,17 +5,24 @@ use bit_reverse::ParallelReverse;
 use core::ptr;
 use hashbrown::HashMap;
 use parity_codec::Encode;
+
+#[cfg(feature = "std")]
+extern crate std;
+
 #[cfg(feature = "std")]
 use std::fmt;
 
 use crate::alloc::vec::Vec;
 use crate::error::DoughnutErr;
 
+pub mod parity;
+
 const VERSION: u16 = 0;
 const VERSION_MASK: u16 = 0x7FF;
+const SIGNATURE_LENGTH_V0: u16 = 64;
 const WITHOUT_NOT_BEFORE_OFFSET: u8 = 71;
 const WITH_NOT_BEFORE_OFFSET: u8 = 75;
-const SIGNATURE_MASK: u8 = 0x1F;
+const SIGNATURE_MASK: u8 = 0b0001_1111;
 const NOT_BEFORE_MASK: u8 = 0b1000_0000;
 
 #[derive(PartialEq, Eq, Clone)]
@@ -24,7 +31,7 @@ pub struct DoughnutV0<'a>(&'a [u8]);
 
 /// Return the payload version from the given byte slice
 fn payload_version(buf: &[u8]) -> u16 {
-    let payload_version = u16::from_le_bytes([buf[0].swap_bits(), buf[0].swap_bits()]);
+    let payload_version = u16::from_le_bytes([buf[0].swap_bits(), buf[1].swap_bits()]);
     payload_version & VERSION_MASK
 }
 
@@ -35,7 +42,7 @@ fn permission_domain_count(buf: &[u8]) -> u8 {
 
 /// Whether the doughnut has "not before" bit set
 fn has_not_before(buf: &[u8]) -> bool {
-    buf[2] & NOT_BEFORE_MASK == 1
+    (buf[2] & NOT_BEFORE_MASK) == NOT_BEFORE_MASK
 }
 
 #[cfg(feature = "std")]
@@ -79,9 +86,9 @@ impl<'a> DoughnutV0<'a> {
         } else {
             WITHOUT_NOT_BEFORE_OFFSET
         });
-        let permission_domain_length = permission_domain_count(encoded) as u16 * (18 + 1); // + 1 byte per domain expected in payload
-
-        if (encoded.len() as u16) < offset + permission_domain_length + 64 {
+        let minimum_permission_domain_length = permission_domain_count(encoded) as u16 * (18 + 1); // + 1 byte per domain expected in payload
+        let expected_length = offset + minimum_permission_domain_length + SIGNATURE_LENGTH_V0;
+        if (encoded.len() as u16) < expected_length {
             return Err(DoughnutErr::BadEncoding(&"Too short"));
         }
 
@@ -157,7 +164,7 @@ impl<'a> DoughnutV0<'a> {
         };
 
         // Collect all domains
-        let mut domain_offset = offset as u16 + u16::from(self.permission_domain_count() * 18);
+        let mut domain_offset = u16::from(offset) + u16::from(self.permission_domain_count() * 18);
         let mut domains: HashMap<&'a str, &'a [u8]> = HashMap::new();
         for _ in 0..self.permission_domain_count() {
             // 16 bytes per key, 2 bytes for payload length
