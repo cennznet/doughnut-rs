@@ -2,8 +2,10 @@
 //! Doughnut V0 codec (parity)
 //!
 use bit_reverse::ParallelReverse;
+use core::iter::IntoIterator;
 use hashbrown::HashMap;
 use parity_codec::{Decode, Encode, Input};
+use primitive_types::H512;
 
 use crate::alloc::string::{String, ToString};
 use crate::alloc::vec::Vec;
@@ -11,6 +13,7 @@ use crate::alloc::vec::Vec;
 const NOT_BEFORE_MASK: u8 = 0b1000_0000;
 const SIGNATURE_MASK: u8 = 0b0001_1111;
 
+#[derive(Clone, PartialEq, Eq)]
 pub struct DoughnutV0 {
     pub issuer: [u8; 32],
     pub holder: [u8; 32],
@@ -19,7 +22,7 @@ pub struct DoughnutV0 {
     pub payload_version: u16,
     pub signature_version: u8,
     pub domains: HashMap<String, Vec<u8>>,
-    pub signature: [u8; 64],
+    pub signature: H512,
     domain_index: Vec<(String, usize)>, // Maintains order of domain headers/payloads
 }
 
@@ -103,7 +106,7 @@ impl Decode for DoughnutV0 {
             signature_version,
             payload_version,
             domains,
-            signature,
+            signature: H512::from(signature),
             domain_index: q,
         })
     }
@@ -152,7 +155,7 @@ impl Encode for DoughnutV0 {
             buf.extend(payload);
         }
 
-        buf.extend(self.signature.into_iter());
+        buf.extend(self.signature.as_bytes());
 
         buf
     }
