@@ -14,6 +14,7 @@ const NOT_BEFORE_MASK: u8 = 0b1000_0000;
 const SIGNATURE_MASK: u8 = 0b0001_1111;
 
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "std", derive(Debug))]
 pub struct DoughnutV0 {
     pub issuer: [u8; 32],
     pub holder: [u8; 32],
