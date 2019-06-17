@@ -121,7 +121,7 @@ impl Encode for DoughnutV0 {
         payload_version_and_signature_version |= (self.signature_version.swap_bits() as u16) << 8;
         buf.extend(&payload_version_and_signature_version.to_le_bytes());
 
-        let mut domain_count_and_not_before_byte = self.domains.len() as u8;
+        let mut domain_count_and_not_before_byte = ((self.domains.len() as u8) - 1) << 1;
         if self.not_before > 0 {
             domain_count_and_not_before_byte |= NOT_BEFORE_MASK
         }
