@@ -1,5 +1,6 @@
 #![cfg(test)]
 use crate::alloc::vec::Vec;
+use crate::traits::DoughnutApi;
 use crate::v0;
 use parity_codec::{Decode, Encode};
 

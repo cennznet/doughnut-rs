@@ -3,12 +3,14 @@
 //!
 use bit_reverse::ParallelReverse;
 use core::iter::IntoIterator;
+use core::ptr;
 use hashbrown::HashMap;
 use parity_codec::{Decode, Encode, Input};
 use primitive_types::H512;
 
 use crate::alloc::string::{String, ToString};
 use crate::alloc::vec::Vec;
+use crate::traits::DoughnutApi;
 
 const NOT_BEFORE_MASK: u8 = 0b1000_0000;
 const SIGNATURE_MASK: u8 = 0b0001_1111;
@@ -24,7 +26,36 @@ pub struct DoughnutV0 {
     pub signature_version: u8,
     pub domains: HashMap<String, Vec<u8>>,
     pub signature: H512,
-    domain_index: Vec<(String, usize)>, // Maintains order of domain headers/payloads
+    /// Maintains order of domain headers/payloads
+    domain_index: Vec<(String, usize)>,
+}
+
+impl DoughnutApi for DoughnutV0 {
+    type AccountId = [u8; 32];
+    type Timestamp = u32;
+    type Signature = [u8; 64];
+    /// Return the doughnut holder account ID
+    fn holder(&self) -> Self::AccountId {
+        self.holder
+    }
+    /// Return the doughnut issuer account ID
+    fn issuer(&self) -> Self::AccountId {
+        self.issuer
+    }
+    /// Return the doughnut expiry timestamp
+    fn expiry(&self) -> Self::Timestamp {
+        self.expiry
+    }
+    /// Return the doughnut payload bytes
+    fn payload(&self) -> Vec<u8> {
+        let buf = self.encode();
+        buf[..buf.len() - 64].to_vec()
+    }
+    /// Return the doughnut signature bytes
+    fn signature(&self) -> Self::Signature {
+        let buf = self.encode();
+        unsafe { ptr::read(buf[(buf.len() - 64)..].as_ptr() as *const [u8; 64]) }
+    }
 }
 
 impl Decode for DoughnutV0 {

@@ -14,6 +14,7 @@ use std::fmt;
 
 use crate::alloc::vec::Vec;
 use crate::error::DoughnutErr;
+use crate::traits::DoughnutApi;
 
 pub mod parity;
 
@@ -28,6 +29,45 @@ const NOT_BEFORE_MASK: u8 = 0b1000_0000;
 #[derive(PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct DoughnutV0<'a>(&'a [u8]);
+
+impl<'a> DoughnutApi for DoughnutV0<'a> {
+    type AccountId = [u8; 32];
+    type Timestamp = u32;
+    type Signature = [u8; 64];
+
+    /// Returns the doughnut expiry unix timestamp
+    fn expiry(&self) -> Self::Timestamp {
+        let offset = 67;
+        u32::from_le_bytes([
+            self.0[offset].swap_bits(),
+            self.0[offset + 1].swap_bits(),
+            self.0[offset + 2].swap_bits(),
+            self.0[offset + 3].swap_bits(),
+        ])
+    }
+
+    /// Returns the doughnut holder public key
+    fn holder(&self) -> Self::AccountId {
+        let offset = 35;
+        unsafe { ptr::read(self.0[offset..offset + 32].as_ptr() as *const Self::AccountId) }
+    }
+
+    /// Returns the doughnut issuer public key
+    fn issuer(&self) -> Self::AccountId {
+        let offset = 3;
+        unsafe { ptr::read(self.0[offset..offset + 32].as_ptr() as *const Self::AccountId) }
+    }
+
+    ///Returns the doughnut payload (no signature)
+    fn payload(&self) -> Vec<u8> {
+        self.0[..self.0.len() - 64].to_vec()
+    }
+
+    // Returns the doughnut signature
+    fn signature(&self) -> Self::Signature {
+        unsafe { ptr::read(self.0[(self.0.len() - 64)..].as_ptr() as *const [u8; 64]) }
+    }
+}
 
 /// Return the payload version from the given byte slice
 fn payload_version(buf: &[u8]) -> u16 {
@@ -130,29 +170,6 @@ impl<'a> DoughnutV0<'a> {
         }
     }
 
-    /// Returns the doughnut expiry unix timestamp
-    pub fn expiry(&self) -> u32 {
-        let offset = 67;
-        u32::from_le_bytes([
-            self.0[offset].swap_bits(),
-            self.0[offset + 1].swap_bits(),
-            self.0[offset + 2].swap_bits(),
-            self.0[offset + 3].swap_bits(),
-        ])
-    }
-
-    /// Returns the doughnut holder public key
-    pub fn holder(&self) -> [u8; 32] {
-        let offset = 35;
-        unsafe { ptr::read(self.0[offset..offset + 32].as_ptr() as *const [u8; 32]) }
-    }
-
-    /// Returns the doughnut issuer public key
-    pub fn issuer(&self) -> [u8; 32] {
-        let offset = 3;
-        unsafe { ptr::read(self.0[offset..offset + 32].as_ptr() as *const [u8; 32]) }
-    }
-
     /// Returns a mapping from key to payload offset of each domain embedded within this doughnut
     /// The payload offsets are not validated, domain decoders should ensure they check bounds before reading
     pub fn domains(&self) -> HashMap<&'a str, &'a [u8]> {
@@ -186,11 +203,6 @@ impl<'a> DoughnutV0<'a> {
         }
 
         domains
-    }
-
-    /// Return the signature bytes
-    pub fn signature(&self) -> [u8; 64] {
-        unsafe { ptr::read(self.0[(self.0.len() - 64)..].as_ptr() as *const [u8; 64]) }
     }
 }
 
