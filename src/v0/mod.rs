@@ -3,14 +3,10 @@
 //!
 use bit_reverse::ParallelReverse;
 use core::ptr;
-use hashbrown::HashMap;
 use parity_codec::Encode;
 
 #[cfg(feature = "std")]
-extern crate std;
-
-#[cfg(feature = "std")]
-use std::fmt;
+use alloc::fmt;
 
 use crate::alloc::vec::Vec;
 use crate::error::DoughnutErr;
@@ -67,6 +63,40 @@ impl<'a> DoughnutApi for DoughnutV0<'a> {
     fn signature(&self) -> Self::Signature {
         unsafe { ptr::read(self.0[(self.0.len() - 64)..].as_ptr() as *const [u8; 64]) }
     }
+
+    /// Return the payload by `domain` key, if it exists in this doughnut
+    fn get_domain(&self, domain: &str) -> Option<&[u8]> {
+        // Dependent on 'not before' inclusion
+        let mut offset = if self.has_not_before() {
+            WITH_NOT_BEFORE_OFFSET
+        } else {
+            WITHOUT_NOT_BEFORE_OFFSET
+        };
+
+        // Scan domains
+        let mut domain_offset = u16::from(offset) + u16::from(self.permission_domain_count() * 18);
+        for _ in 0..self.permission_domain_count() {
+            // 16 bytes per key, 2 bytes for payload length
+            let domain_len = u16::from_le_bytes([
+                self.0[(offset + 16) as usize].swap_bits(),
+                self.0[(offset + 17) as usize].swap_bits(),
+            ]);
+
+            // TODO: Raise error on invalid UTF-8
+            let key = core::str::from_utf8(&self.0[offset as usize..(offset + 16) as usize])
+                .unwrap_or("<invalid>");
+            let key_clean = key.trim_matches(char::from(0));
+            if domain == key_clean {
+                return Some(
+                    &self.0[domain_offset as usize..(domain_offset + domain_len) as usize],
+                );
+            }
+            offset += 18;
+            domain_offset += domain_len;
+        }
+
+        None
+    }
 }
 
 /// Return the payload version from the given byte slice
@@ -96,7 +126,7 @@ impl<'a> fmt::Display for DoughnutV0<'a> {
              holder: {:?}\
              expiry: {}\
              not before: {}\
-             domains: {:?}\
+             domains: <undefined>\
              signature: {:?}",
             self.signature_version(),
             self.payload_version(),
@@ -104,7 +134,6 @@ impl<'a> fmt::Display for DoughnutV0<'a> {
             self.holder(),
             self.expiry(),
             self.not_before(),
-            self.domains(),
             self.signature().to_vec(),
         )
     }
@@ -168,41 +197,6 @@ impl<'a> DoughnutV0<'a> {
         } else {
             0
         }
-    }
-
-    /// Returns a mapping from key to payload offset of each domain embedded within this doughnut
-    /// The payload offsets are not validated, domain decoders should ensure they check bounds before reading
-    pub fn domains(&self) -> HashMap<&'a str, &'a [u8]> {
-        // Dependent on 'not before' inclusion
-        let mut offset = if self.has_not_before() {
-            WITH_NOT_BEFORE_OFFSET
-        } else {
-            WITHOUT_NOT_BEFORE_OFFSET
-        };
-
-        // Collect all domains
-        let mut domain_offset = u16::from(offset) + u16::from(self.permission_domain_count() * 18);
-        let mut domains: HashMap<&'a str, &'a [u8]> = HashMap::new();
-        for _ in 0..self.permission_domain_count() {
-            // 16 bytes per key, 2 bytes for payload length
-            let domain_len = u16::from_le_bytes([
-                self.0[(offset + 16) as usize].swap_bits(),
-                self.0[(offset + 17) as usize].swap_bits(),
-            ]);
-
-            // TODO: Raise error on invalid UTF-8
-            let key = core::str::from_utf8(&self.0[offset as usize..(offset + 16) as usize])
-                .unwrap_or("<sentinel>");
-            let key_clean = key.trim_matches(char::from(0));
-            domains.insert(
-                key_clean,
-                &self.0[domain_offset as usize..(domain_offset + domain_len) as usize],
-            );
-            offset += 18;
-            domain_offset += domain_len;
-        }
-
-        domains
     }
 }
 
