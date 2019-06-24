@@ -21,6 +21,8 @@ pub trait DoughnutApi {
     fn payload(&self) -> Vec<u8>;
     /// Return the doughnut signature
     fn signature(&self) -> Self::Signature;
+    /// Return the payload for domain, if it exists in the doughnut
+    fn get_domain(&self, domain: &str) -> Option<&[u8]>;
 }
 
 // Dummy implementation for unit type
@@ -42,5 +44,8 @@ impl DoughnutApi for () {
     }
     fn signature(&self) -> Self::Signature {
         ()
+    }
+    fn get_domain(&self, _domain: &str) -> Option<&[u8]> {
+        None
     }
 }

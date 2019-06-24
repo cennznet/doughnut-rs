@@ -1,5 +1,7 @@
 #![cfg(test)]
-use crate::alloc::vec::Vec;
+
+use alloc::vec::Vec;
+
 use crate::traits::DoughnutApi;
 use crate::v0;
 use parity_codec::{Decode, Encode};
@@ -37,10 +39,8 @@ fn it_works_v0() {
             141, 125, 105, 138, 38, 93, 144, 45, 224, 70, 206, 246, 116
         ]
     );
-    assert!(d.domains().contains_key("something"));
-    assert_eq!(d.domains()["something"], [0]);
-    assert!(d.domains().contains_key("somethingElse"));
-    assert_eq!(d.domains()["somethingElse"], [0]);
+    assert_eq!(d.get_domain("something"), Some(&[0u8][..]));
+    assert_eq!(d.get_domain("somethingElse"), Some(&[0u8][..]));
 
     assert_eq!(
         d.signature().to_vec(),
@@ -83,10 +83,8 @@ fn it_works_v0_parity() {
             141, 125, 105, 138, 38, 93, 144, 45, 224, 70, 206, 246, 116
         ]
     );
-    assert!(d.domains.contains_key("something"));
-    assert_eq!(d.domains["something"], [0]);
-    assert!(d.domains.contains_key("somethingElse"));
-    assert_eq!(d.domains["somethingElse"], [0]);
+    assert_eq!(d.get_domain("something"), Some(&[0u8][..]));
+    assert_eq!(d.get_domain("somethingElse"), Some(&[0u8][..]));
     assert_eq!(&d.signature[..], &payload[(payload.len() - 64) as usize..],);
 }
 
