@@ -4,7 +4,6 @@
 use bit_reverse::ParallelReverse;
 use core::iter::IntoIterator;
 use core::ptr;
-use hashbrown::HashMap;
 use parity_codec::{Decode, Encode, Input};
 use primitive_types::H512;
 
@@ -20,14 +19,12 @@ const SIGNATURE_MASK: u8 = 0b0001_1111;
 pub struct DoughnutV0 {
     pub issuer: [u8; 32],
     pub holder: [u8; 32],
+    pub domains: Vec<(String, Vec<u8>)>,
     pub expiry: u32,
     pub not_before: u32,
     pub payload_version: u16,
     pub signature_version: u8,
-    pub domains: HashMap<String, Vec<u8>>,
     pub signature: H512,
-    /// Maintains order of domain headers/payloads
-    domain_index: Vec<(String, usize)>,
 }
 
 impl DoughnutApi for DoughnutV0 {
@@ -55,6 +52,15 @@ impl DoughnutApi for DoughnutV0 {
     fn signature(&self) -> Self::Signature {
         let buf = self.encode();
         unsafe { ptr::read(buf[(buf.len() - 64)..].as_ptr() as *const [u8; 64]) }
+    }
+    /// Return the payload by `domain` key, if it exists in this doughnut
+    fn get_domain(&self, domain: &str) -> Option<&[u8]> {
+        for (key, payload) in self.domains.iter() {
+            if key == domain {
+                return Some(&payload);
+            }
+        }
+        None
     }
 }
 
@@ -96,8 +102,8 @@ impl Decode for DoughnutV0 {
             0
         };
 
-        // Build permissions/domains map
-        let mut domains: HashMap<String, Vec<u8>> = HashMap::new();
+        // Build domain permissions list
+        let mut domains: Vec<(String, Vec<u8>)> = Default::default();
         // A queue for domain keys and lengths from the domains header section
         // We use this to order later reads from the domain payload section since we
         // are restricted by `input` to read the payload byte-by-byte
@@ -118,13 +124,13 @@ impl Decode for DoughnutV0 {
             q.push((key, payload_length as usize));
         }
 
-        for (key, payload_length) in q.iter() {
-            let mut payload = Vec::with_capacity(*payload_length);
+        for (key, payload_length) in q.into_iter() {
+            let mut payload = Vec::with_capacity(payload_length);
             unsafe {
-                payload.set_len(*payload_length);
+                payload.set_len(payload_length);
             }
             let _ = input.read(&mut payload);
-            domains.insert(key.clone(), payload);
+            domains.push((key, payload));
         }
 
         let mut signature = [0u8; 64];
@@ -139,7 +145,6 @@ impl Decode for DoughnutV0 {
             payload_version,
             domains,
             signature: H512::from(signature),
-            domain_index: q,
         })
     }
 }
@@ -170,20 +175,20 @@ impl Encode for DoughnutV0 {
             }
         }
 
-        // We don't use `self.domains` as insertion order is not guaranteed
-        for (key, payload_len) in self.domain_index.iter() {
+        // Write permission domain headers
+        for (key, payload) in self.domains.iter() {
             let mut key_buf = [0u8; 16];
             for i in 0..key.len() {
                 key_buf[i] = key.as_bytes()[i];
             }
             buf.extend(&key_buf);
-            for b in (*payload_len as u16).to_le_bytes().iter() {
+            for b in (payload.len() as u16).to_le_bytes().iter() {
                 buf.push(b.swap_bits());
             }
         }
 
-        for (key, _) in self.domain_index.iter() {
-            let payload = self.domains.get(key).expect("It should be a valid key");
+        // Write permission domain payloads
+        for (_, payload) in self.domains.iter() {
             buf.extend(payload);
         }
 
