@@ -1,7 +1,7 @@
 //!
 //! Doughnut traits
 //!
-use alloc::vec::Vec;
+use crate::alloc::vec::Vec;
 
 /// A stable API trait to expose doughnut impl data
 pub trait DoughnutApi {
