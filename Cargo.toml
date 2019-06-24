@@ -1,11 +1,11 @@
 [package]
 name = "doughnut_rs"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Centrality Developers <developers@centrality.ai>"]
 edition = "2018"
 
 [dependencies]
-hashbrown = { version = "0.1.8", features = ["nightly"] }
+hashbrown = { version = "0.1.8" }
 bit_reverse = { version = "0.1.7", default-features = false }
 parity-codec = { version = "3.5.1", default-features = false }
 primitive-types = { version = "0.2.1", default-features = false }
@@ -13,3 +13,6 @@ primitive-types = { version = "0.2.1", default-features = false }
 [features]
 default = ["std"]
 std = []
+core = [
+  "hashbrown/nightly",
+]

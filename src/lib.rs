@@ -2,7 +2,7 @@
 #![feature(alloc)]
 #![feature(raw)]
 
-#[macro_use]
+#[cfg_attr(test, macro_use)]
 extern crate alloc;
 
 pub mod error;
