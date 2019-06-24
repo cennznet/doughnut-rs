@@ -16,9 +16,8 @@
 //!
 use bit_reverse::ParallelReverse;
 use core::iter::IntoIterator;
-use core::ptr;
-use parity_codec::{Decode, Encode, Input};
-use primitive_types::H512;
+use parity_codec::{Decode, Encode, Input, Output};
+use primitive_types::{H256, H512};
 
 use crate::alloc::string::{String, ToString};
 use crate::alloc::vec::Vec;
@@ -30,8 +29,8 @@ const SIGNATURE_MASK: u8 = 0b0001_1111;
 #[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct DoughnutV0 {
-    pub issuer: [u8; 32],
-    pub holder: [u8; 32],
+    pub issuer: H256,
+    pub holder: H256,
     pub domains: Vec<(String, Vec<u8>)>,
     pub expiry: u32,
     pub not_before: u32,
@@ -41,9 +40,9 @@ pub struct DoughnutV0 {
 }
 
 impl DoughnutApi for DoughnutV0 {
-    type AccountId = [u8; 32];
+    type AccountId = H256;
     type Timestamp = u32;
-    type Signature = [u8; 64];
+    type Signature = H512;
     /// Return the doughnut holder account ID
     fn holder(&self) -> Self::AccountId {
         self.holder
@@ -63,8 +62,7 @@ impl DoughnutApi for DoughnutV0 {
     }
     /// Return the doughnut signature bytes
     fn signature(&self) -> Self::Signature {
-        let buf = self.encode();
-        unsafe { ptr::read(buf[(buf.len() - 64)..].as_ptr() as *const [u8; 64]) }
+        self.signature
     }
     /// Return the payload by `domain` key, if it exists in this doughnut
     fn get_domain(&self, domain: &str) -> Option<&[u8]> {
@@ -150,8 +148,8 @@ impl Decode for DoughnutV0 {
         let _ = input.read(&mut signature);
 
         Some(DoughnutV0 {
-            holder,
-            issuer,
+            holder: H256::from(holder),
+            issuer: H256::from(issuer),
             expiry,
             not_before,
             signature_version,
@@ -163,28 +161,26 @@ impl Decode for DoughnutV0 {
 }
 
 impl Encode for DoughnutV0 {
-    fn encode(&self) -> Vec<u8> {
-        let mut buf: Vec<u8> = Default::default();
-
+    fn encode_to<T: Output>(&self, dest: &mut T) {
         let mut payload_version_and_signature_version = self.payload_version.swap_bits();
         payload_version_and_signature_version |= (self.signature_version.swap_bits() as u16) << 8;
-        buf.extend(&payload_version_and_signature_version.to_le_bytes());
+        dest.write(&payload_version_and_signature_version.to_le_bytes());
 
         let mut domain_count_and_not_before_byte = ((self.domains.len() as u8) - 1) << 1;
         if self.not_before > 0 {
             domain_count_and_not_before_byte |= NOT_BEFORE_MASK
         }
-        buf.push(domain_count_and_not_before_byte.swap_bits());
-        buf.extend(&self.issuer);
-        buf.extend(&self.holder);
+        dest.push_byte(domain_count_and_not_before_byte.swap_bits());
+        dest.write(self.issuer.as_bytes());
+        dest.write(self.holder.as_bytes());
 
         for b in self.expiry.to_le_bytes().into_iter() {
-            buf.push(b.swap_bits());
+            dest.push_byte(b.swap_bits());
         }
 
         if self.not_before > 0 {
             for b in self.not_before.to_le_bytes().into_iter() {
-                buf.push(b.swap_bits());
+                dest.push_byte(b.swap_bits());
             }
         }
 
@@ -194,19 +190,17 @@ impl Encode for DoughnutV0 {
             for i in 0..key.len() {
                 key_buf[i] = key.as_bytes()[i];
             }
-            buf.extend(&key_buf);
+            dest.write(&key_buf);
             for b in (payload.len() as u16).to_le_bytes().iter() {
-                buf.push(b.swap_bits());
+                dest.push_byte(b.swap_bits());
             }
         }
 
         // Write permission domain payloads
         for (_, payload) in self.domains.iter() {
-            buf.extend(payload);
+            dest.write(payload);
         }
 
-        buf.extend(self.signature.as_bytes());
-
-        buf
+        dest.write(self.signature.as_bytes());
     }
 }
