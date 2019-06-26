@@ -64,6 +64,10 @@ impl DoughnutApi for DoughnutV0 {
     fn signature(&self) -> Self::Signature {
         self.signature
     }
+    /// Return the doughnut signature version
+    fn signature_version(&self) -> u8 {
+        self.signature_version
+    }
     /// Return the payload by `domain` key, if it exists in this doughnut
     fn get_domain(&self, domain: &str) -> Option<&[u8]> {
         for (key, payload) in self.domains.iter() {
@@ -82,7 +86,7 @@ impl Decode for DoughnutV0 {
 
         let payload_version = u16::from_le_bytes([payload_byte_0, payload_byte_1 & 0b1110_0000]);
 
-        let signature_version = payload_byte_1 & SIGNATURE_MASK;
+        let signature_version = (payload_byte_1 & SIGNATURE_MASK) >> 3;
 
         let domain_count_and_not_before_byte = input.read_byte()?;
         let permission_domain_count = (domain_count_and_not_before_byte << 1).swap_bits() + 1;
@@ -163,7 +167,7 @@ impl Decode for DoughnutV0 {
 impl Encode for DoughnutV0 {
     fn encode_to<T: Output>(&self, dest: &mut T) {
         let mut payload_version_and_signature_version = self.payload_version.swap_bits();
-        payload_version_and_signature_version |= (self.signature_version.swap_bits() as u16) << 8;
+        payload_version_and_signature_version |= ((self.signature_version as u16) << 3).swap_bits();
         dest.write(&payload_version_and_signature_version.to_le_bytes());
 
         let mut domain_count_and_not_before_byte = ((self.domains.len() as u8) - 1) << 1;

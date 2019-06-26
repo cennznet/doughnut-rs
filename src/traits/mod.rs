@@ -15,6 +15,7 @@
 //! Doughnut traits
 //!
 use crate::alloc::vec::Vec;
+mod impls;
 
 /// A stable API trait to expose doughnut impl data
 pub trait DoughnutApi {
@@ -34,31 +35,14 @@ pub trait DoughnutApi {
     fn payload(&self) -> Vec<u8>;
     /// Return the doughnut signature
     fn signature(&self) -> Self::Signature;
+    /// Return the doughnut signature version
+    fn signature_version(&self) -> u8;
     /// Return the payload for domain, if it exists in the doughnut
     fn get_domain(&self, domain: &str) -> Option<&[u8]>;
 }
 
-// Dummy implementation for unit type
-impl DoughnutApi for () {
-    type AccountId = ();
-    type Timestamp = ();
-    type Signature = ();
-    fn holder(&self) -> Self::AccountId {
-        ()
-    }
-    fn issuer(&self) -> Self::AccountId {
-        ()
-    }
-    fn expiry(&self) -> Self::AccountId {
-        ()
-    }
-    fn payload(&self) -> Vec<u8> {
-        Default::default()
-    }
-    fn signature(&self) -> Self::Signature {
-        ()
-    }
-    fn get_domain(&self, _domain: &str) -> Option<&[u8]> {
-        None
-    }
+/// Provide doughnut signature checks
+pub trait DoughnutVerify {
+    /// Verify the doughnut signature, return whether it is valid or not
+    fn verify(&self) -> bool;
 }

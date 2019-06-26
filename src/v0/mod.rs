@@ -77,6 +77,11 @@ impl<'a> DoughnutApi for DoughnutV0<'a> {
         unsafe { ptr::read(self.0[(self.0.len() - 64)..].as_ptr() as *const [u8; 64]) }
     }
 
+    /// Returns the doughnut signature scheme version
+    fn signature_version(&self) -> u8 {
+        self.0[1].swap_bits() & SIGNATURE_MASK
+    }
+
     /// Return the payload by `domain` key, if it exists in this doughnut
     fn get_domain(&self, domain: &str) -> Option<&[u8]> {
         // Dependent on 'not before' inclusion
@@ -180,11 +185,6 @@ impl<'a> DoughnutV0<'a> {
     /// Returns the doughnut payload version
     pub fn payload_version(&self) -> u16 {
         payload_version(self.0)
-    }
-
-    /// Returns the doughnut signature scheme version
-    pub fn signature_version(&self) -> u8 {
-        self.0[1].swap_bits() & SIGNATURE_MASK
     }
 
     /// Returns the doughnut "permission domain count"
