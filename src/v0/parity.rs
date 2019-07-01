@@ -39,10 +39,20 @@ pub struct DoughnutV0 {
     pub signature: H512,
 }
 
+/// A 512-bit signature type
+/// It wraps `[u8; 64]` with some useful conversion traits for Shim targeted at substrate. 
+pub struct Signature([u8; 64]);
+
+impl AsRef<[u8]> for Signature {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
 impl DoughnutApi for DoughnutV0 {
     type AccountId = H256;
     type Timestamp = u32;
-    type Signature = H512;
+    type Signature = Signature;
     /// Return the doughnut holder account ID
     fn holder(&self) -> Self::AccountId {
         self.holder
@@ -62,7 +72,7 @@ impl DoughnutApi for DoughnutV0 {
     }
     /// Return the doughnut signature bytes
     fn signature(&self) -> Self::Signature {
-        self.signature
+        Signature(self.signature.into())
     }
     /// Return the payload by `domain` key, if it exists in this doughnut
     fn get_domain(&self, domain: &str) -> Option<&[u8]> {
