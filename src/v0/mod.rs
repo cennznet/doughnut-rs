@@ -13,6 +13,7 @@
 // limitations under the License.
 //!
 //! Doughnut V0 codec
+//! This codec operates on a valid byte slice, lazy-ily decoding parts when required.
 //!
 use bit_reverse::ParallelReverse;
 use core::ptr;

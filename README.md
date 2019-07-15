@@ -6,7 +6,7 @@ Currently compliant with version 0 spec.
 use doughnut_rs::v0::DoughnutV0;
 
 let encoded_doughnut = vec![ <some bytes> ];
-let doughnut = DoughnutV0::new(&encodec_doughnut)?;
+let doughnut = DoughnutV0::new(&encoded_doughnut)?;
 ```
 
 Query permission domains

@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //!
-//! Doughnut V0 codec (parity)
+//! Doughnut V0 codec
+//! This version is for interoperability within the substrate extrinsic environment.
+//! It uses the `parity_codec` crate to consume a contiguous stream of bytes, without any look-ahead.
+//! It however, does not use the SCALE codec.
 //!
 use bit_reverse::ParallelReverse;
 use core::iter::IntoIterator;
@@ -40,7 +43,7 @@ pub struct DoughnutV0 {
 }
 
 /// A 512-bit signature type
-/// It wraps `[u8; 64]` with some useful conversion traits for Shim targeted at substrate. 
+/// It wraps `[u8; 64]` with some useful conversion traits for Shim targeted at substrate.
 pub struct Signature([u8; 64]);
 
 impl AsRef<[u8]> for Signature {
@@ -68,6 +71,7 @@ impl DoughnutApi for DoughnutV0 {
     /// Return the doughnut payload bytes
     fn payload(&self) -> Vec<u8> {
         let buf = self.encode();
+        // TODO: Fix this. We encode signature bytes and then discard them
         buf[..buf.len() - 64].to_vec()
     }
     /// Return the doughnut signature bytes
