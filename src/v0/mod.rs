@@ -23,7 +23,7 @@ use parity_codec::Encode;
 use alloc::fmt;
 
 use crate::alloc::vec::Vec;
-use crate::error::DoughnutErr;
+use crate::error::{CodecError, ValidationError};
 use crate::traits::DoughnutApi;
 
 pub mod parity;
@@ -41,7 +41,7 @@ const NOT_BEFORE_MASK: u8 = 0b1000_0000;
 pub struct DoughnutV0<'a>(&'a [u8]);
 
 impl<'a> DoughnutApi for DoughnutV0<'a> {
-    type AccountId = [u8; 32];
+    type PublicKey = [u8; 32];
     type Timestamp = u32;
     type Signature = [u8; 64];
 
@@ -57,15 +57,15 @@ impl<'a> DoughnutApi for DoughnutV0<'a> {
     }
 
     /// Returns the doughnut holder public key
-    fn holder(&self) -> Self::AccountId {
+    fn holder(&self) -> Self::PublicKey {
         let offset = 35;
-        unsafe { ptr::read(self.0[offset..offset + 32].as_ptr() as *const Self::AccountId) }
+        unsafe { ptr::read(self.0[offset..offset + 32].as_ptr() as *const Self::PublicKey) }
     }
 
     /// Returns the doughnut issuer public key
-    fn issuer(&self) -> Self::AccountId {
+    fn issuer(&self) -> Self::PublicKey {
         let offset = 3;
-        unsafe { ptr::read(self.0[offset..offset + 32].as_ptr() as *const Self::AccountId) }
+        unsafe { ptr::read(self.0[offset..offset + 32].as_ptr() as *const Self::PublicKey) }
     }
 
     ///Returns the doughnut payload (no signature)
@@ -116,6 +116,17 @@ impl<'a> DoughnutApi for DoughnutV0<'a> {
 
         None
     }
+
+    /// Validate the doughnut is usable by a public key (`who`) at the current timestamp (`now`)
+    fn validate(&self, who: Self::PublicKey, now: Self::Timestamp) -> Result<(), ValidationError> {
+        if who != self.holder() {
+            return Err(ValidationError::HolderIdentityMismatched);
+        }
+        if now >= self.expiry() {
+            return Err(ValidationError::Expired);
+        }
+        Ok(())
+    }
 }
 
 /// Return the payload version from the given byte slice
@@ -161,12 +172,12 @@ impl<'a> fmt::Display for DoughnutV0<'a> {
 impl<'a> DoughnutV0<'a> {
     /// Create a new v0 Doughnut from encoded bytes verifying it's correctness.
     /// Returns an error if encoding is invalid
-    pub fn new(encoded: &'a [u8]) -> Result<Self, DoughnutErr<'a>> {
+    pub fn new(encoded: &'a [u8]) -> Result<Self, CodecError<'a>> {
         if encoded.len() < 2 {
-            return Err(DoughnutErr::BadEncoding(&"Missing header"));
+            return Err(CodecError::BadEncoding(&"Missing header"));
         }
         if payload_version(encoded) != VERSION {
-            return Err(DoughnutErr::UnsupportedVersion);
+            return Err(CodecError::UnsupportedVersion);
         }
 
         let offset = u16::from(if has_not_before(encoded) {
@@ -177,7 +188,7 @@ impl<'a> DoughnutV0<'a> {
         let minimum_permission_domain_length = permission_domain_count(encoded) as u16 * (18 + 1); // + 1 byte per domain expected in payload
         let expected_length = offset + minimum_permission_domain_length + SIGNATURE_LENGTH_V0;
         if (encoded.len() as u16) < expected_length {
-            return Err(DoughnutErr::BadEncoding(&"Too short"));
+            return Err(CodecError::BadEncoding(&"Too short"));
         }
 
         Ok(DoughnutV0(encoded))
@@ -218,5 +229,90 @@ impl<'a> Encode for DoughnutV0<'a> {
     /// Convert self to an owned vector.
     fn encode(&self) -> Vec<u8> {
         self.0.to_vec()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::{DoughnutV0 as Doughnut, ValidationError};
+    use crate::traits::DoughnutApi;
+    use crate::v0::parity::DoughnutV0;
+    use parity_codec::Encode;
+    use primitive_types::H256;
+    use std::ops::Add;
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+    // Make a unix timestamp `when` seconds from the invocation
+    fn make_unix_timestamp(when: u64) -> u32 {
+        SystemTime::now()
+            .add(Duration::from_secs(when))
+            .duration_since(UNIX_EPOCH)
+            .expect("it works")
+            .as_millis() as u32
+    }
+
+    #[test]
+    fn it_is_a_valid_usage() {
+        let holder = H256::from([1u8; 32]);
+        // NOTE: We use parity version to create the test doughnut since this module's version is just a bytes window
+        let _doughnut = DoughnutV0 {
+            issuer: H256::from([0u8; 32]),
+            holder,
+            domains: vec![("test".to_string(), vec![0])],
+            expiry: make_unix_timestamp(10),
+            not_before: 0,
+            payload_version: 0,
+            signature_version: 0,
+            signature: Default::default(), // No need to check signature here
+        };
+        let encoded = _doughnut.encode();
+        let doughnut = Doughnut::new(&encoded).unwrap();
+
+        assert!(doughnut
+            .validate(holder.into(), make_unix_timestamp(0))
+            .is_ok())
+    }
+    #[test]
+    fn usage_after_expiry_is_invalid() {
+        let holder = H256::from([1u8; 32]);
+        let _doughnut = DoughnutV0 {
+            issuer: H256::from([0u8; 32]),
+            holder,
+            domains: vec![("test".to_string(), vec![0])],
+            expiry: make_unix_timestamp(0),
+            not_before: 0,
+            payload_version: 0,
+            signature_version: 0,
+            signature: Default::default(), // No need to check signature here
+        };
+        let encoded = _doughnut.encode();
+        let doughnut = Doughnut::new(&encoded).unwrap();
+
+        assert_eq!(
+            doughnut.validate(holder.into(), make_unix_timestamp(5)),
+            Err(ValidationError::Expired)
+        )
+    }
+    #[test]
+    fn usage_by_non_holder_is_invalid() {
+        let holder = H256::from([1u8; 32]);
+        let _doughnut = DoughnutV0 {
+            issuer: H256::from([0u8; 32]),
+            holder,
+            domains: vec![("test".to_string(), vec![0])],
+            expiry: make_unix_timestamp(10),
+            not_before: 0,
+            payload_version: 0,
+            signature_version: 0,
+            signature: Default::default(), // No need to check signature here
+        };
+        let encoded = _doughnut.encode();
+        let doughnut = Doughnut::new(&encoded).unwrap();
+
+        let not_the_holder = H256::from([2u8; 32]);
+        assert_eq!(
+            doughnut.validate(not_the_holder.into(), make_unix_timestamp(0)),
+            Err(ValidationError::HolderIdentityMismatched)
+        )
     }
 }

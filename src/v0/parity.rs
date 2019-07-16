@@ -24,6 +24,7 @@ use primitive_types::{H256, H512};
 
 use crate::alloc::string::{String, ToString};
 use crate::alloc::vec::Vec;
+use crate::error::ValidationError;
 use crate::traits::DoughnutApi;
 
 const NOT_BEFORE_MASK: u8 = 0b1000_0000;
@@ -53,15 +54,15 @@ impl AsRef<[u8]> for Signature {
 }
 
 impl DoughnutApi for DoughnutV0 {
-    type AccountId = H256;
+    type PublicKey = H256;
     type Timestamp = u32;
     type Signature = Signature;
     /// Return the doughnut holder account ID
-    fn holder(&self) -> Self::AccountId {
+    fn holder(&self) -> Self::PublicKey {
         self.holder
     }
     /// Return the doughnut issuer account ID
-    fn issuer(&self) -> Self::AccountId {
+    fn issuer(&self) -> Self::PublicKey {
         self.issuer
     }
     /// Return the doughnut expiry timestamp
@@ -90,6 +91,16 @@ impl DoughnutApi for DoughnutV0 {
             }
         }
         None
+    }
+    /// Validate the doughnut is usable by a public key (`who`) at the current timestamp (`now`)
+    fn validate(&self, who: Self::PublicKey, now: Self::Timestamp) -> Result<(), ValidationError> {
+        if who != self.holder() {
+            return Err(ValidationError::HolderIdentityMismatched);
+        }
+        if now >= self.expiry() {
+            return Err(ValidationError::Expired);
+        }
+        Ok(())
     }
 }
 
@@ -220,5 +231,77 @@ impl Encode for DoughnutV0 {
         }
 
         dest.write(self.signature.as_bytes());
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::ops::Add;
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+    // Make a unix timestamp `when` seconds from the invocation
+    fn make_unix_timestamp(when: u64) -> u32 {
+        SystemTime::now()
+            .add(Duration::from_secs(when))
+            .duration_since(UNIX_EPOCH)
+            .expect("it works")
+            .as_millis() as u32
+    }
+
+    #[test]
+    fn it_is_a_valid_usage() {
+        let holder = H256::from([1u8; 32]);
+        let doughnut = DoughnutV0 {
+            issuer: H256::from([0u8; 32]),
+            holder,
+            domains: Default::default(),
+            expiry: make_unix_timestamp(10),
+            not_before: 0,
+            payload_version: 0,
+            signature_version: 0,
+            signature: Default::default(), // No need to check signature here
+        };
+
+        assert!(doughnut.validate(holder, make_unix_timestamp(0)).is_ok())
+    }
+    #[test]
+    fn usage_after_expiry_is_invalid() {
+        let holder = H256::from([1u8; 32]);
+        let doughnut = DoughnutV0 {
+            issuer: H256::from([0u8; 32]),
+            holder,
+            domains: Default::default(),
+            expiry: make_unix_timestamp(0),
+            not_before: 0,
+            payload_version: 0,
+            signature_version: 0,
+            signature: Default::default(), // No need to check signature here
+        };
+
+        assert_eq!(
+            doughnut.validate(holder, make_unix_timestamp(5)),
+            Err(ValidationError::Expired)
+        )
+    }
+    #[test]
+    fn usage_by_non_holder_is_invalid() {
+        let holder = H256::from([1u8; 32]);
+        let doughnut = DoughnutV0 {
+            issuer: H256::from([0u8; 32]),
+            holder,
+            domains: Default::default(),
+            expiry: make_unix_timestamp(10),
+            not_before: 0,
+            payload_version: 0,
+            signature_version: 0,
+            signature: Default::default(), // No need to check signature here
+        };
+
+        let not_the_holder = H256::from([2u8; 32]);
+        assert_eq!(
+            doughnut.validate(not_the_holder, make_unix_timestamp(0)),
+            Err(ValidationError::HolderIdentityMismatched)
+        )
     }
 }

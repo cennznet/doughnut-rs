@@ -3,6 +3,7 @@
 //!
 use super::{DoughnutApi, DoughnutVerify};
 use crate::alloc::vec::Vec;
+use crate::error::ValidationError;
 #[cfg(feature = "std")]
 use ed25519_dalek::{PublicKey as Ed25519Pub, Signature as Ed25519Sig};
 #[cfg(feature = "std")]
@@ -11,7 +12,7 @@ use schnorrkel::{signing_context, PublicKey as Sr25519Pub, Signature as Sr25519S
 #[cfg(feature = "std")]
 impl<T: DoughnutApi> DoughnutVerify for T
 where
-    <T as DoughnutApi>::AccountId: AsRef<[u8]>,
+    <T as DoughnutApi>::PublicKey: AsRef<[u8]>,
     <T as DoughnutApi>::Signature: AsRef<[u8]>,
 {
     fn verify(&self) -> bool {
@@ -55,16 +56,16 @@ where
 
 // Dummy implementation for unit type
 impl DoughnutApi for () {
-    type AccountId = ();
+    type PublicKey = ();
     type Timestamp = ();
     type Signature = ();
-    fn holder(&self) -> Self::AccountId {
+    fn holder(&self) -> Self::PublicKey {
         ()
     }
-    fn issuer(&self) -> Self::AccountId {
+    fn issuer(&self) -> Self::PublicKey {
         ()
     }
-    fn expiry(&self) -> Self::AccountId {
+    fn expiry(&self) -> Self::PublicKey {
         ()
     }
     fn payload(&self) -> Vec<u8> {
@@ -78,6 +79,13 @@ impl DoughnutApi for () {
     }
     fn get_domain(&self, _domain: &str) -> Option<&[u8]> {
         None
+    }
+    fn validate(
+        &self,
+        _who: Self::PublicKey,
+        _now: Self::Timestamp,
+    ) -> Result<(), ValidationError> {
+        Ok(())
     }
 }
 

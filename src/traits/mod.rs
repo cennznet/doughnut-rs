@@ -15,20 +15,21 @@
 //! Doughnut traits
 //!
 use crate::alloc::vec::Vec;
+use crate::error::ValidationError;
 mod impls;
 
 /// A stable API trait to expose doughnut impl data
 pub trait DoughnutApi {
-    /// The holder and issuer account id type
-    type AccountId;
+    /// The holder and issuer public key type
+    type PublicKey;
     /// The expiry timestamp type
     type Timestamp;
     /// The signature type
     type Signature;
     /// Return the doughnut holder
-    fn holder(&self) -> Self::AccountId;
+    fn holder(&self) -> Self::PublicKey;
     /// Return the doughnut issuer
-    fn issuer(&self) -> Self::AccountId;
+    fn issuer(&self) -> Self::PublicKey;
     /// Return the doughnut expiry timestamp
     fn expiry(&self) -> Self::Timestamp;
     /// Return the doughnut payload bytes
@@ -39,6 +40,8 @@ pub trait DoughnutApi {
     fn signature_version(&self) -> u8;
     /// Return the payload for domain, if it exists in the doughnut
     fn get_domain(&self, domain: &str) -> Option<&[u8]>;
+    /// Validate the doughnut is usable by a public key (`who`) at the current timestamp (`now`)
+    fn validate(&self, who: Self::PublicKey, now: Self::Timestamp) -> Result<(), ValidationError>;
 }
 
 /// Provide doughnut signature checks
