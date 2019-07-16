@@ -1,6 +1,10 @@
 [package]
 name = "doughnut_rs"
+<<<<<<< HEAD
 version = "0.2.0"
+=======
+version = "0.1.6"
+>>>>>>> Add DoughnutVerify trait for signature checks (#12)
 authors = ["Centrality Developers <developers@centrality.ai>"]
 edition = "2018"
 
