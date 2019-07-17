@@ -99,6 +99,7 @@ fn it_works_v0_parity() {
     assert_eq!(d.get_domain("something"), Some(&[0u8][..]));
     assert_eq!(d.get_domain("somethingElse"), Some(&[0u8][..]));
     assert_eq!(&d.signature[..], &payload[(payload.len() - 64) as usize..],);
+    assert_eq!(d.encode(), payload);
 }
 
 #[test]

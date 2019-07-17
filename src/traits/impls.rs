@@ -68,6 +68,9 @@ impl DoughnutApi for () {
     fn expiry(&self) -> Self::PublicKey {
         ()
     }
+    fn not_before(&self) -> Self::Timestamp {
+        ()
+    }
     fn payload(&self) -> Vec<u8> {
         Default::default()
     }

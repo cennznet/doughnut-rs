@@ -30,4 +30,6 @@ pub enum ValidationError {
     HolderIdentityMismatched,
     /// The doughnut has expired against the current timestamp
     Expired,
+    ///Doughnut use precedes it's 'not before' timestamp, thus it has not matured yet.
+    Premature,
 }

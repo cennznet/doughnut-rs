@@ -32,6 +32,8 @@ pub trait DoughnutApi {
     fn issuer(&self) -> Self::PublicKey;
     /// Return the doughnut expiry timestamp
     fn expiry(&self) -> Self::Timestamp;
+    /// Return the doughnut 'not before' timestamp
+    fn not_before(&self) -> Self::Timestamp;
     /// Return the doughnut payload bytes
     fn payload(&self) -> Vec<u8>;
     /// Return the doughnut signature

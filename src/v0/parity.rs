@@ -69,6 +69,10 @@ impl DoughnutApi for DoughnutV0 {
     fn expiry(&self) -> Self::Timestamp {
         self.expiry
     }
+    /// Return the doughnut 'not before' timestamp
+    fn not_before(&self) -> Self::Timestamp {
+        self.not_before
+    }
     /// Return the doughnut payload bytes
     fn payload(&self) -> Vec<u8> {
         let buf = self.encode();
@@ -97,6 +101,9 @@ impl DoughnutApi for DoughnutV0 {
         if who != self.holder() {
             return Err(ValidationError::HolderIdentityMismatched);
         }
+        if now < self.not_before() {
+            return Err(ValidationError::Premature);
+        }
         if now >= self.expiry() {
             return Err(ValidationError::Expired);
         }
@@ -114,7 +121,7 @@ impl Decode for DoughnutV0 {
         let signature_version = (payload_byte_1 & SIGNATURE_MASK) >> 3;
 
         let domain_count_and_not_before_byte = input.read_byte()?;
-        let permission_domain_count = (domain_count_and_not_before_byte << 1).swap_bits() + 1;
+        let permission_domain_count = (domain_count_and_not_before_byte.swap_bits() >> 1) + 1;
         let has_not_before =
             (domain_count_and_not_before_byte & NOT_BEFORE_MASK) == NOT_BEFORE_MASK;
 
@@ -195,11 +202,12 @@ impl Encode for DoughnutV0 {
         payload_version_and_signature_version |= ((self.signature_version as u16) << 3).swap_bits();
         dest.write(&payload_version_and_signature_version.to_le_bytes());
 
-        let mut domain_count_and_not_before_byte = ((self.domains.len() as u8) - 1) << 1;
+        let mut domain_count_and_not_before_byte =
+            (((self.domains.len() as u8) - 1) << 1).swap_bits();
         if self.not_before > 0 {
-            domain_count_and_not_before_byte |= NOT_BEFORE_MASK
+            domain_count_and_not_before_byte |= NOT_BEFORE_MASK;
         }
-        dest.push_byte(domain_count_and_not_before_byte.swap_bits());
+        dest.push_byte(domain_count_and_not_before_byte);
         dest.write(self.issuer.as_bytes());
         dest.write(self.holder.as_bytes());
 
@@ -241,9 +249,9 @@ mod test {
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     // Make a unix timestamp `when` seconds from the invocation
-    fn make_unix_timestamp(when: u64) -> u32 {
+    fn make_unix_timestamp(seconds: u64) -> u32 {
         SystemTime::now()
-            .add(Duration::from_secs(when))
+            .add(Duration::from_secs(seconds))
             .duration_since(UNIX_EPOCH)
             .expect("it works")
             .as_millis() as u32
@@ -302,6 +310,25 @@ mod test {
         assert_eq!(
             doughnut.validate(not_the_holder, make_unix_timestamp(0)),
             Err(ValidationError::HolderIdentityMismatched)
+        )
+    }
+    #[test]
+    fn usage_preceeding_not_before_is_invalid() {
+        let holder = H256::from([1u8; 32]);
+        let doughnut = DoughnutV0 {
+            issuer: H256::from([0u8; 32]),
+            holder,
+            domains: Default::default(),
+            expiry: make_unix_timestamp(12),
+            not_before: make_unix_timestamp(10),
+            payload_version: 0,
+            signature_version: 0,
+            signature: Default::default(), // No need to check signature here
+        };
+
+        assert_eq!(
+            doughnut.validate(holder, make_unix_timestamp(0)),
+            Err(ValidationError::Premature)
         )
     }
 }
