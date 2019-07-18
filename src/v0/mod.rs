@@ -133,8 +133,8 @@ impl<'a> DoughnutApi for DoughnutV0<'a> {
     }
 
     /// Validate the doughnut is usable by a public key (`who`) at the current timestamp (`now`)
-    fn validate(&self, who: Self::PublicKey, now: Self::Timestamp) -> Result<(), ValidationError> {
-        if who != self.holder() {
+    fn validate(&self, who: &Self::PublicKey, now: Self::Timestamp) -> Result<(), ValidationError> {
+        if who != &self.holder() {
             return Err(ValidationError::HolderIdentityMismatched);
         }
         if now < self.not_before() {
@@ -275,7 +275,7 @@ mod test {
         let doughnut = Doughnut::new(&encoded).unwrap();
 
         assert!(doughnut
-            .validate(holder.into(), make_unix_timestamp(0))
+            .validate(&holder.into(), make_unix_timestamp(0))
             .is_ok())
     }
     #[test]
@@ -295,7 +295,7 @@ mod test {
         let doughnut = Doughnut::new(&encoded).unwrap();
 
         assert_eq!(
-            doughnut.validate(holder.into(), make_unix_timestamp(5)),
+            doughnut.validate(&holder.into(), make_unix_timestamp(5)),
             Err(ValidationError::Expired)
         )
     }
@@ -317,7 +317,7 @@ mod test {
 
         let not_the_holder = H256::from([2u8; 32]);
         assert_eq!(
-            doughnut.validate(not_the_holder.into(), make_unix_timestamp(0)),
+            doughnut.validate(&not_the_holder.into(), make_unix_timestamp(0)),
             Err(ValidationError::HolderIdentityMismatched)
         )
     }
@@ -338,7 +338,7 @@ mod test {
         let doughnut = Doughnut::new(&encoded).unwrap();
 
         assert_eq!(
-            doughnut.validate(holder.into(), make_unix_timestamp(0)),
+            doughnut.validate(&holder.into(), make_unix_timestamp(0)),
             Err(ValidationError::Premature)
         )
     }

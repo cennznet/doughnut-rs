@@ -43,7 +43,7 @@ pub trait DoughnutApi {
     /// Return the payload for domain, if it exists in the doughnut
     fn get_domain(&self, domain: &str) -> Option<&[u8]>;
     /// Validate the doughnut is usable by a public key (`who`) at the current timestamp (`now`)
-    fn validate(&self, who: Self::PublicKey, now: Self::Timestamp) -> Result<(), ValidationError>;
+    fn validate(&self, who: &Self::PublicKey, now: Self::Timestamp) -> Result<(), ValidationError>;
 }
 
 /// Provide doughnut signature checks

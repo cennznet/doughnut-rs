@@ -90,7 +90,7 @@ impl DoughnutApi for () {
     }
     fn validate(
         &self,
-        _who: Self::PublicKey,
+        _who: &Self::PublicKey,
         _now: Self::Timestamp,
     ) -> Result<(), ValidationError> {
         Ok(())
