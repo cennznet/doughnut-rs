@@ -14,11 +14,21 @@ Query permission domains
 let domain: &[u8] = doughnut.get_domain("something")?;
 ```
 
+Issuer signature checking is available via the crate's `verify` feature.  
+```rust
+use doughnut_rs::traits::DoughnutVerify;
+
+fn main() {
+    let doughnut = // ...
+    doughnut.verify() // Returns true or false
+}
+```
+
 # Contributing
 The following checks should pass  
 ```
 # Do the usual
-cargo fmt && cargo build && cargo test
+cargo fmt && cargo build && cargo test --features=verify
 
 # Check 'no std' mode compiles
 cargo +nightly check --no-default-features
