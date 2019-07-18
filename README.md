@@ -13,3 +13,13 @@ Query permission domains
 ```rust
 let domain: &[u8] = doughnut.get_domain("something")?;
 ```
+
+# Contributing
+The following checks should pass  
+```
+# Do the usual
+cargo fmt && cargo build && cargo test
+
+# Check 'no std' mode compiles
+cargo +nightly check --no-default-features
+```

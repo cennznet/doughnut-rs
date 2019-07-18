@@ -1,22 +1,14 @@
 [package]
 name = "doughnut_rs"
-<<<<<<< HEAD
-<<<<<<< HEAD
 version = "0.2.0"
-=======
-version = "0.1.6"
->>>>>>> Add DoughnutVerify trait for signature checks (#12)
-=======
-version = "0.1.7"
->>>>>>> Bump version
 authors = ["Centrality Developers <developers@centrality.ai>"]
 edition = "2018"
 
 [dependencies]
 bit_reverse = { version = "0.1.7", default-features = false }
-parity-codec = { version = "3.5.1", default-features = false }
-primitive-types = { version = "0.2.1", default-features = false }
-schnorrkel = { version = "0.1.1", optional = true }
+parity-codec = { version = "~4", default-features = false }
+primitive-types = { version = "~0.2", default-features = false }
+schnorrkel = { version = "~0.1", optional = true }
 ed25519-dalek = { version = "1.0.0-pre.1", optional = true }
 
 [features]

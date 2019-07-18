@@ -1,11 +1,16 @@
 //!
 //! Doughnut trait impls
 //!
-use super::{DoughnutApi, DoughnutVerify};
+use super::DoughnutApi;
 use crate::alloc::vec::Vec;
 use crate::error::ValidationError;
+
+#[cfg(feature = "std")]
+use super::DoughnutVerify;
+
 #[cfg(feature = "std")]
 use ed25519_dalek::{PublicKey as Ed25519Pub, Signature as Ed25519Sig};
+
 #[cfg(feature = "std")]
 use schnorrkel::{signing_context, PublicKey as Sr25519Pub, Signature as Sr25519Sig};
 
