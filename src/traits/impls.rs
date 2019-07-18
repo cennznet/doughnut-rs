@@ -2,6 +2,7 @@
 //! Doughnut trait impls
 //!
 use super::{DoughnutApi, DoughnutVerify};
+use crate::alloc::vec::Vec;
 #[cfg(feature = "std")]
 use ed25519_dalek::{PublicKey as Ed25519Pub, Signature as Ed25519Sig};
 #[cfg(feature = "std")]
