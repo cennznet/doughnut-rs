@@ -23,7 +23,7 @@ use parity_codec::Encode;
 use alloc::fmt;
 
 use crate::alloc::vec::Vec;
-use crate::error::{CodecError, ValidationError};
+use crate::error::CodecError;
 use crate::traits::DoughnutApi;
 
 pub mod parity;
@@ -131,20 +131,6 @@ impl<'a> DoughnutApi for DoughnutV0<'a> {
 
         None
     }
-
-    /// Validate the doughnut is usable by a public key (`who`) at the current timestamp (`now`)
-    fn validate(&self, who: &Self::PublicKey, now: Self::Timestamp) -> Result<(), ValidationError> {
-        if who != &self.holder() {
-            return Err(ValidationError::HolderIdentityMismatched);
-        }
-        if now < self.not_before() {
-            return Err(ValidationError::Premature);
-        }
-        if now >= self.expiry() {
-            return Err(ValidationError::Expired);
-        }
-        Ok(())
-    }
 }
 
 /// Return the payload version from the given byte slice
@@ -240,7 +226,8 @@ impl<'a> Encode for DoughnutV0<'a> {
 
 #[cfg(test)]
 mod test {
-    use super::{DoughnutV0 as Doughnut, ValidationError};
+    use super::DoughnutV0 as Doughnut;
+    use crate::error::ValidationError;
     use crate::traits::DoughnutApi;
     use crate::v0::parity::DoughnutV0;
     use parity_codec::Encode;

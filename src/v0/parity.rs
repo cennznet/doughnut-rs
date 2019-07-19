@@ -26,7 +26,6 @@ use crate::alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use crate::error::ValidationError;
 use crate::traits::DoughnutApi;
 
 const NOT_BEFORE_MASK: u8 = 0b1000_0000;
@@ -87,19 +86,6 @@ impl DoughnutApi for DoughnutV0 {
             }
         }
         None
-    }
-    /// Validate the doughnut is usable by a public key (`who`) at the current timestamp (`now`)
-    fn validate(&self, who: &Self::PublicKey, now: Self::Timestamp) -> Result<(), ValidationError> {
-        if who != &self.holder() {
-            return Err(ValidationError::HolderIdentityMismatched);
-        }
-        if now < self.not_before() {
-            return Err(ValidationError::Premature);
-        }
-        if now >= self.expiry() {
-            return Err(ValidationError::Expired);
-        }
-        Ok(())
     }
 }
 
@@ -237,6 +223,7 @@ impl Encode for DoughnutV0 {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::error::ValidationError;
     use std::ops::Add;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
