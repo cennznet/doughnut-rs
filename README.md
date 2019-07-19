@@ -14,15 +14,13 @@ Query permission domains
 let domain: &[u8] = doughnut.get_domain("something")?;
 ```
 
-Issuer signature checking is available via the crate's `verify` feature.  
+Check doughnut issuer signature
 ```rust
 use doughnut_rs::traits::DoughnutVerify;
-
-fn main() {
-    let doughnut = // ...
-    doughnut.verify() // Returns true or false
-}
+assert!(doughnut.verify());
 ```
+
+A `DoughnutVerify` implementation is available for `DoughnutApi`, it requires std and is gated by the cargo `verify` feature.  
 
 # Contributing
 The following checks should pass  

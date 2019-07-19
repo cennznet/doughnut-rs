@@ -22,8 +22,10 @@ use core::iter::IntoIterator;
 use parity_codec::{Decode, Encode, Input, Output};
 use primitive_types::{H256, H512};
 
-use crate::alloc::string::{String, ToString};
-use crate::alloc::vec::Vec;
+use crate::alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 use crate::error::ValidationError;
 use crate::traits::DoughnutApi;
 
@@ -43,20 +45,10 @@ pub struct DoughnutV0 {
     pub signature: H512,
 }
 
-/// A 512-bit signature type
-/// It wraps `[u8; 64]` with some useful conversion traits for Shim targeted at substrate.
-pub struct Signature([u8; 64]);
-
-impl AsRef<[u8]> for Signature {
-    fn as_ref(&self) -> &[u8] {
-        &self.0
-    }
-}
-
 impl DoughnutApi for DoughnutV0 {
     type PublicKey = H256;
     type Timestamp = u32;
-    type Signature = Signature;
+    type Signature = H512;
     /// Return the doughnut holder account ID
     fn holder(&self) -> Self::PublicKey {
         self.holder
@@ -81,7 +73,7 @@ impl DoughnutApi for DoughnutV0 {
     }
     /// Return the doughnut signature bytes
     fn signature(&self) -> Self::Signature {
-        Signature(self.signature.into())
+        self.signature
     }
     /// Return the doughnut signature version
     fn signature_version(&self) -> u8 {

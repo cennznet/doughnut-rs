@@ -21,6 +21,8 @@ extern crate alloc;
 extern crate std as alloc;
 
 pub mod error;
+#[cfg(feature = "std")]
+mod signature;
 mod test;
 pub mod traits;
 pub mod v0;

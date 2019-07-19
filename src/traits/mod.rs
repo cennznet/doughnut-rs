@@ -18,9 +18,6 @@ use crate::alloc::vec::Vec;
 use crate::error::ValidationError;
 mod impls;
 
-#[cfg(feature = "verify")]
-mod verify;
-
 /// A stable API trait to expose doughnut impl data
 pub trait DoughnutApi {
     /// The holder and issuer public key type
