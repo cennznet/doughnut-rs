@@ -16,10 +16,7 @@
 //!
 use crate::alloc::vec::Vec;
 use crate::error::ValidationError;
-use crate::traits::DoughnutApi;
-
-#[cfg(feature = "std")]
-use crate::traits::DoughnutVerify;
+use crate::traits::{DoughnutApi, DoughnutVerify};
 
 #[cfg(feature = "std")]
 use crate::v0::{parity::DoughnutV0 as ParityDoughnutV0, DoughnutV0};
@@ -62,6 +59,12 @@ impl DoughnutApi for () {
         _now: Self::Timestamp,
     ) -> Result<(), ValidationError> {
         Ok(())
+    }
+}
+
+impl DoughnutVerify for () {
+    fn verify(&self) -> bool {
+        true
     }
 }
 
