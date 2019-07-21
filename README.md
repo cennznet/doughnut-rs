@@ -14,19 +14,29 @@ Query permission domains
 let domain: &[u8] = doughnut.get_domain("something")?;
 ```
 
-Check doughnut issuer signature
+Check a doughnut is valid to be used by a user (`who`) at a timestamp (`when`).  
 ```rust
-use doughnut_rs::traits::DoughnutVerify;
-assert!(doughnut.verify());
+use doughnut_rs::traits::DoughnutApi;
+// ..
+assert!(
+  doughnut.validate(who, when)
+)
 ```
 
-A `DoughnutVerify` implementation is available for `DoughnutApi`, it requires std and is gated by the cargo `verify` feature.  
+Verify a doughnut's signature (requires `std`)
+```rust
+use doughnut_rs::traits::DoughnutVerify;
+// ..
+assert!(doughnut.verify());
+```
 
 # Contributing
 The following checks should pass  
 ```
 # Do the usual
-cargo fmt && cargo build && cargo test --features=verify
+cargo fmt && \
+cargo build && \
+cargo test
 
 # Check 'no std' mode compiles
 cargo +nightly check --no-default-features
