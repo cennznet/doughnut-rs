@@ -15,13 +15,14 @@
 #![cfg_attr(not(feature = "std"), feature(alloc))]
 
 #[cfg(not(feature = "std"))]
-#[macro_use]
 extern crate alloc;
 #[cfg(feature = "std")]
 #[macro_use]
 extern crate std as alloc;
 
 pub mod error;
+#[cfg(feature = "std")]
+mod signature;
 mod test;
 pub mod traits;
 pub mod v0;

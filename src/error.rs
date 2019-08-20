@@ -11,10 +11,25 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+/// Error type for codec failures
 #[cfg_attr(feature = "std", derive(Debug))]
-pub enum DoughnutErr<'a> {
+#[derive(PartialEq, Eq, Clone)]
+pub enum CodecError<'a> {
     /// The doughnut version is unsupported by the current codec
     UnsupportedVersion,
     /// Invalid encoded format found while decoding
     BadEncoding(&'a str),
+}
+
+/// Error type for validation failures
+#[cfg_attr(feature = "std", derive(Debug))]
+#[derive(PartialEq, Eq, Clone)]
+pub enum ValidationError {
+    /// Public key attempting to use a doughnut does not match the issued holder
+    HolderIdentityMismatched,
+    /// The doughnut has expired against the current timestamp
+    Expired,
+    ///Doughnut use precedes it's 'not before' timestamp, thus it has not matured yet.
+    Premature,
 }
