@@ -19,7 +19,7 @@ Check a doughnut is valid to be used by a user (`who`) at a timestamp (`when`).
 use doughnut_rs::traits::DoughnutApi;
 // ..
 assert!(
-  doughnut.validate(who, when)
+  doughnut.validate(who, when).is_ok()
 )
 ```
 
