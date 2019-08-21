@@ -18,7 +18,7 @@ use crate::alloc::vec::Vec;
 use crate::error::ValidationError;
 mod impls;
 
-/// A stable API trait to expose doughnut impl data
+/// An API trait to expose doughnut impl data
 pub trait DoughnutApi {
     /// The holder and issuer public key type
     type PublicKey: PartialEq;
@@ -43,14 +43,20 @@ pub trait DoughnutApi {
     /// Return the payload for domain, if it exists in the doughnut
     fn get_domain(&self, domain: &str) -> Option<&[u8]>;
     /// Validate the doughnut is usable by a public key (`who`) at the current timestamp (`not_before` <= `now` <= `expiry`)
-    fn validate(&self, who: &Self::PublicKey, now: Self::Timestamp) -> Result<(), ValidationError> {
-        if who != &self.holder() {
+    fn validate<Q, R>(&self, who: &Q, now: R) -> Result<(), ValidationError>
+    // TODO: Refine these traits
+    where
+        Q: Into<Self::PublicKey> + Clone,
+        R: Into<Self::Timestamp>,
+    {
+        if (who.clone()).into() != self.holder() {
             return Err(ValidationError::HolderIdentityMismatched);
         }
-        if now < self.not_before() {
+        let now_ = now.into();
+        if &now_ < &self.not_before() {
             return Err(ValidationError::Premature);
         }
-        if now >= self.expiry() {
+        if &now_ >= &self.expiry() {
             return Err(ValidationError::Expired);
         }
         Ok(())

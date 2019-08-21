@@ -53,11 +53,7 @@ impl DoughnutApi for () {
     fn get_domain(&self, _domain: &str) -> Option<&[u8]> {
         None
     }
-    fn validate(
-        &self,
-        _who: &Self::PublicKey,
-        _now: Self::Timestamp,
-    ) -> Result<(), ValidationError> {
+    fn validate<Q, R>(&self, _who: &Q, _now: R) -> Result<(), ValidationError> {
         Ok(())
     }
 }

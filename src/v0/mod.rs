@@ -261,9 +261,7 @@ mod test {
         let encoded = _doughnut.encode();
         let doughnut = Doughnut::new(&encoded).unwrap();
 
-        assert!(doughnut
-            .validate(&holder.into(), make_unix_timestamp(0))
-            .is_ok())
+        assert!(doughnut.validate(&holder, make_unix_timestamp(0)).is_ok())
     }
     #[test]
     fn usage_after_expiry_is_invalid() {
@@ -282,7 +280,7 @@ mod test {
         let doughnut = Doughnut::new(&encoded).unwrap();
 
         assert_eq!(
-            doughnut.validate(&holder.into(), make_unix_timestamp(5)),
+            doughnut.validate(&holder, make_unix_timestamp(5)),
             Err(ValidationError::Expired)
         )
     }
@@ -304,7 +302,7 @@ mod test {
 
         let not_the_holder = H256::from([2u8; 32]);
         assert_eq!(
-            doughnut.validate(&not_the_holder.into(), make_unix_timestamp(0)),
+            doughnut.validate(&not_the_holder, make_unix_timestamp(0)),
             Err(ValidationError::HolderIdentityMismatched)
         )
     }
@@ -325,7 +323,7 @@ mod test {
         let doughnut = Doughnut::new(&encoded).unwrap();
 
         assert_eq!(
-            doughnut.validate(&holder.into(), make_unix_timestamp(0)),
+            doughnut.validate(&holder, make_unix_timestamp(0)),
             Err(ValidationError::Premature)
         )
     }
