@@ -110,7 +110,7 @@ dependencies = [
 
 [[package]]
 name = "doughnut_rs"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "bit_reverse 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "ed25519-dalek 1.0.0-pre.1 (registry+https://github.com/rust-lang/crates.io-index)",
