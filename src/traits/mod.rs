@@ -16,13 +16,13 @@
 //!
 use crate::alloc::vec::Vec;
 use crate::error::ValidationError;
-use core::borrow::Borrow;
+use core::convert::TryInto;
 mod impls;
 
 /// An API trait to expose doughnut impl data
 pub trait DoughnutApi {
     /// The holder and issuer public key type
-    type PublicKey: PartialEq + Borrow<[u8; 32]>;
+    type PublicKey: PartialEq + AsRef<[u8]>;
     /// The expiry timestamp type
     type Timestamp: PartialOrd + Into<u32>;
     /// The signature type
@@ -46,13 +46,13 @@ pub trait DoughnutApi {
     /// Validate the doughnut is usable by a public key (`who`) at the current timestamp (`not_before` <= `now` <= `expiry`)
     fn validate<Q, R>(&self, who: Q, now: R) -> Result<(), ValidationError>
     where
-        Q: Borrow<[u8; 32]>,
-        R: Into<u32>,
+        Q: AsRef<[u8]>,
+        R: TryInto<u32>,
     {
-        if who.borrow() != self.holder().borrow() {
+        if who.as_ref() != self.holder().as_ref() {
             return Err(ValidationError::HolderIdentityMismatched);
         }
-        let now_ = now.into();
+        let now_ = now.try_into().map_err(|_| ValidationError::Conversion)?;
         if now_ < self.not_before().into() {
             return Err(ValidationError::Premature);
         }

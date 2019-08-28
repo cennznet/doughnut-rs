@@ -310,4 +310,24 @@ mod test {
             Err(ValidationError::Premature)
         )
     }
+
+    #[test]
+    fn validate_with_timestamp_overflow_fails() {
+        let holder = [1u8; 32];
+        let doughnut = DoughnutV0 {
+            issuer: [0u8; 32],
+            holder,
+            domains: Default::default(),
+            expiry: 0,
+            not_before: 0,
+            payload_version: 0,
+            signature_version: 0,
+            signature: Default::default(),
+        };
+
+        assert_eq!(
+            doughnut.validate(holder, u64::max_value()),
+            Err(ValidationError::Conversion)
+        )
+    }
 }
