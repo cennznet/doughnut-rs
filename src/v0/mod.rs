@@ -231,7 +231,6 @@ mod test {
     use crate::traits::DoughnutApi;
     use crate::v0::parity::DoughnutV0;
     use parity_codec::Encode;
-    use primitive_types::H256;
     use std::ops::Add;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -244,82 +243,65 @@ mod test {
             .as_millis() as u32
     }
 
-    #[test]
-    fn it_is_a_valid_usage() {
-        let holder = H256::from([1u8; 32]);
-        // NOTE: We use parity version to create the test doughnut since this module's version is just a bytes window
-        let _doughnut = DoughnutV0 {
-            issuer: H256::from([0u8; 32]),
+    /// Utility to make an encoded doughnut
+    fn make_doughnut<'a>(
+        holder: [u8; 32],
+        issuer: [u8; 32],
+        expiry: u64,
+        not_before: u64,
+    ) -> Vec<u8> {
+        // NOTE: We use parity version to create the test doughnut since this module's version
+        // is just a bytes window
+        DoughnutV0 {
+            issuer,
             holder,
             domains: vec![("test".to_string(), vec![0])],
-            expiry: make_unix_timestamp(10),
-            not_before: 0,
+            expiry: make_unix_timestamp(expiry),
+            not_before: make_unix_timestamp(not_before),
             payload_version: 0,
             signature_version: 0,
             signature: Default::default(), // No need to check signature here
-        };
-        let encoded = _doughnut.encode();
+        }
+        .encode()
+    }
+
+    #[test]
+    fn it_is_a_valid_usage() {
+        let holder = [1u8; 32];
+        let encoded = make_doughnut(holder, [0u8; 32], 10, 0);
         let doughnut = Doughnut::new(&encoded).unwrap();
 
         assert!(doughnut.validate(&holder, make_unix_timestamp(0)).is_ok())
     }
+
     #[test]
     fn usage_after_expiry_is_invalid() {
-        let holder = H256::from([1u8; 32]);
-        let _doughnut = DoughnutV0 {
-            issuer: H256::from([0u8; 32]),
-            holder,
-            domains: vec![("test".to_string(), vec![0])],
-            expiry: make_unix_timestamp(0),
-            not_before: 0,
-            payload_version: 0,
-            signature_version: 0,
-            signature: Default::default(), // No need to check signature here
-        };
-        let encoded = _doughnut.encode();
+        let holder = [1u8; 32];
+        let encoded = make_doughnut(holder, [0u8; 32], 0, 0);
         let doughnut = Doughnut::new(&encoded).unwrap();
 
         assert_eq!(
-            doughnut.validate(&holder, make_unix_timestamp(5)),
+            doughnut.validate(holder, make_unix_timestamp(10)),
             Err(ValidationError::Expired)
         )
     }
+
     #[test]
     fn usage_by_non_holder_is_invalid() {
-        let holder = H256::from([1u8; 32]);
-        let _doughnut = DoughnutV0 {
-            issuer: H256::from([0u8; 32]),
-            holder,
-            domains: vec![("test".to_string(), vec![0])],
-            expiry: make_unix_timestamp(10),
-            not_before: 0,
-            payload_version: 0,
-            signature_version: 0,
-            signature: Default::default(), // No need to check signature here
-        };
-        let encoded = _doughnut.encode();
+        let encoded = make_doughnut([1u8; 32], [0u8; 32], 10, 0);
         let doughnut = Doughnut::new(&encoded).unwrap();
 
-        let not_the_holder = H256::from([2u8; 32]);
+        let not_the_holder = [2u8; 32];
         assert_eq!(
-            doughnut.validate(&not_the_holder, make_unix_timestamp(0)),
+            doughnut.validate(not_the_holder, make_unix_timestamp(0)),
             Err(ValidationError::HolderIdentityMismatched)
         )
     }
+
     #[test]
     fn usage_preceeding_not_before_is_invalid() {
-        let holder = H256::from([1u8; 32]);
-        let _doughnut = DoughnutV0 {
-            issuer: H256::from([0u8; 32]),
-            holder,
-            domains: vec![("test".to_string(), vec![0])],
-            expiry: make_unix_timestamp(12),
-            not_before: make_unix_timestamp(10),
-            payload_version: 0,
-            signature_version: 0,
-            signature: Default::default(), // No need to check signature here
-        };
-        let encoded = _doughnut.encode();
+        let holder = [1u8; 32];
+        let encoded = make_doughnut(holder, [0u8; 32], 12, 10);
         let doughnut = Doughnut::new(&encoded).unwrap();
 
         assert_eq!(
