@@ -26,20 +26,20 @@ use crate::signature::verify_signature;
 
 // Dummy implementation for unit type
 impl DoughnutApi for () {
-    type PublicKey = ();
-    type Timestamp = ();
+    type PublicKey = [u8; 32];
+    type Timestamp = u32;
     type Signature = ();
     fn holder(&self) -> Self::PublicKey {
-        ()
+        Default::default()
     }
     fn issuer(&self) -> Self::PublicKey {
-        ()
+        Default::default()
     }
-    fn expiry(&self) -> Self::PublicKey {
-        ()
+    fn expiry(&self) -> Self::Timestamp {
+        0
     }
     fn not_before(&self) -> Self::Timestamp {
-        ()
+        0
     }
     fn payload(&self) -> Vec<u8> {
         Default::default()
@@ -53,11 +53,7 @@ impl DoughnutApi for () {
     fn get_domain(&self, _domain: &str) -> Option<&[u8]> {
         None
     }
-    fn validate(
-        &self,
-        _who: &Self::PublicKey,
-        _now: Self::Timestamp,
-    ) -> Result<(), ValidationError> {
+    fn validate<Q, R>(&self, _who: Q, _now: R) -> Result<(), ValidationError> {
         Ok(())
     }
 }

@@ -20,7 +20,7 @@
 use bit_reverse::ParallelReverse;
 use core::iter::IntoIterator;
 use parity_codec::{Decode, Encode, Input, Output};
-use primitive_types::{H256, H512};
+use primitive_types::H512;
 
 use crate::alloc::{
     string::{String, ToString},
@@ -34,8 +34,8 @@ const SIGNATURE_MASK: u8 = 0b0001_1111;
 #[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct DoughnutV0 {
-    pub issuer: H256,
-    pub holder: H256,
+    pub issuer: [u8; 32],
+    pub holder: [u8; 32],
     pub domains: Vec<(String, Vec<u8>)>,
     pub expiry: u32,
     pub not_before: u32,
@@ -45,9 +45,9 @@ pub struct DoughnutV0 {
 }
 
 impl DoughnutApi for DoughnutV0 {
-    type PublicKey = H256;
+    type PublicKey = [u8; 32];
     type Timestamp = u32;
-    type Signature = H512;
+    type Signature = [u8; 64];
     /// Return the doughnut holder account ID
     fn holder(&self) -> Self::PublicKey {
         self.holder
@@ -72,7 +72,7 @@ impl DoughnutApi for DoughnutV0 {
     }
     /// Return the doughnut signature bytes
     fn signature(&self) -> Self::Signature {
-        self.signature
+        self.signature.into()
     }
     /// Return the doughnut signature version
     fn signature_version(&self) -> u8 {
@@ -162,8 +162,8 @@ impl Decode for DoughnutV0 {
         let _ = input.read(&mut signature);
 
         Some(DoughnutV0 {
-            holder: H256::from(holder),
-            issuer: H256::from(issuer),
+            holder,
+            issuer,
             expiry,
             not_before,
             signature_version,
@@ -186,8 +186,8 @@ impl Encode for DoughnutV0 {
             domain_count_and_not_before_byte |= NOT_BEFORE_MASK;
         }
         dest.push_byte(domain_count_and_not_before_byte);
-        dest.write(self.issuer.as_bytes());
-        dest.write(self.holder.as_bytes());
+        dest.write(&self.issuer);
+        dest.write(&self.holder);
 
         for b in self.expiry.to_le_bytes().into_iter() {
             dest.push_byte(b.swap_bits());
@@ -238,9 +238,9 @@ mod test {
 
     #[test]
     fn it_is_a_valid_usage() {
-        let holder = H256::from([1u8; 32]);
+        let holder = [1u8; 32];
         let doughnut = DoughnutV0 {
-            issuer: H256::from([0u8; 32]),
+            issuer: [0u8; 32],
             holder,
             domains: Default::default(),
             expiry: make_unix_timestamp(10),
@@ -250,13 +250,13 @@ mod test {
             signature: Default::default(), // No need to check signature here
         };
 
-        assert!(doughnut.validate(&holder, make_unix_timestamp(0)).is_ok())
+        assert!(doughnut.validate(holder, make_unix_timestamp(0)).is_ok())
     }
     #[test]
     fn usage_after_expiry_is_invalid() {
-        let holder = H256::from([1u8; 32]);
+        let holder = [1u8; 32];
         let doughnut = DoughnutV0 {
-            issuer: H256::from([0u8; 32]),
+            issuer: [0u8; 32],
             holder,
             domains: Default::default(),
             expiry: make_unix_timestamp(0),
@@ -267,15 +267,15 @@ mod test {
         };
 
         assert_eq!(
-            doughnut.validate(&holder, make_unix_timestamp(5)),
+            doughnut.validate(holder, make_unix_timestamp(5)),
             Err(ValidationError::Expired)
         )
     }
     #[test]
     fn usage_by_non_holder_is_invalid() {
-        let holder = H256::from([1u8; 32]);
+        let holder = [1u8; 32];
         let doughnut = DoughnutV0 {
-            issuer: H256::from([0u8; 32]),
+            issuer: [0u8; 32],
             holder,
             domains: Default::default(),
             expiry: make_unix_timestamp(10),
@@ -285,17 +285,17 @@ mod test {
             signature: Default::default(), // No need to check signature here
         };
 
-        let not_the_holder = H256::from([2u8; 32]);
+        let not_the_holder = [2u8; 32];
         assert_eq!(
-            doughnut.validate(&not_the_holder, make_unix_timestamp(0)),
+            doughnut.validate(not_the_holder, make_unix_timestamp(0)),
             Err(ValidationError::HolderIdentityMismatched)
         )
     }
     #[test]
     fn usage_preceeding_not_before_is_invalid() {
-        let holder = H256::from([1u8; 32]);
+        let holder = [1u8; 32];
         let doughnut = DoughnutV0 {
-            issuer: H256::from([0u8; 32]),
+            issuer: [0u8; 32],
             holder,
             domains: Default::default(),
             expiry: make_unix_timestamp(12),
@@ -306,8 +306,28 @@ mod test {
         };
 
         assert_eq!(
-            doughnut.validate(&holder, make_unix_timestamp(0)),
+            doughnut.validate(holder, make_unix_timestamp(0)),
             Err(ValidationError::Premature)
+        )
+    }
+
+    #[test]
+    fn validate_with_timestamp_overflow_fails() {
+        let holder = [1u8; 32];
+        let doughnut = DoughnutV0 {
+            issuer: [0u8; 32],
+            holder,
+            domains: Default::default(),
+            expiry: 0,
+            not_before: 0,
+            payload_version: 0,
+            signature_version: 0,
+            signature: Default::default(),
+        };
+
+        assert_eq!(
+            doughnut.validate(holder, u64::max_value()),
+            Err(ValidationError::Conversion)
         )
     }
 }
