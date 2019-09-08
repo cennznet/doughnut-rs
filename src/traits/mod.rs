@@ -24,7 +24,7 @@ pub trait DoughnutApi {
     /// The holder and issuer public key type
     type PublicKey: PartialEq + AsRef<[u8]>;
     /// The expiry timestamp type
-    type Timestamp: PartialOrd + Into<u32>;
+    type Timestamp: PartialOrd + TryInto<u32>;
     /// The signature type
     type Signature;
     /// Return the doughnut holder
@@ -53,10 +53,20 @@ pub trait DoughnutApi {
             return Err(ValidationError::HolderIdentityMismatched);
         }
         let now_ = now.try_into().map_err(|_| ValidationError::Conversion)?;
-        if now_ < self.not_before().into() {
+        if now_
+            < self
+                .not_before()
+                .try_into()
+                .map_err(|_| ValidationError::Conversion)?
+        {
             return Err(ValidationError::Premature);
         }
-        if now_ >= self.expiry().into() {
+        if now_
+            >= self
+                .expiry()
+                .try_into()
+                .map_err(|_| ValidationError::Conversion)?
+        {
             return Err(ValidationError::Expired);
         }
         Ok(())
