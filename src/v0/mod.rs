@@ -20,8 +20,8 @@
 // This idiosyncrasy is required as the codec spec uses LE byte order while rust represents all integers
 // in BE byte order.
 use bit_reverse::ParallelReverse;
+use codec::Encode;
 use core::ptr;
-use parity_codec::Encode;
 
 #[cfg(feature = "std")]
 use alloc::fmt;
@@ -234,7 +234,7 @@ mod test {
     use crate::error::ValidationError;
     use crate::traits::DoughnutApi;
     use crate::v0::parity::DoughnutV0;
-    use parity_codec::Encode;
+    use codec::Encode;
     use std::ops::Add;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
