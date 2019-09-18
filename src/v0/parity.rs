@@ -14,12 +14,12 @@
 //!
 //! Doughnut V0 codec
 //! This version is for interoperability within the substrate extrinsic environment.
-//! It uses the `parity_codec` crate to consume a contiguous stream of bytes, without any look-ahead.
+//! It uses the `codec` crate to consume a contiguous stream of bytes, without any look-ahead.
 //! It however, does not use the SCALE codec.
 //!
 use bit_reverse::ParallelReverse;
+use codec::{Decode, Encode, Input, Output};
 use core::iter::IntoIterator;
-use parity_codec::{Decode, Encode, Input, Output};
 use primitive_types::H512;
 
 use crate::alloc::{
@@ -90,7 +90,7 @@ impl DoughnutApi for DoughnutV0 {
 }
 
 impl Decode for DoughnutV0 {
-    fn decode<I: Input>(input: &mut I) -> Option<Self> {
+    fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
         let payload_byte_0 = input.read_byte()?.swap_bits();
         let payload_byte_1 = input.read_byte()?.swap_bits();
 
@@ -138,7 +138,7 @@ impl Decode for DoughnutV0 {
             let mut key_buf: [u8; 16] = Default::default();
             let _ = input.read(&mut key_buf);
             let key = core::str::from_utf8(&key_buf)
-                .ok()?
+                .map_err(|_| codec::Error::from("domain keys should be utf8 encoded"))?
                 .trim_matches(char::from(0))
                 .to_string();
 
@@ -161,7 +161,7 @@ impl Decode for DoughnutV0 {
         let mut signature = [0u8; 64];
         let _ = input.read(&mut signature);
 
-        Some(DoughnutV0 {
+        Ok(DoughnutV0 {
             holder,
             issuer,
             expiry,

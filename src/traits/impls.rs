@@ -92,7 +92,7 @@ impl DoughnutVerify for ParityDoughnutV0 {
 mod test {
     use super::*;
     use crate::traits::DoughnutVerify;
-    use parity_codec::Decode;
+    use codec::Decode;
 
     #[test]
     fn it_verifies_an_sr25519_signed_doughnut() {

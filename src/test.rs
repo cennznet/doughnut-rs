@@ -17,7 +17,7 @@ use alloc::vec::Vec;
 
 use crate::traits::DoughnutApi;
 use crate::v0;
-use parity_codec::{Decode, Encode};
+use codec::{Decode, Encode};
 
 #[test]
 fn it_works_v0() {
