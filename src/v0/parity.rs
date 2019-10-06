@@ -44,6 +44,8 @@ pub struct DoughnutV0 {
     pub signature: H512,
 }
 
+impl codec::EncodeLike for DoughnutV0 {}
+
 impl DoughnutApi for DoughnutV0 {
     type PublicKey = [u8; 32];
     type Timestamp = u32;
