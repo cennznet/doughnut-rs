@@ -34,8 +34,8 @@ impl TryFrom<u8> for SignatureVersion {
 }
 
 /// A signature verification error
-#[cfg_attr(feature = "std", derive(Debug))]
-enum VerifyError {
+#[cfg_attr(feature = "std", derive(PartialEq, Debug))]
+pub enum VerifyError {
     /// Unsupported signature version
     UnsupportedVersion,
     /// Signature format is invalid
@@ -46,13 +46,17 @@ enum VerifyError {
     Invalid,
 }
 
-// TODO: Expose `Result` instead of bool
 /// Verify the signature for a DoughnutApi impl type
-pub fn verify_signature(signature: &[u8], version: u8, signer: &[u8], payload: &[u8]) -> bool {
+pub fn verify_signature(
+    signature: &[u8],
+    version: u8,
+    signer: &[u8],
+    payload: &[u8],
+) -> Result<(), VerifyError> {
     let _version = SignatureVersion::try_from(version).map_err(|_| return false);
     match _version.unwrap() {
-        SignatureVersion::Sr25519 => verify_sr25519_signature(signature, signer, payload).is_ok(),
-        SignatureVersion::Ed25519 => verify_ed25519_signature(signature, signer, payload).is_ok(),
+        SignatureVersion::Sr25519 => verify_sr25519_signature(signature, signer, payload),
+        SignatureVersion::Ed25519 => verify_ed25519_signature(signature, signer, payload),
     }
 }
 
