@@ -15,8 +15,7 @@
 //! Doughnut trait impls
 //!
 use crate::alloc::vec::Vec;
-use crate::error::ValidationError;
-use crate::signature::VerifyError;
+use crate::error::{ValidationError, VerifyError};
 use crate::traits::{DoughnutApi, DoughnutVerify};
 
 #[cfg(feature = "std")]

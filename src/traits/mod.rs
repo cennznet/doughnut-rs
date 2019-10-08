@@ -15,8 +15,7 @@
 //! Doughnut traits
 //!
 use crate::alloc::vec::Vec;
-use crate::error::ValidationError;
-use crate::signature::VerifyError;
+use crate::error::{ValidationError, VerifyError};
 use core::convert::TryInto;
 mod impls;
 
