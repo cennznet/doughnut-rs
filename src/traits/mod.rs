@@ -15,7 +15,7 @@
 //! Doughnut traits
 //!
 use crate::alloc::vec::Vec;
-use crate::error::ValidationError;
+use crate::error::{ValidationError, VerifyError};
 use core::convert::TryInto;
 mod impls;
 
@@ -78,5 +78,5 @@ pub trait DoughnutApi {
 /// Provide doughnut signature checks
 pub trait DoughnutVerify {
     /// Verify the doughnut signature, return whether it is valid or not
-    fn verify(&self) -> bool;
+    fn verify(&self) -> Result<(), VerifyError>;
 }

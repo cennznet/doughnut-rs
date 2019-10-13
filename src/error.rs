@@ -35,3 +35,16 @@ pub enum ValidationError {
     /// A type conversion failed during validation e.g overflow
     Conversion,
 }
+
+/// A signature verification error
+#[cfg_attr(feature = "std", derive(PartialEq, Debug))]
+pub enum VerifyError {
+    /// Unsupported signature version
+    UnsupportedVersion,
+    /// Signature format is invalid
+    BadSignatureFormat,
+    /// PublicKey format is invalid
+    BadPublicKeyFormat,
+    /// The signature does not verify the payload from signer
+    Invalid,
+}

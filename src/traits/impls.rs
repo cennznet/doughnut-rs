@@ -15,7 +15,7 @@
 //! Doughnut trait impls
 //!
 use crate::alloc::vec::Vec;
-use crate::error::ValidationError;
+use crate::error::{ValidationError, VerifyError};
 use crate::traits::{DoughnutApi, DoughnutVerify};
 
 #[cfg(feature = "std")]
@@ -59,14 +59,14 @@ impl DoughnutApi for () {
 }
 
 impl DoughnutVerify for () {
-    fn verify(&self) -> bool {
-        true
+    fn verify(&self) -> Result<(), VerifyError> {
+        Ok(())
     }
 }
 
 #[cfg(feature = "std")]
 impl<'a> DoughnutVerify for DoughnutV0<'a> {
-    fn verify(&self) -> bool {
+    fn verify(&self) -> Result<(), VerifyError> {
         verify_signature(
             self.signature().as_ref(),
             self.signature_version(),
@@ -78,7 +78,7 @@ impl<'a> DoughnutVerify for DoughnutV0<'a> {
 
 #[cfg(feature = "std")]
 impl DoughnutVerify for ParityDoughnutV0 {
-    fn verify(&self) -> bool {
+    fn verify(&self) -> Result<(), VerifyError> {
         verify_signature(
             &self.signature.as_ref(),
             self.signature_version(),
@@ -109,7 +109,7 @@ mod test {
         ];
         let doughnut: ParityDoughnutV0 =
             Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut");
-        assert!(doughnut.verify());
+        assert_eq!(doughnut.verify(), Ok(()));
     }
 
     #[test]
@@ -127,7 +127,7 @@ mod test {
         ];
         let doughnut: ParityDoughnutV0 =
             Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut");
-        assert!(!doughnut.verify());
+        assert_eq!(doughnut.verify(), Err(VerifyError::Invalid));
     }
 
     #[test]
@@ -145,7 +145,7 @@ mod test {
         ];
         let doughnut: ParityDoughnutV0 =
             Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut");
-        assert!(doughnut.verify());
+        assert_eq!(doughnut.verify(), Ok(()));
     }
 
     #[test]
@@ -163,6 +163,6 @@ mod test {
         ];
         let doughnut: ParityDoughnutV0 =
             Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut");
-        assert!(!doughnut.verify());
+        assert_eq!(doughnut.verify(), Err(VerifyError::Invalid));
     }
 }

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::error::VerifyError;
 use core::convert::TryFrom;
 use ed25519_dalek::{PublicKey as Ed25519Pub, Signature as Ed25519Sig};
 use schnorrkel::{signing_context, PublicKey as Sr25519Pub, Signature as Sr25519Sig};
@@ -33,26 +34,17 @@ impl TryFrom<u8> for SignatureVersion {
     }
 }
 
-/// A signature verification error
-#[cfg_attr(feature = "std", derive(Debug))]
-enum VerifyError {
-    /// Unsupported signature version
-    UnsupportedVersion,
-    /// Signature format is invalid
-    BadSignatureFormat,
-    /// PublicKey format is invalid
-    BadPublicKeyFormat,
-    /// The signature does not verify the payload from signer
-    Invalid,
-}
-
-// TODO: Expose `Result` instead of bool
 /// Verify the signature for a DoughnutApi impl type
-pub fn verify_signature(signature: &[u8], version: u8, signer: &[u8], payload: &[u8]) -> bool {
+pub fn verify_signature(
+    signature: &[u8],
+    version: u8,
+    signer: &[u8],
+    payload: &[u8],
+) -> Result<(), VerifyError> {
     let _version = SignatureVersion::try_from(version).map_err(|_| return false);
     match _version.unwrap() {
-        SignatureVersion::Sr25519 => verify_sr25519_signature(signature, signer, payload).is_ok(),
-        SignatureVersion::Ed25519 => verify_ed25519_signature(signature, signer, payload).is_ok(),
+        SignatureVersion::Sr25519 => verify_sr25519_signature(signature, signer, payload),
+        SignatureVersion::Ed25519 => verify_ed25519_signature(signature, signer, payload),
     }
 }
 
