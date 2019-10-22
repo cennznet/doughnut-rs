@@ -13,8 +13,7 @@
 // limitations under the License.
 
 /// Error type for codec failures
-#[cfg_attr(feature = "std", derive(Debug))]
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum CodecError<'a> {
     /// The doughnut version is unsupported by the current codec
     UnsupportedVersion,
@@ -23,8 +22,7 @@ pub enum CodecError<'a> {
 }
 
 /// Error type for validation failures
-#[cfg_attr(feature = "std", derive(Debug))]
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum ValidationError {
     /// Public key attempting to use a doughnut does not match the issued holder
     HolderIdentityMismatched,
