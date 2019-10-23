@@ -21,10 +21,8 @@
 // in BE byte order.
 use bit_reverse::ParallelReverse;
 use codec::Encode;
+use core::fmt::{self};
 use core::ptr;
-
-#[cfg(feature = "std")]
-use alloc::fmt;
 
 use crate::alloc::vec::Vec;
 use crate::error::CodecError;
@@ -40,8 +38,7 @@ const WITH_NOT_BEFORE_OFFSET: u8 = 75;
 const SIGNATURE_MASK: u8 = 0b0001_1111;
 const NOT_BEFORE_MASK: u8 = 0b1000_0000;
 
-#[derive(PartialEq, Eq, Clone)]
-#[cfg_attr(feature = "std", derive(Debug))]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub struct DoughnutV0<'a>(&'a [u8]);
 
 impl<'a> DoughnutApi for DoughnutV0<'a> {
@@ -154,7 +151,6 @@ fn has_not_before(buf: &[u8]) -> bool {
     (buf[2] & NOT_BEFORE_MASK) == NOT_BEFORE_MASK
 }
 
-#[cfg(feature = "std")]
 impl<'a> fmt::Display for DoughnutV0<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
