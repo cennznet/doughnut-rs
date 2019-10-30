@@ -41,7 +41,7 @@ pub fn verify_signature(
     signer: &[u8],
     payload: &[u8],
 ) -> Result<(), VerifyError> {
-    let _version = SignatureVersion::try_from(version).map_err(|_| return false);
+    let _version = SignatureVersion::try_from(version).map_err(|_| false);
     match _version.unwrap() {
         SignatureVersion::Sr25519 => verify_sr25519_signature(signature, signer, payload),
         SignatureVersion::Ed25519 => verify_ed25519_signature(signature, signer, payload),
