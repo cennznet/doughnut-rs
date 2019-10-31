@@ -18,6 +18,7 @@
 //! It however, does not use the SCALE codec.
 
 #![warn(clippy::pedantic)]
+#![allow(clippy::cast_possible_truncation)]
 
 use bit_reverse::ParallelReverse;
 use codec::{Decode, Encode, Input, Output};
@@ -131,11 +132,11 @@ impl Decode for DoughnutV0 {
         };
 
         // Build domain permissions list
-        let mut domains: Vec<(String, Vec<u8>)> = Default::default();
+        let mut domains: Vec<(String, Vec<u8>)> = Vec::default();
         // A queue for domain keys and lengths from the domains header section
         // We use this to order later reads from the domain payload section since we
         // are restricted by `input` to read the payload byte-by-byte
-        let mut q: Vec<(String, usize)> = Default::default();
+        let mut q: Vec<(String, usize)> = Vec::default();
 
         for _ in 0..permission_domain_count {
             let mut key_buf: [u8; 16] = Default::default();
@@ -245,12 +246,12 @@ mod test {
         let doughnut = DoughnutV0 {
             issuer: [0_u8; 32],
             holder,
-            domains: Default::default(),
+            domains: Vec::default(),
             expiry: make_unix_timestamp(10),
             not_before: 0,
             payload_version: 0,
             signature_version: 0,
-            signature: Default::default(), // No need to check signature here
+            signature: primitive_types::H512::default(), // No need to check signature here
         };
 
         assert!(doughnut.validate(holder, make_unix_timestamp(0)).is_ok())
@@ -261,12 +262,12 @@ mod test {
         let doughnut = DoughnutV0 {
             issuer: [0_u8; 32],
             holder,
-            domains: Default::default(),
+            domains: Vec::default(),
             expiry: make_unix_timestamp(0),
             not_before: 0,
             payload_version: 0,
             signature_version: 0,
-            signature: Default::default(), // No need to check signature here
+            signature: primitive_types::H512::default(), // No need to check signature here
         };
 
         assert_eq!(
@@ -280,12 +281,12 @@ mod test {
         let doughnut = DoughnutV0 {
             issuer: [0_u8; 32],
             holder,
-            domains: Default::default(),
+            domains: Vec::default(),
             expiry: make_unix_timestamp(10),
             not_before: 0,
             payload_version: 0,
             signature_version: 0,
-            signature: Default::default(), // No need to check signature here
+            signature: primitive_types::H512::default(), // No need to check signature here
         };
 
         let not_the_holder = [2_u8; 32];
@@ -300,12 +301,12 @@ mod test {
         let doughnut = DoughnutV0 {
             issuer: [0_u8; 32],
             holder,
-            domains: Default::default(),
+            domains: Vec::default(),
             expiry: make_unix_timestamp(12),
             not_before: make_unix_timestamp(10),
             payload_version: 0,
             signature_version: 0,
-            signature: Default::default(), // No need to check signature here
+            signature: primitive_types::H512::default(), // No need to check signature here
         };
 
         assert_eq!(
@@ -320,12 +321,12 @@ mod test {
         let doughnut = DoughnutV0 {
             issuer: [0_u8; 32],
             holder,
-            domains: Default::default(),
+            domains: Vec::default(),
             expiry: 0,
             not_before: 0,
             payload_version: 0,
             signature_version: 0,
-            signature: Default::default(),
+            signature: primitive_types::H512::default(),
         };
 
         assert_eq!(

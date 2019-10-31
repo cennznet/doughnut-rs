@@ -261,7 +261,7 @@ mod test {
             not_before: make_unix_timestamp(not_before),
             payload_version: 0,
             signature_version: 0,
-            signature: Default::default(), // No need to check signature here
+            signature: primitive_types::H512::default(), // No need to check signature here
         }
         .encode()
     }
