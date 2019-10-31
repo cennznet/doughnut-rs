@@ -165,7 +165,7 @@ impl Decode for DoughnutV0 {
         let mut signature = [0_u8; 64];
         let _ = input.read(&mut signature);
 
-        Ok(DoughnutV0 {
+        Ok(Self {
             holder,
             issuer,
             expiry,
