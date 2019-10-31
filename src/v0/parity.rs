@@ -83,7 +83,7 @@ impl DoughnutApi for DoughnutV0 {
     }
     /// Return the payload by `domain` key, if it exists in this doughnut
     fn get_domain(&self, domain: &str) -> Option<&[u8]> {
-        for (key, payload) in self.domains.iter() {
+        for (key, payload) in &self.domains {
             if key == domain {
                 return Some(&payload);
             }
@@ -152,7 +152,7 @@ impl Decode for DoughnutV0 {
             q.push((key, payload_length as usize));
         }
 
-        for (key, payload_length) in q.into_iter() {
+        for (key, payload_length) in q {
             let mut payload = Vec::with_capacity(payload_length);
             unsafe {
                 payload.set_len(payload_length);
@@ -192,12 +192,12 @@ impl Encode for DoughnutV0 {
         dest.write(&self.issuer);
         dest.write(&self.holder);
 
-        for b in self.expiry.to_le_bytes().into_iter() {
+        for b in &self.expiry.to_le_bytes() {
             dest.push_byte(b.swap_bits());
         }
 
         if self.not_before > 0 {
-            for b in self.not_before.to_le_bytes().into_iter() {
+            for b in &self.not_before.to_le_bytes() {
                 dest.push_byte(b.swap_bits());
             }
         }
@@ -209,13 +209,13 @@ impl Encode for DoughnutV0 {
                 key_buf[i] = key.as_bytes()[i];
             }
             dest.write(&key_buf);
-            for b in (payload.len() as u16).to_le_bytes().iter() {
+            for b in &(payload.len() as u16).to_le_bytes() {
                 dest.push_byte(b.swap_bits());
             }
         }
 
         // Write permission domain payloads
-        for (_, payload) in self.domains.iter() {
+        for (_, payload) in &self.domains {
             dest.write(payload);
         }
 
@@ -288,7 +288,7 @@ mod test {
             signature: Default::default(), // No need to check signature here
         };
 
-        let not_the_holder = [2u8; 32];
+        let not_the_holder = [2_u8; 32];
         assert_eq!(
             doughnut.validate(not_the_holder, make_unix_timestamp(0)),
             Err(ValidationError::HolderIdentityMismatched)
