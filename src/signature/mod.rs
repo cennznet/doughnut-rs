@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#![warn(clippy::pedantic)]
 
 use crate::error::VerifyError;
 use core::convert::TryFrom;
@@ -36,43 +37,43 @@ impl TryFrom<u8> for SignatureVersion {
 
 /// Verify the signature for a DoughnutApi impl type
 pub fn verify_signature(
-    signature: &[u8],
-    version: u8,
+    signature_bytes: &[u8],
+    version_byte: u8,
     signer: &[u8],
     payload: &[u8],
 ) -> Result<(), VerifyError> {
-    let _version = SignatureVersion::try_from(version).map_err(|_| false);
-    match _version.unwrap() {
-        SignatureVersion::Sr25519 => verify_sr25519_signature(signature, signer, payload),
-        SignatureVersion::Ed25519 => verify_ed25519_signature(signature, signer, payload),
+    let version = SignatureVersion::try_from(version_byte).map_err(|_| false);
+    match version.unwrap() {
+        SignatureVersion::Ed25519 => verify_ed25519_signature(signature_bytes, signer, payload),
+        SignatureVersion::Sr25519 => verify_sr25519_signature(signature_bytes, signer, payload),
     }
 }
 
 /// Verify an ed25519 signature
 fn verify_ed25519_signature(
-    signature: &[u8],
+    signature_bytes: &[u8],
     signer: &[u8],
     payload: &[u8],
 ) -> Result<(), VerifyError> {
-    let _signature =
-        Ed25519Sig::from_bytes(signature).map_err(|_| VerifyError::BadSignatureFormat)?;
+    let signature =
+        Ed25519Sig::from_bytes(signature_bytes).map_err(|_| VerifyError::BadSignatureFormat)?;
     let public_key = Ed25519Pub::from_bytes(signer).map_err(|_| VerifyError::BadPublicKeyFormat)?;
     public_key
-        .verify(payload, &_signature)
+        .verify(payload, &signature)
         .map_err(|_| VerifyError::Invalid)
 }
 
 /// Verify an sr25519 signature
 fn verify_sr25519_signature(
-    signature: &[u8],
+    signature_bytes: &[u8],
     signer: &[u8],
     payload: &[u8],
 ) -> Result<(), VerifyError> {
-    let _signature =
-        Sr25519Sig::from_bytes(signature).map_err(|_| VerifyError::BadSignatureFormat)?;
+    let signature =
+        Sr25519Sig::from_bytes(signature_bytes).map_err(|_| VerifyError::BadSignatureFormat)?;
     let public_key = Sr25519Pub::from_bytes(signer).map_err(|_| VerifyError::BadPublicKeyFormat)?;
     // newer versions of `sr25519` return `Result` not `bool`
-    if public_key.verify(signing_context(b"substrate").bytes(payload), &_signature) {
+    if public_key.verify(signing_context(b"substrate").bytes(payload), &signature) {
         Ok(())
     } else {
         Err(VerifyError::Invalid)
