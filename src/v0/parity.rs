@@ -22,7 +22,6 @@
 
 use bit_reverse::ParallelReverse;
 use codec::{Decode, Encode, Input, Output};
-use core::iter::IntoIterator;
 use primitive_types::H512;
 
 use crate::alloc::{
