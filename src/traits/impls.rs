@@ -14,6 +14,8 @@
 //!
 //! Doughnut trait impls
 //!
+#![warn(clippy::pedantic)]
+
 use crate::alloc::vec::Vec;
 use crate::error::{ValidationError, VerifyError};
 use crate::traits::{DoughnutApi, DoughnutVerify};

@@ -14,6 +14,8 @@
 //!
 //! Doughnut traits
 //!
+#![warn(clippy::pedantic)]
+
 use crate::alloc::vec::Vec;
 use crate::error::{ValidationError, VerifyError};
 use core::convert::TryInto;
