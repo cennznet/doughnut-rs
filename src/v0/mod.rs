@@ -195,8 +195,11 @@ impl<'a> DoughnutV0<'a> {
         });
         let minimum_permission_domain_length =
             u16::from(permission_domain_count(encoded)) * (2 + 16 + 1); // domain length + key length + 1 byte payload
+
+        #[allow(clippy::cast_possible_truncation)]
+        let length = encoded.len() as u16;
         let expected_length = offset + minimum_permission_domain_length + SIGNATURE_LENGTH_V0;
-        if (encoded.len() as u16) < expected_length {
+        if length < expected_length {
             return Err(CodecError::BadEncoding(&"Too short"));
         }
 
@@ -237,6 +240,7 @@ mod test {
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     // Make a unix timestamp `when` seconds from the invocation
+    #[allow(clippy::cast_possible_truncation)]
     fn make_unix_timestamp(when: u64) -> u32 {
         SystemTime::now()
             .add(Duration::from_secs(when))
