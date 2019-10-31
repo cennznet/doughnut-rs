@@ -250,7 +250,7 @@ mod test {
     }
 
     /// Utility to make an encoded doughnut
-    fn make_doughnut<'a>(
+    fn make_doughnut(
         holder: [u8; 32],
         issuer: [u8; 32],
         expiry: u64,
