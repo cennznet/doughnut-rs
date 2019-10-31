@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #![warn(clippy::pedantic)]
+#![allow(clippy::module_name_repetitions)]
 
 /// Error type for codec failures
 #[derive(PartialEq, Eq, Clone, Debug)]
