@@ -44,7 +44,7 @@ impl DoughnutApi for () {
         0
     }
     fn payload(&self) -> Vec<u8> {
-        Default::default()
+        Vec::default()
     }
     fn signature(&self) -> Self::Signature {}
     fn signature_version(&self) -> u8 {
