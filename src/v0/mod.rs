@@ -250,12 +250,7 @@ mod test {
     }
 
     /// Utility to make an encoded doughnut
-    fn make_doughnut(
-        holder: [u8; 32],
-        issuer: [u8; 32],
-        expiry: u64,
-        not_before: u64,
-    ) -> Vec<u8> {
+    fn make_doughnut(holder: [u8; 32], issuer: [u8; 32], expiry: u64, not_before: u64) -> Vec<u8> {
         // NOTE: We use parity version to create the test doughnut since this module's version
         // is just a bytes window
         DoughnutV0 {
