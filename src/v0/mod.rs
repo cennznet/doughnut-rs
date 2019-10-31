@@ -144,8 +144,7 @@ fn payload_version(buf: &[u8]) -> u16 {
 
 /// Returns the doughnut "permission domain count"
 fn permission_domain_count(buf: &[u8]) -> u8 {
-    let count = ((buf[2] & 0b0100_0000).swap_bits() >> 1) + 1;
-    count
+    ((buf[2] & 0b0100_0000).swap_bits() >> 1) + 1
 }
 
 /// Whether the doughnut has "not before" bit set
