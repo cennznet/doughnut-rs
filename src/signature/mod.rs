@@ -36,6 +36,7 @@ impl TryFrom<u8> for SignatureVersion {
 }
 
 /// Verify the signature for a DoughnutApi impl type
+#[allow(clippy::module_name_repetitions)]
 pub fn verify_signature(
     signature_bytes: &[u8],
     version_byte: u8,
