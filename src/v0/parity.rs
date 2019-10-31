@@ -16,7 +16,9 @@
 //! This version is for interoperability within the substrate extrinsic environment.
 //! It uses the `codec` crate to consume a contiguous stream of bytes, without any look-ahead.
 //! It however, does not use the SCALE codec.
-//!
+
+#![warn(clippy::pedantic)]
+
 use bit_reverse::ParallelReverse;
 use codec::{Decode, Encode, Input, Output};
 use core::iter::IntoIterator;

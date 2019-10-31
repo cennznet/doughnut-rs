@@ -16,6 +16,8 @@
 //! This codec operates on a valid byte slice, lazy-ily decoding parts when required.
 //!
 
+#![warn(clippy::pedantic)]
+
 // Codec implementation frequently swaps bit endianess (`.bit_swap()`).
 // This idiosyncrasy is required as the codec spec uses LE byte order while rust represents all integers
 // in BE byte order.
