@@ -269,8 +269,8 @@ mod test {
 
     #[test]
     fn it_is_a_valid_usage() {
-        let holder = [1u8; 32];
-        let encoded = make_doughnut(holder, [0u8; 32], 10, 0);
+        let holder = [1_u8; 32];
+        let encoded = make_doughnut(holder, [0_u8; 32], 10, 0);
         let doughnut = Doughnut::new(&encoded).unwrap();
 
         assert!(doughnut.validate(&holder, make_unix_timestamp(0)).is_ok())
@@ -278,8 +278,8 @@ mod test {
 
     #[test]
     fn usage_after_expiry_is_invalid() {
-        let holder = [1u8; 32];
-        let encoded = make_doughnut(holder, [0u8; 32], 0, 0);
+        let holder = [1_u8; 32];
+        let encoded = make_doughnut(holder, [0_u8; 32], 0, 0);
         let doughnut = Doughnut::new(&encoded).unwrap();
 
         assert_eq!(
@@ -290,10 +290,10 @@ mod test {
 
     #[test]
     fn usage_by_non_holder_is_invalid() {
-        let encoded = make_doughnut([1u8; 32], [0u8; 32], 10, 0);
+        let encoded = make_doughnut([1_u8; 32], [0_u8; 32], 10, 0);
         let doughnut = Doughnut::new(&encoded).unwrap();
 
-        let not_the_holder = [2u8; 32];
+        let not_the_holder = [2_u8; 32];
         assert_eq!(
             doughnut.validate(not_the_holder, make_unix_timestamp(0)),
             Err(ValidationError::HolderIdentityMismatched)
@@ -302,8 +302,8 @@ mod test {
 
     #[test]
     fn usage_preceeding_not_before_is_invalid() {
-        let holder = [1u8; 32];
-        let encoded = make_doughnut(holder, [0u8; 32], 12, 10);
+        let holder = [1_u8; 32];
+        let encoded = make_doughnut(holder, [0_u8; 32], 12, 10);
         let doughnut = Doughnut::new(&encoded).unwrap();
 
         assert_eq!(

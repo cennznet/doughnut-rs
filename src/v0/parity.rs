@@ -161,7 +161,7 @@ impl Decode for DoughnutV0 {
             domains.push((key, payload));
         }
 
-        let mut signature = [0u8; 64];
+        let mut signature = [0_u8; 64];
         let _ = input.read(&mut signature);
 
         Ok(DoughnutV0 {
@@ -204,7 +204,7 @@ impl Encode for DoughnutV0 {
 
         // Write permission domain headers
         for (key, payload) in self.domains.iter() {
-            let mut key_buf = [0u8; 16];
+            let mut key_buf = [0_u8; 16];
             for i in 0..key.len() {
                 key_buf[i] = key.as_bytes()[i];
             }
@@ -241,9 +241,9 @@ mod test {
 
     #[test]
     fn it_is_a_valid_usage() {
-        let holder = [1u8; 32];
+        let holder = [1_u8; 32];
         let doughnut = DoughnutV0 {
-            issuer: [0u8; 32],
+            issuer: [0_u8; 32],
             holder,
             domains: Default::default(),
             expiry: make_unix_timestamp(10),
@@ -257,9 +257,9 @@ mod test {
     }
     #[test]
     fn usage_after_expiry_is_invalid() {
-        let holder = [1u8; 32];
+        let holder = [1_u8; 32];
         let doughnut = DoughnutV0 {
-            issuer: [0u8; 32],
+            issuer: [0_u8; 32],
             holder,
             domains: Default::default(),
             expiry: make_unix_timestamp(0),
@@ -276,9 +276,9 @@ mod test {
     }
     #[test]
     fn usage_by_non_holder_is_invalid() {
-        let holder = [1u8; 32];
+        let holder = [1_u8; 32];
         let doughnut = DoughnutV0 {
-            issuer: [0u8; 32],
+            issuer: [0_u8; 32],
             holder,
             domains: Default::default(),
             expiry: make_unix_timestamp(10),
@@ -296,9 +296,9 @@ mod test {
     }
     #[test]
     fn usage_preceeding_not_before_is_invalid() {
-        let holder = [1u8; 32];
+        let holder = [1_u8; 32];
         let doughnut = DoughnutV0 {
-            issuer: [0u8; 32],
+            issuer: [0_u8; 32],
             holder,
             domains: Default::default(),
             expiry: make_unix_timestamp(12),
@@ -316,9 +316,9 @@ mod test {
 
     #[test]
     fn validate_with_timestamp_overflow_fails() {
-        let holder = [1u8; 32];
+        let holder = [1_u8; 32];
         let doughnut = DoughnutV0 {
-            issuer: [0u8; 32],
+            issuer: [0_u8; 32],
             holder,
             domains: Default::default(),
             expiry: 0,
