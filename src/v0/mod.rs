@@ -111,7 +111,7 @@ impl<'a> DoughnutApi for DoughnutV0<'a> {
         };
 
         // Scan domains
-        let mut domain_offset = u16::from(offset) + (self.permission_domain_count() as u16) * 18;
+        let mut domain_offset = u16::from(offset) + u16::from(self.permission_domain_count()) * 18;
         for _ in 0..self.permission_domain_count() {
             // 16 bytes per key, 2 bytes for payload length
             let domain_len = u16::from_le_bytes([
@@ -193,7 +193,7 @@ impl<'a> DoughnutV0<'a> {
             WITHOUT_NOT_BEFORE_OFFSET
         });
         let minimum_permission_domain_length =
-            permission_domain_count(encoded) as u16 * (2 + 16 + 1); // domain length + key length + 1 byte payload
+            u16::from(permission_domain_count(encoded)) * (2 + 16 + 1); // domain length + key length + 1 byte payload
         let expected_length = offset + minimum_permission_domain_length + SIGNATURE_LENGTH_V0;
         if (encoded.len() as u16) < expected_length {
             return Err(CodecError::BadEncoding(&"Too short"));
