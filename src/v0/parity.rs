@@ -17,7 +17,6 @@
 //! It uses the `codec` crate to consume a contiguous stream of bytes, without any look-ahead.
 //! It however, does not use the SCALE codec.
 
-#![warn(clippy::pedantic)]
 #![allow(clippy::cast_possible_truncation)]
 
 use bit_reverse::ParallelReverse;

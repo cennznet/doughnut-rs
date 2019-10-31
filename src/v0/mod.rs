@@ -16,7 +16,7 @@
 //! This codec operates on a valid byte slice, lazy-ily decoding parts when required.
 //!
 
-#![warn(clippy::pedantic)]
+
 
 // Codec implementation frequently swaps bit endianess (`.bit_swap()`).
 // This idiosyncrasy is required as the codec spec uses LE byte order while rust represents all integers
@@ -40,7 +40,7 @@ const WITH_NOT_BEFORE_OFFSET: u8 = 75;
 const SIGNATURE_MASK: u8 = 0b0001_1111;
 const NOT_BEFORE_MASK: u8 = 0b1000_0000;
 
-#[allow(clippy::module_name_repetitions)]
+
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct DoughnutV0<'a>(&'a [u8]);
 
