@@ -205,9 +205,7 @@ impl Encode for DoughnutV0 {
         // Write permission domain headers
         for (key, payload) in &self.domains {
             let mut key_buf = [0_u8; 16];
-            for i in 0..key.len() {
-                key_buf[i] = key.as_bytes()[i];
-            }
+            key_buf[..key.len()].clone_from_slice(&key.as_bytes());
             dest.write(&key_buf);
             for b in &(payload.len() as u16).to_le_bytes() {
                 dest.push_byte(b.swap_bits());
