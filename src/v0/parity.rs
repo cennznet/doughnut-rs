@@ -248,7 +248,7 @@ mod test {
             not_before: 0,
             payload_version: 0,
             signature_version: 0,
-            signature: primitive_types::H512::default(), // No need to check signature here
+            signature: H512::default(), // No need to check signature here
         };
 
         assert!(doughnut.validate(holder, make_unix_timestamp(0)).is_ok())
@@ -264,7 +264,7 @@ mod test {
             not_before: 0,
             payload_version: 0,
             signature_version: 0,
-            signature: primitive_types::H512::default(), // No need to check signature here
+            signature: H512::default(), // No need to check signature here
         };
 
         assert_eq!(
@@ -283,7 +283,7 @@ mod test {
             not_before: 0,
             payload_version: 0,
             signature_version: 0,
-            signature: primitive_types::H512::default(), // No need to check signature here
+            signature: H512::default(), // No need to check signature here
         };
 
         let not_the_holder = [2_u8; 32];
@@ -303,7 +303,7 @@ mod test {
             not_before: make_unix_timestamp(10),
             payload_version: 0,
             signature_version: 0,
-            signature: primitive_types::H512::default(), // No need to check signature here
+            signature: H512::default(), // No need to check signature here
         };
 
         assert_eq!(
@@ -323,7 +323,7 @@ mod test {
             not_before: 0,
             payload_version: 0,
             signature_version: 0,
-            signature: primitive_types::H512::default(),
+            signature: H512::default(),
         };
 
         assert_eq!(
