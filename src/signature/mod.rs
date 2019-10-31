@@ -28,8 +28,8 @@ impl TryFrom<u8> for SignatureVersion {
     type Error = VerifyError;
     fn try_from(val: u8) -> Result<Self, Self::Error> {
         match val {
-            0 => Ok(SignatureVersion::Sr25519),
-            1 => Ok(SignatureVersion::Ed25519),
+            0 => Ok(Self::Sr25519),
+            1 => Ok(Self::Ed25519),
             _ => Err(VerifyError::UnsupportedVersion),
         }
     }
