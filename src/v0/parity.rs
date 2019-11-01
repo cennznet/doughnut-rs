@@ -16,10 +16,11 @@
 //! This version is for interoperability within the substrate extrinsic environment.
 //! It uses the `codec` crate to consume a contiguous stream of bytes, without any look-ahead.
 //! It however, does not use the SCALE codec.
-//!
+
+#![allow(clippy::cast_possible_truncation)]
+
 use bit_reverse::ParallelReverse;
 use codec::{Decode, Encode, Input, Output};
-use core::iter::IntoIterator;
 use primitive_types::H512;
 
 use crate::alloc::{
@@ -81,7 +82,7 @@ impl DoughnutApi for DoughnutV0 {
     }
     /// Return the payload by `domain` key, if it exists in this doughnut
     fn get_domain(&self, domain: &str) -> Option<&[u8]> {
-        for (key, payload) in self.domains.iter() {
+        for (key, payload) in &self.domains {
             if key == domain {
                 return Some(&payload);
             }
@@ -129,11 +130,11 @@ impl Decode for DoughnutV0 {
         };
 
         // Build domain permissions list
-        let mut domains: Vec<(String, Vec<u8>)> = Default::default();
+        let mut domains: Vec<(String, Vec<u8>)> = Vec::default();
         // A queue for domain keys and lengths from the domains header section
         // We use this to order later reads from the domain payload section since we
         // are restricted by `input` to read the payload byte-by-byte
-        let mut q: Vec<(String, usize)> = Default::default();
+        let mut q: Vec<(String, usize)> = Vec::default();
 
         for _ in 0..permission_domain_count {
             let mut key_buf: [u8; 16] = Default::default();
@@ -150,7 +151,7 @@ impl Decode for DoughnutV0 {
             q.push((key, payload_length as usize));
         }
 
-        for (key, payload_length) in q.into_iter() {
+        for (key, payload_length) in q {
             let mut payload = Vec::with_capacity(payload_length);
             unsafe {
                 payload.set_len(payload_length);
@@ -159,10 +160,10 @@ impl Decode for DoughnutV0 {
             domains.push((key, payload));
         }
 
-        let mut signature = [0u8; 64];
+        let mut signature = [0_u8; 64];
         let _ = input.read(&mut signature);
 
-        Ok(DoughnutV0 {
+        Ok(Self {
             holder,
             issuer,
             expiry,
@@ -178,7 +179,8 @@ impl Decode for DoughnutV0 {
 impl Encode for DoughnutV0 {
     fn encode_to<T: Output>(&self, dest: &mut T) {
         let mut payload_version_and_signature_version = self.payload_version.swap_bits();
-        payload_version_and_signature_version |= ((self.signature_version as u16) << 3).swap_bits();
+        payload_version_and_signature_version |=
+            (u16::from(self.signature_version) << 3).swap_bits();
         dest.write(&payload_version_and_signature_version.to_le_bytes());
 
         let mut domain_count_and_not_before_byte =
@@ -190,30 +192,28 @@ impl Encode for DoughnutV0 {
         dest.write(&self.issuer);
         dest.write(&self.holder);
 
-        for b in self.expiry.to_le_bytes().into_iter() {
+        for b in &self.expiry.to_le_bytes() {
             dest.push_byte(b.swap_bits());
         }
 
         if self.not_before > 0 {
-            for b in self.not_before.to_le_bytes().into_iter() {
+            for b in &self.not_before.to_le_bytes() {
                 dest.push_byte(b.swap_bits());
             }
         }
 
         // Write permission domain headers
-        for (key, payload) in self.domains.iter() {
-            let mut key_buf = [0u8; 16];
-            for i in 0..key.len() {
-                key_buf[i] = key.as_bytes()[i];
-            }
+        for (key, payload) in &self.domains {
+            let mut key_buf = [0_u8; 16];
+            key_buf[..key.len()].clone_from_slice(&key.as_bytes());
             dest.write(&key_buf);
-            for b in (payload.len() as u16).to_le_bytes().iter() {
+            for b in &(payload.len() as u16).to_le_bytes() {
                 dest.push_byte(b.swap_bits());
             }
         }
 
         // Write permission domain payloads
-        for (_, payload) in self.domains.iter() {
+        for (_, payload) in &self.domains {
             dest.write(payload);
         }
 
@@ -239,32 +239,32 @@ mod test {
 
     #[test]
     fn it_is_a_valid_usage() {
-        let holder = [1u8; 32];
+        let holder = [1_u8; 32];
         let doughnut = DoughnutV0 {
-            issuer: [0u8; 32],
+            issuer: [0_u8; 32],
             holder,
-            domains: Default::default(),
+            domains: Vec::default(),
             expiry: make_unix_timestamp(10),
             not_before: 0,
             payload_version: 0,
             signature_version: 0,
-            signature: Default::default(), // No need to check signature here
+            signature: H512::default(), // No need to check signature here
         };
 
         assert!(doughnut.validate(holder, make_unix_timestamp(0)).is_ok())
     }
     #[test]
     fn usage_after_expiry_is_invalid() {
-        let holder = [1u8; 32];
+        let holder = [1_u8; 32];
         let doughnut = DoughnutV0 {
-            issuer: [0u8; 32],
+            issuer: [0_u8; 32],
             holder,
-            domains: Default::default(),
+            domains: Vec::default(),
             expiry: make_unix_timestamp(0),
             not_before: 0,
             payload_version: 0,
             signature_version: 0,
-            signature: Default::default(), // No need to check signature here
+            signature: H512::default(), // No need to check signature here
         };
 
         assert_eq!(
@@ -274,19 +274,19 @@ mod test {
     }
     #[test]
     fn usage_by_non_holder_is_invalid() {
-        let holder = [1u8; 32];
+        let holder = [1_u8; 32];
         let doughnut = DoughnutV0 {
-            issuer: [0u8; 32],
+            issuer: [0_u8; 32],
             holder,
-            domains: Default::default(),
+            domains: Vec::default(),
             expiry: make_unix_timestamp(10),
             not_before: 0,
             payload_version: 0,
             signature_version: 0,
-            signature: Default::default(), // No need to check signature here
+            signature: H512::default(), // No need to check signature here
         };
 
-        let not_the_holder = [2u8; 32];
+        let not_the_holder = [2_u8; 32];
         assert_eq!(
             doughnut.validate(not_the_holder, make_unix_timestamp(0)),
             Err(ValidationError::HolderIdentityMismatched)
@@ -294,16 +294,16 @@ mod test {
     }
     #[test]
     fn usage_preceeding_not_before_is_invalid() {
-        let holder = [1u8; 32];
+        let holder = [1_u8; 32];
         let doughnut = DoughnutV0 {
-            issuer: [0u8; 32],
+            issuer: [0_u8; 32],
             holder,
-            domains: Default::default(),
+            domains: Vec::default(),
             expiry: make_unix_timestamp(12),
             not_before: make_unix_timestamp(10),
             payload_version: 0,
             signature_version: 0,
-            signature: Default::default(), // No need to check signature here
+            signature: H512::default(), // No need to check signature here
         };
 
         assert_eq!(
@@ -314,16 +314,16 @@ mod test {
 
     #[test]
     fn validate_with_timestamp_overflow_fails() {
-        let holder = [1u8; 32];
+        let holder = [1_u8; 32];
         let doughnut = DoughnutV0 {
-            issuer: [0u8; 32],
+            issuer: [0_u8; 32],
             holder,
-            domains: Default::default(),
+            domains: Vec::default(),
             expiry: 0,
             not_before: 0,
             payload_version: 0,
             signature_version: 0,
-            signature: Default::default(),
+            signature: H512::default(),
         };
 
         assert_eq!(

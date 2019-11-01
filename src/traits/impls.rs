@@ -14,6 +14,7 @@
 //!
 //! Doughnut trait impls
 //!
+
 use crate::alloc::vec::Vec;
 use crate::error::{ValidationError, VerifyError};
 use crate::traits::{DoughnutApi, DoughnutVerify};
@@ -42,11 +43,9 @@ impl DoughnutApi for () {
         0
     }
     fn payload(&self) -> Vec<u8> {
-        Default::default()
+        Vec::default()
     }
-    fn signature(&self) -> Self::Signature {
-        ()
-    }
+    fn signature(&self) -> Self::Signature {}
     fn signature_version(&self) -> u8 {
         255
     }

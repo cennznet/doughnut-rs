@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #![cfg(test)]
 
 use alloc::vec::Vec;
@@ -52,8 +53,8 @@ fn it_works_v0() {
             141, 125, 105, 138, 38, 93, 144, 45, 224, 70, 206, 246, 116
         ]
     );
-    assert_eq!(d.get_domain("something"), Some(&[0u8][..]));
-    assert_eq!(d.get_domain("somethingElse"), Some(&[0u8][..]));
+    assert_eq!(d.get_domain("something"), Some(&[0_u8][..]));
+    assert_eq!(d.get_domain("somethingElse"), Some(&[0_u8][..]));
 
     assert_eq!(
         d.signature().to_vec(),
@@ -96,8 +97,8 @@ fn it_works_v0_parity() {
             141, 125, 105, 138, 38, 93, 144, 45, 224, 70, 206, 246, 116
         ]
     );
-    assert_eq!(d.get_domain("something"), Some(&[0u8][..]));
-    assert_eq!(d.get_domain("somethingElse"), Some(&[0u8][..]));
+    assert_eq!(d.get_domain("something"), Some(&[0_u8][..]));
+    assert_eq!(d.get_domain("somethingElse"), Some(&[0_u8][..]));
     assert_eq!(&d.signature[..], &payload[(payload.len() - 64) as usize..],);
     assert_eq!(d.encode(), payload);
 }

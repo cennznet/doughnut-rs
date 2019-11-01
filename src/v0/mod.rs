@@ -39,6 +39,7 @@ const SIGNATURE_MASK: u8 = 0b0001_1111;
 const NOT_BEFORE_MASK: u8 = 0b1000_0000;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
+#[allow(clippy::module_name_repetitions)]
 pub struct DoughnutV0<'a>(&'a [u8]);
 
 impl<'a> DoughnutApi for DoughnutV0<'a> {
@@ -109,7 +110,7 @@ impl<'a> DoughnutApi for DoughnutV0<'a> {
         };
 
         // Scan domains
-        let mut domain_offset = u16::from(offset) + (self.permission_domain_count() as u16) * 18;
+        let mut domain_offset = u16::from(offset) + u16::from(self.permission_domain_count()) * 18;
         for _ in 0..self.permission_domain_count() {
             // 16 bytes per key, 2 bytes for payload length
             let domain_len = u16::from_le_bytes([
@@ -142,8 +143,7 @@ fn payload_version(buf: &[u8]) -> u16 {
 
 /// Returns the doughnut "permission domain count"
 fn permission_domain_count(buf: &[u8]) -> u8 {
-    let count = ((buf[2] & 0b0100_0000).swap_bits() >> 1) + 1;
-    count
+    ((buf[2] & 0b0100_0000).swap_bits() >> 1) + 1
 }
 
 /// Whether the doughnut has "not before" bit set
@@ -192,9 +192,12 @@ impl<'a> DoughnutV0<'a> {
             WITHOUT_NOT_BEFORE_OFFSET
         });
         let minimum_permission_domain_length =
-            permission_domain_count(encoded) as u16 * (2 + 16 + 1); // domain length + key length + 1 byte payload
+            u16::from(permission_domain_count(encoded)) * (2 + 16 + 1); // domain length + key length + 1 byte payload
+
+        #[allow(clippy::cast_possible_truncation)]
+        let length = encoded.len() as u16;
         let expected_length = offset + minimum_permission_domain_length + SIGNATURE_LENGTH_V0;
-        if (encoded.len() as u16) < expected_length {
+        if length < expected_length {
             return Err(CodecError::BadEncoding(&"Too short"));
         }
 
@@ -231,10 +234,12 @@ mod test {
     use crate::traits::DoughnutApi;
     use crate::v0::parity::DoughnutV0;
     use codec::Encode;
+    use primitive_types::H512;
     use std::ops::Add;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     // Make a unix timestamp `when` seconds from the invocation
+    #[allow(clippy::cast_possible_truncation)]
     fn make_unix_timestamp(when: u64) -> u32 {
         SystemTime::now()
             .add(Duration::from_secs(when))
@@ -244,12 +249,7 @@ mod test {
     }
 
     /// Utility to make an encoded doughnut
-    fn make_doughnut<'a>(
-        holder: [u8; 32],
-        issuer: [u8; 32],
-        expiry: u64,
-        not_before: u64,
-    ) -> Vec<u8> {
+    fn make_doughnut(holder: [u8; 32], issuer: [u8; 32], expiry: u64, not_before: u64) -> Vec<u8> {
         // NOTE: We use parity version to create the test doughnut since this module's version
         // is just a bytes window
         DoughnutV0 {
@@ -260,15 +260,15 @@ mod test {
             not_before: make_unix_timestamp(not_before),
             payload_version: 0,
             signature_version: 0,
-            signature: Default::default(), // No need to check signature here
+            signature: H512::default(), // No need to check signature here
         }
         .encode()
     }
 
     #[test]
     fn it_is_a_valid_usage() {
-        let holder = [1u8; 32];
-        let encoded = make_doughnut(holder, [0u8; 32], 10, 0);
+        let holder = [1_u8; 32];
+        let encoded = make_doughnut(holder, [0_u8; 32], 10, 0);
         let doughnut = Doughnut::new(&encoded).unwrap();
 
         assert!(doughnut.validate(&holder, make_unix_timestamp(0)).is_ok())
@@ -276,8 +276,8 @@ mod test {
 
     #[test]
     fn usage_after_expiry_is_invalid() {
-        let holder = [1u8; 32];
-        let encoded = make_doughnut(holder, [0u8; 32], 0, 0);
+        let holder = [1_u8; 32];
+        let encoded = make_doughnut(holder, [0_u8; 32], 0, 0);
         let doughnut = Doughnut::new(&encoded).unwrap();
 
         assert_eq!(
@@ -288,10 +288,10 @@ mod test {
 
     #[test]
     fn usage_by_non_holder_is_invalid() {
-        let encoded = make_doughnut([1u8; 32], [0u8; 32], 10, 0);
+        let encoded = make_doughnut([1_u8; 32], [0_u8; 32], 10, 0);
         let doughnut = Doughnut::new(&encoded).unwrap();
 
-        let not_the_holder = [2u8; 32];
+        let not_the_holder = [2_u8; 32];
         assert_eq!(
             doughnut.validate(not_the_holder, make_unix_timestamp(0)),
             Err(ValidationError::HolderIdentityMismatched)
@@ -300,8 +300,8 @@ mod test {
 
     #[test]
     fn usage_preceeding_not_before_is_invalid() {
-        let holder = [1u8; 32];
-        let encoded = make_doughnut(holder, [0u8; 32], 12, 10);
+        let holder = [1_u8; 32];
+        let encoded = make_doughnut(holder, [0_u8; 32], 12, 10);
         let doughnut = Doughnut::new(&encoded).unwrap();
 
         assert_eq!(

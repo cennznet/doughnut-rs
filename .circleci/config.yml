@@ -8,7 +8,7 @@ jobs:
       - run:
           name: setup
           command: |
-            rustup component add rustfmt
+            rustup component add rustfmt clippy
             rustup install nightly
       - run:
           name: cargo build
@@ -24,6 +24,11 @@ jobs:
           name: cargo test
           command: |
             cargo test
+      - run:
+          name: cargo clippy
+          command: |
+            cargo clean
+            cargo clippy -- -D warnings
       - run:
           name: "Check 'no std' build"
           command: |
