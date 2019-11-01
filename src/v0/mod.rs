@@ -234,6 +234,7 @@ mod test {
     use crate::traits::DoughnutApi;
     use crate::v0::parity::DoughnutV0;
     use codec::Encode;
+    use primitive_types::H512;
     use std::ops::Add;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -259,7 +260,7 @@ mod test {
             not_before: make_unix_timestamp(not_before),
             payload_version: 0,
             signature_version: 0,
-            signature: primitive_types::H512::default(), // No need to check signature here
+            signature: H512::default(), // No need to check signature here
         }
         .encode()
     }
