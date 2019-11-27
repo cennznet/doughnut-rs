@@ -179,9 +179,10 @@ impl Decode for DoughnutV0 {
 impl Encode for DoughnutV0 {
     fn encode_to<T: Output>(&self, dest: &mut T) {
         let mut payload_version_and_signature_version = self.payload_version.swap_bits();
+
         payload_version_and_signature_version |=
-            (u16::from(self.signature_version) << 3).swap_bits();
-        dest.write(&payload_version_and_signature_version.to_le_bytes());
+            u16::from(self.signature_version).swap_bits() >> 11;
+        dest.write(&payload_version_and_signature_version.to_be_bytes());
 
         let mut domain_count_and_not_before_byte =
             (((self.domains.len() as u8) - 1) << 1).swap_bits();
