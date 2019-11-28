@@ -67,7 +67,7 @@ fn it_works_v0() {
 #[test]
 fn it_works_v0_parity() {
     let payload: Vec<u8> = vec![
-        0, 0, 64, 22, 126, 150, 15, 176, 190, 210, 156, 179, 149, 142, 84, 153, 4, 203, 61, 62,
+        64, 24, 64, 22, 126, 150, 15, 176, 190, 210, 156, 179, 149, 142, 84, 153, 4, 203, 61, 62,
         185, 76, 45, 162, 220, 254, 188, 163, 187, 63, 39, 186, 113, 126, 12, 60, 121, 179, 67,
         105, 121, 244, 39, 137, 174, 55, 85, 167, 73, 111, 50, 249, 10, 145, 141, 125, 105, 138,
         38, 93, 144, 45, 224, 70, 206, 246, 116, 196, 94, 16, 0, 115, 111, 109, 101, 116, 104, 105,
@@ -79,8 +79,8 @@ fn it_works_v0_parity() {
     ];
     let d = v0::parity::DoughnutV0::decode(&mut &payload[..]).expect("It works");
 
-    assert_eq!(d.signature_version, 0);
-    assert_eq!(d.payload_version, 0);
+    assert_eq!(d.signature_version, 3);
+    assert_eq!(d.payload_version, 2);
     assert_eq!(d.expiry, 555_555);
     assert_eq!(d.not_before, 0);
     assert_eq!(
