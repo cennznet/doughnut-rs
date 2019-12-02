@@ -15,6 +15,8 @@
 //! A versioned doughnut wrapper.
 //!
 
+#![allow(clippy::type_repetition_in_bounds)]
+
 use crate::traits::{DoughnutApi, DoughnutVerify};
 use codec::{Decode, Encode};
 
