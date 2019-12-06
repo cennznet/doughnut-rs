@@ -18,24 +18,23 @@
 #![allow(clippy::type_repetition_in_bounds)]
 
 use crate::traits::{DoughnutApi, DoughnutVerify};
-use codec::{Decode, Encode};
+use crate::v0::parity::DoughnutV0;
+use codec::{Error, Decode, Encode};
+use core::convert::TryFrom;
 
 /// A versioned doughnut wrapper. It proxies to the real,inner doughnut type
-#[derive(Encode, Decode, Clone)]
-pub enum Doughnut<T>
-where
-    T: DoughnutApi + Encode + Decode + DoughnutVerify,
-{
-    V0(T),
+#[derive(Encode, Decode, Clone, Debug, Eq, PartialEq)]
+pub enum Doughnut {
+    V0(DoughnutV0),
 }
 
-impl<T> Doughnut<T>
-where
-    T: DoughnutApi + Encode + Decode + DoughnutVerify,
-{
-    pub fn versioned_doughnut(&self) -> &T {
-        match self {
-            Self::V0(doughnut_v0) => doughnut_v0,
+#[allow(unreachable_patterns)]
+impl TryFrom<CENNZnut> for DoughnutV0 {
+    type Error = Error;
+    fn try_from(v: CENNZnut) -> Result<Self, Self::Error> {
+        match v {
+            V0(inner) => Ok(inner),
+            _ => Err(Error::from("Doughnut version is not 0")),
         }
     }
 }
