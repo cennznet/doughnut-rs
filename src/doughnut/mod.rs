@@ -15,8 +15,6 @@
 //! A versioned doughnut wrapper.
 //!
 
-#![allow(clippy::type_repetition_in_bounds)]
-
 use crate::v0::parity::DoughnutV0;
 use codec::{Decode, Encode, Error};
 use core::convert::TryFrom;
@@ -27,14 +25,14 @@ pub enum Doughnut {
     V0(DoughnutV0),
 }
 
-#[allow(unreachable_patterns)]
+#[allow(irrefutable_let_patterns)]
 impl TryFrom<Doughnut> for DoughnutV0 {
     type Error = Error;
     fn try_from(v: Doughnut) -> Result<Self, Self::Error> {
-        match v {
-            Doughnut::V0(inner) => Ok(inner),
-            _ => Err(Error::from("Doughnut version is not 0")),
+        if let Doughnut::V0(inner) = v {
+            return Ok(inner);
         }
+        Err(Error::from("Doughnut version is not 0"))
     }
 }
 
