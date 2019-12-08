@@ -93,7 +93,7 @@ impl DoughnutVerify for ParityDoughnutV0 {
 impl DoughnutVerify for Doughnut {
     fn verify(&self) -> Result<(), VerifyError> {
         match self {
-            Doughnut::V0(v0) => v0.verify(),
+            Self::V0(v0) => v0.verify(),
             _ => Err(VerifyError::UnsupportedVersion),
         }
     }
