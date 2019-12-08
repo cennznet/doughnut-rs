@@ -20,6 +20,7 @@ use crate::doughnut::Doughnut;
 use crate::traits::DoughnutApi;
 use crate::v0::{parity, DoughnutV0};
 use codec::{Decode, Encode};
+use core::convert::TryFrom;
 use parity::DoughnutV0 as ParityDoughnutV0;
 
 #[test]
@@ -176,14 +177,13 @@ fn it_works_doughnut_enum_v0_parity() {
         13, 218, 44, 244, 54, 137, 179, 56, 110, 152, 170, 180, 218, 107, 177, 170, 58, 91, 62, 24,
         240, 248, 244, 13, 51, 235, 3, 21, 63, 79, 192, 137, 6,
     ];
-    let decoded_doughnut: Doughnut<ParityDoughnutV0> =
-        Doughnut::decode(&mut &payload[..]).expect("It works");
-    let d = decoded_doughnut.versioned_doughnut();
+    let doughnut = Doughnut::decode(&mut &payload[..]).expect("It works");
+    let d = ParityDoughnutV0::try_from(doughnut.clone()).unwrap();
 
     assert_eq!(d.signature_version, 3);
     assert_eq!(d.payload_version, 2);
     assert_eq!(d.expiry, 555_555);
     assert_eq!(d.not_before, 0);
     assert_eq!(d.encode(), payload[1..].to_vec());
-    assert_eq!(decoded_doughnut.encode(), payload);
+    assert_eq!(doughnut.encode(), payload);
 }
