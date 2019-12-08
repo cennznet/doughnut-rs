@@ -17,9 +17,8 @@
 
 #![allow(clippy::type_repetition_in_bounds)]
 
-use crate::traits::{DoughnutApi, DoughnutVerify};
 use crate::v0::parity::DoughnutV0;
-use codec::{Error, Decode, Encode};
+use codec::{Decode, Encode, Error};
 use core::convert::TryFrom;
 
 /// A versioned doughnut wrapper. It proxies to the real,inner doughnut type
@@ -29,11 +28,11 @@ pub enum Doughnut {
 }
 
 #[allow(unreachable_patterns)]
-impl TryFrom<CENNZnut> for DoughnutV0 {
+impl TryFrom<Doughnut> for DoughnutV0 {
     type Error = Error;
-    fn try_from(v: CENNZnut) -> Result<Self, Self::Error> {
+    fn try_from(v: Doughnut) -> Result<Self, Self::Error> {
         match v {
-            V0(inner) => Ok(inner),
+            Doughnut::V0(inner) => Ok(inner),
             _ => Err(Error::from("Doughnut version is not 0")),
         }
     }
@@ -60,8 +59,8 @@ mod test {
         };
 
         let doughnut = Doughnut::V0(doughnut_v0.clone());
-        let versioned_doughnut = doughnut.versioned_doughnut();
+        let versioned_doughnut = DoughnutV0::try_from(doughnut).unwrap();
 
-        assert_eq!(doughnut_v0, *versioned_doughnut);
+        assert_eq!(doughnut_v0, versioned_doughnut);
     }
 }
