@@ -1,4 +1,5 @@
 // Copyright 2019 Centrality Investments Limited
+
 //!
 //! Doughnut V0 codec
 //! This version is for interoperability within the substrate extrinsic environment.

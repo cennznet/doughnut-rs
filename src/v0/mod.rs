@@ -1,4 +1,5 @@
 // Copyright 2019 Centrality Investments Limited
+
 //!
 //! Doughnut V0 codec
 //! This codec operates on a valid byte slice, lazy-ily decoding parts when required.

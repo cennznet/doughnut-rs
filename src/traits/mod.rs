@@ -1,4 +1,5 @@
 // Copyright 2019 Centrality Investments Limited
+
 //!
 //! Doughnut traits
 //!
