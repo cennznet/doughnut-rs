@@ -21,6 +21,9 @@ extern crate alloc;
 #[macro_use]
 extern crate std as alloc;
 
+mod doughnut;
+pub use doughnut::Doughnut;
+
 pub mod error;
 #[cfg(feature = "std")]
 mod signature;
