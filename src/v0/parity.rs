@@ -34,12 +34,8 @@ pub struct DoughnutV0 {
 }
 
 impl DoughnutV0 {
-    fn encode_with_signature_optional(&self, encode_signature: bool) -> Vec<u8> {
-        let mut r = Vec::with_capacity(self.size_hint());
-        self.encode_to_with_signature_optional(&mut r, encode_signature);
-        r
-    }
-
+    // Encodes the doughnut into an byte array and writes the result into a given memory
+    // if encode_signature is false, the final signature bytes are not included in the result
     fn encode_to_with_signature_optional<T: Output>(&self, dest: &mut T, encode_signature: bool) {
         let mut payload_version_and_signature_version = self.payload_version.swap_bits();
 
@@ -116,7 +112,9 @@ impl DoughnutApi for DoughnutV0 {
     }
     /// Return the doughnut payload bytes
     fn payload(&self) -> Vec<u8> {
-        self.encode_with_signature_optional(false)
+        let mut r = Vec::with_capacity(self.size_hint());
+        self.encode_to_with_signature_optional(&mut r, false);
+        r
     }
     /// Return the doughnut signature bytes
     fn signature(&self) -> Self::Signature {
