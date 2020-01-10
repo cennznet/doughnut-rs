@@ -34,8 +34,8 @@ pub struct DoughnutV0 {
 }
 
 impl DoughnutV0 {
-    // Encodes the doughnut into an byte array and writes the result into a given memory
-    // if encode_signature is false, the final signature bytes are not included in the result
+    /// Encodes the doughnut into an byte array and writes the result into a given memory
+    /// if `encode_signature` is false, the final signature bytes are not included in the result
     fn encode_to_with_signature_optional<T: Output>(&self, dest: &mut T, encode_signature: bool) {
         let mut payload_version_and_signature_version = self.payload_version.swap_bits();
 
