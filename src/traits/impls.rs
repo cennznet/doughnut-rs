@@ -8,7 +8,9 @@ use crate::alloc::vec::Vec;
 use crate::error::{ValidationError, VerifyError};
 use crate::traits::{DoughnutApi, DoughnutVerify};
 
+#[cfg(feature = "std")]
 use crate::doughnut::Doughnut;
+
 #[cfg(feature = "std")]
 use crate::v0::{parity::DoughnutV0 as ParityDoughnutV0, DoughnutV0};
 

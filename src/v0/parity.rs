@@ -33,6 +33,61 @@ pub struct DoughnutV0 {
     pub signature: H512,
 }
 
+impl DoughnutV0 {
+    /// Encodes the doughnut into an byte array and writes the result into a given memory
+    /// if `encode_signature` is false, the final signature bytes are not included in the result
+    fn encode_to_with_signature_optional<T: Output>(&self, dest: &mut T, encode_signature: bool) {
+        let mut payload_version_and_signature_version = self.payload_version.swap_bits();
+
+        payload_version_and_signature_version |=
+            u16::from(self.signature_version).swap_bits() >> 11;
+        dest.write(&payload_version_and_signature_version.to_be_bytes());
+
+        let mut domain_count_and_not_before_byte =
+            (((self.domains.len() as u8) - 1) << 1).swap_bits();
+        if self.not_before > 0 {
+            domain_count_and_not_before_byte |= NOT_BEFORE_MASK;
+        }
+        dest.push_byte(domain_count_and_not_before_byte);
+        dest.write(&self.issuer);
+        dest.write(&self.holder);
+
+        for b in &self.expiry.to_le_bytes() {
+            dest.push_byte(b.swap_bits());
+        }
+
+        if self.not_before > 0 {
+            for b in &self.not_before.to_le_bytes() {
+                dest.push_byte(b.swap_bits());
+            }
+        }
+
+        // Write permission domain headers
+        for (key, payload) in &self.domains {
+            let mut key_buf = [0_u8; 16];
+            key_buf[..key.len()].clone_from_slice(&key.as_bytes());
+            dest.write(&key_buf);
+            for b in &(payload.len() as u16).to_le_bytes() {
+                dest.push_byte(b.swap_bits());
+            }
+        }
+
+        // Write permission domain payloads
+        for (_, payload) in &self.domains {
+            dest.write(payload);
+        }
+
+        if encode_signature {
+            dest.write(self.signature.as_bytes());
+        }
+    }
+}
+impl Encode for DoughnutV0 {
+    fn encode_to<T: Output>(&self, dest: &mut T) {
+        self.encode_to_with_signature_optional(dest, true);
+    }
+}
+
 impl codec::EncodeLike for DoughnutV0 {}
 
 impl DoughnutApi for DoughnutV0 {
@@ -57,9 +112,9 @@ impl DoughnutApi for DoughnutV0 {
     }
     /// Return the doughnut payload bytes
     fn payload(&self) -> Vec<u8> {
-        let buf = self.encode();
-        // TODO: Fix this. We encode signature bytes and then discard them
-        buf[..buf.len() - 64].to_vec()
+        let mut r = Vec::with_capacity(self.size_hint());
+        self.encode_to_with_signature_optional(&mut r, false);
+        r
     }
     /// Return the doughnut signature bytes
     fn signature(&self) -> Self::Signature {
@@ -162,52 +217,6 @@ impl Decode for DoughnutV0 {
             domains,
             signature: H512::from(signature),
         })
-    }
-}
-
-impl Encode for DoughnutV0 {
-    fn encode_to<T: Output>(&self, dest: &mut T) {
-        let mut payload_version_and_signature_version = self.payload_version.swap_bits();
-
-        payload_version_and_signature_version |=
-            u16::from(self.signature_version).swap_bits() >> 11;
-        dest.write(&payload_version_and_signature_version.to_be_bytes());
-
-        let mut domain_count_and_not_before_byte =
-            (((self.domains.len() as u8) - 1) << 1).swap_bits();
-        if self.not_before > 0 {
-            domain_count_and_not_before_byte |= NOT_BEFORE_MASK;
-        }
-        dest.push_byte(domain_count_and_not_before_byte);
-        dest.write(&self.issuer);
-        dest.write(&self.holder);
-
-        for b in &self.expiry.to_le_bytes() {
-            dest.push_byte(b.swap_bits());
-        }
-
-        if self.not_before > 0 {
-            for b in &self.not_before.to_le_bytes() {
-                dest.push_byte(b.swap_bits());
-            }
-        }
-
-        // Write permission domain headers
-        for (key, payload) in &self.domains {
-            let mut key_buf = [0_u8; 16];
-            key_buf[..key.len()].clone_from_slice(&key.as_bytes());
-            dest.write(&key_buf);
-            for b in &(payload.len() as u16).to_le_bytes() {
-                dest.push_byte(b.swap_bits());
-            }
-        }
-
-        // Write permission domain payloads
-        for (_, payload) in &self.domains {
-            dest.write(payload);
-        }
-
-        dest.write(self.signature.as_bytes());
     }
 }
 
