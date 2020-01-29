@@ -21,7 +21,7 @@ use crate::traits::DoughnutApi;
 const NOT_BEFORE_MASK: u8 = 0b1000_0000;
 const SIGNATURE_MASK: u8 = 0b0001_1111;
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct DoughnutV0 {
     pub issuer: [u8; 32],
     pub holder: [u8; 32],
