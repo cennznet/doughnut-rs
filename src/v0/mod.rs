@@ -165,7 +165,9 @@ impl<'a> fmt::Display for DoughnutV0<'a> {
 
 impl<'a> DoughnutV0<'a> {
     /// Create a new v0 Doughnut from encoded bytes verifying it's correctness.
-    /// Returns an error if encoding is invalid
+    ///
+    /// # Errors
+    /// This function will error if the encoding is invalid
     pub fn new(encoded: &'a [u8]) -> Result<Self, CodecError<'a>> {
         if encoded.len() < 2 {
             return Err(CodecError::BadEncoding(&"Missing header"));
@@ -218,7 +220,7 @@ impl<'a> Encode for DoughnutV0<'a> {
 
 #[cfg(test)]
 mod test {
-    use super::DoughnutV0 as Doughnut;
+    use super::{DoughnutV0 as Doughnut, NOT_BEFORE_MASK};
     use crate::error::ValidationError;
     use crate::traits::DoughnutApi;
     use crate::v0::parity::DoughnutV0;
@@ -246,7 +248,7 @@ mod test {
             holder,
             domains: vec![("test".to_string(), vec![0])],
             expiry: make_unix_timestamp(expiry),
-            not_before: make_unix_timestamp(not_before),
+            not_before: Some(make_unix_timestamp(not_before)),
             payload_version: 0,
             signature_version: 0,
             signature: H512::default(), // No need to check signature here
@@ -288,7 +290,7 @@ mod test {
     }
 
     #[test]
-    fn usage_preceeding_not_before_is_invalid() {
+    fn usage_preceding_not_before_is_invalid() {
         let holder = [1_u8; 32];
         let encoded = make_doughnut(holder, [0_u8; 32], 12, 10);
         let doughnut = Doughnut::new(&encoded).unwrap();
@@ -297,5 +299,29 @@ mod test {
             doughnut.validate(&holder, make_unix_timestamp(0)),
             Err(ValidationError::Premature)
         )
+    }
+
+    #[test]
+    fn explicit_not_before_zero_encodes() {
+        let holder = [1_u8; 32];
+        let doughnut = DoughnutV0 {
+            issuer: [0_u8; 32],
+            holder,
+            domains: vec![("test".to_string(), vec![1, 2, 3, 4, 5])],
+            expiry: 0,
+            not_before: Some(0),
+            payload_version: 0,
+            signature_version: 0,
+            signature: H512::default(),
+        };
+        let encoded = doughnut.encode();
+
+        // byte at index 2 is 'not_before_and_domain_count' byte
+        // Check with explicit zero `not_before` bit should be set
+        assert_eq!((encoded[2] & NOT_BEFORE_MASK), NOT_BEFORE_MASK);
+
+        // 'not before' encodes 4 zero bytes
+        // 71-75 are based on fixed offsets derived from the doughnut v0 spec
+        assert_eq!(encoded[71..75], [0, 0, 0, 0]);
     }
 }

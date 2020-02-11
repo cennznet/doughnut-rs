@@ -39,7 +39,7 @@ mod test {
             holder: [2_u8; 32],
             domains,
             expiry: 0,
-            not_before: 0,
+            not_before: None,
             payload_version: 3,
             signature_version: 3,
             signature: H512::default(),

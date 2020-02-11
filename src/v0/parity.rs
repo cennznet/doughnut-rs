@@ -27,7 +27,7 @@ pub struct DoughnutV0 {
     pub holder: [u8; 32],
     pub domains: Vec<(String, Vec<u8>)>,
     pub expiry: u32,
-    pub not_before: u32,
+    pub not_before: Option<u32>,
     pub payload_version: u16,
     pub signature_version: u8,
     pub signature: H512,
@@ -45,7 +45,7 @@ impl DoughnutV0 {
 
         let mut domain_count_and_not_before_byte =
             (((self.domains.len() as u8) - 1) << 1).swap_bits();
-        if self.not_before > 0 {
+        if self.not_before.is_some() {
             domain_count_and_not_before_byte |= NOT_BEFORE_MASK;
         }
         dest.push_byte(domain_count_and_not_before_byte);
@@ -56,8 +56,8 @@ impl DoughnutV0 {
             dest.push_byte(b.swap_bits());
         }
 
-        if self.not_before > 0 {
-            for b in &self.not_before.to_le_bytes() {
+        if let Some(not_before) = self.not_before {
+            for b in &not_before.to_le_bytes() {
                 dest.push_byte(b.swap_bits());
             }
         }
@@ -108,7 +108,7 @@ impl DoughnutApi for DoughnutV0 {
     }
     /// Return the doughnut 'not before' timestamp
     fn not_before(&self) -> Self::Timestamp {
-        self.not_before
+        self.not_before.unwrap_or(0)
     }
     /// Return the doughnut payload bytes
     fn payload(&self) -> Vec<u8> {
@@ -163,14 +163,14 @@ impl Decode for DoughnutV0 {
         ]);
 
         let not_before = if has_not_before {
-            u32::from_le_bytes([
+            Some(u32::from_le_bytes([
                 input.read_byte()?.swap_bits(),
                 input.read_byte()?.swap_bits(),
                 input.read_byte()?.swap_bits(),
                 input.read_byte()?.swap_bits(),
-            ])
+            ]))
         } else {
-            0
+            None
         };
 
         // Build domain permissions list
@@ -244,7 +244,7 @@ mod test {
             holder,
             domains: Vec::default(),
             expiry: make_unix_timestamp(10),
-            not_before: 0,
+            not_before: None,
             payload_version: 0,
             signature_version: 0,
             signature: H512::default(), // No need to check signature here
@@ -252,6 +252,7 @@ mod test {
 
         assert!(doughnut.validate(holder, make_unix_timestamp(0)).is_ok())
     }
+
     #[test]
     fn usage_after_expiry_is_invalid() {
         let holder = [1_u8; 32];
@@ -260,7 +261,7 @@ mod test {
             holder,
             domains: Vec::default(),
             expiry: make_unix_timestamp(0),
-            not_before: 0,
+            not_before: None,
             payload_version: 0,
             signature_version: 0,
             signature: H512::default(), // No need to check signature here
@@ -271,6 +272,7 @@ mod test {
             Err(ValidationError::Expired)
         )
     }
+
     #[test]
     fn usage_by_non_holder_is_invalid() {
         let holder = [1_u8; 32];
@@ -279,7 +281,7 @@ mod test {
             holder,
             domains: Vec::default(),
             expiry: make_unix_timestamp(10),
-            not_before: 0,
+            not_before: None,
             payload_version: 0,
             signature_version: 0,
             signature: H512::default(), // No need to check signature here
@@ -291,15 +293,16 @@ mod test {
             Err(ValidationError::HolderIdentityMismatched)
         )
     }
+
     #[test]
-    fn usage_preceeding_not_before_is_invalid() {
+    fn usage_preceding_not_before_is_invalid() {
         let holder = [1_u8; 32];
         let doughnut = DoughnutV0 {
             issuer: [0_u8; 32],
             holder,
             domains: Vec::default(),
             expiry: make_unix_timestamp(12),
-            not_before: make_unix_timestamp(10),
+            not_before: Some(make_unix_timestamp(10)),
             payload_version: 0,
             signature_version: 0,
             signature: H512::default(), // No need to check signature here
@@ -319,7 +322,7 @@ mod test {
             holder,
             domains: Vec::default(),
             expiry: 0,
-            not_before: 0,
+            not_before: None,
             payload_version: 0,
             signature_version: 0,
             signature: H512::default(),
@@ -329,5 +332,29 @@ mod test {
             doughnut.validate(holder, u64::max_value()),
             Err(ValidationError::Conversion)
         )
+    }
+
+    #[test]
+    fn explicit_not_before_zero_encodes() {
+        let holder = [1_u8; 32];
+        let doughnut = DoughnutV0 {
+            issuer: [0_u8; 32],
+            holder,
+            domains: vec![("test".to_string(), vec![1, 2, 3, 4, 5])],
+            expiry: 0,
+            not_before: Some(0),
+            payload_version: 0,
+            signature_version: 0,
+            signature: H512::default(),
+        };
+        let encoded = doughnut.encode();
+
+        // byte at index 2 is 'not_before_and_domain_count' byte
+        // Check with explicit zero `not_before` bit should be set
+        assert_eq!((encoded[2] & NOT_BEFORE_MASK), NOT_BEFORE_MASK);
+
+        // 'not before' encodes 4 zero bytes
+        // 71-75 are based on fixed offsets derived from the doughnut v0 spec
+        assert_eq!(encoded[71..75], [0, 0, 0, 0]);
     }
 }

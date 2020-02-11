@@ -36,6 +36,11 @@ pub trait DoughnutApi {
     /// Return the payload for domain, if it exists in the doughnut
     fn get_domain(&self, domain: &str) -> Option<&[u8]>;
     /// Validate the doughnut is usable by a public key (`who`) at the current timestamp (`not_before` <= `now` <= `expiry`)
+    /// # Errors
+    /// This function will error if the doughnut is invalid for use given `who` and the timestamp `now`
+    /// It may also fail on type conversions if:
+    /// - `who` cannot be coerced into the doughnut public key type
+    /// - `now` cannot be coerced into the doughnut timestamp type
     fn validate<Q, R>(&self, who: Q, now: R) -> Result<(), ValidationError>
     where
         Q: AsRef<[u8]>,
@@ -68,5 +73,9 @@ pub trait DoughnutApi {
 /// Provide doughnut signature checks
 pub trait DoughnutVerify {
     /// Verify the doughnut signature, return whether it is valid or not
+    ///
+    /// # Errors
+    /// This function may fail for any reason described by `VerifyError` variants
+    /// Primarily, the doughnut signature is invalid
     fn verify(&self) -> Result<(), VerifyError>;
 }

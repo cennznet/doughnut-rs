@@ -73,7 +73,7 @@ fn it_works_v0_parity() {
     assert_eq!(d.signature_version, 3);
     assert_eq!(d.payload_version, 2);
     assert_eq!(d.expiry, 555_555);
-    assert_eq!(d.not_before, 0);
+    assert_eq!(d.not_before, None);
     assert_eq!(
         d.issuer().as_ref(),
         [
@@ -171,7 +171,7 @@ fn it_works_doughnut_enum_v0_parity() {
     assert_eq!(d.signature_version, 3);
     assert_eq!(d.payload_version, 2);
     assert_eq!(d.expiry, 555_555);
-    assert_eq!(d.not_before, 0);
+    assert_eq!(d.not_before, None);
     assert_eq!(d.encode(), payload[1..].to_vec());
     assert_eq!(doughnut.encode(), payload);
 }
