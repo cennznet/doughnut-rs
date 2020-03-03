@@ -8,7 +8,7 @@ edition = "2018"
 bit_reverse = { version = "0.1.8", default-features = false }
 codec = { package = "parity-scale-codec", version = "~1.0.0", default-features = false, features = ["derive"] }
 primitive-types = { version = "<1.0", default-features = false }
-schnorrkel = { version = "~0.1", optional = true }
+schnorrkel = { version = "^0.8.5", optional = true }
 ed25519-dalek = { version = "1.0.0-pre.1", optional = true }
 
 [features]
