@@ -60,10 +60,7 @@ fn verify_sr25519_signature(
     let signature =
         Sr25519Sig::from_bytes(signature_bytes).map_err(|_| VerifyError::BadSignatureFormat)?;
     let public_key = Sr25519Pub::from_bytes(signer).map_err(|_| VerifyError::BadPublicKeyFormat)?;
-    // newer versions of `sr25519` return `Result` not `bool`
-    if public_key.verify(signing_context(b"substrate").bytes(payload), &signature) {
-        Ok(())
-    } else {
-        Err(VerifyError::Invalid)
-    }
+    public_key
+        .verify(signing_context(b"substrate").bytes(payload), &signature)
+        .map_err(|_| VerifyError::Invalid)
 }
