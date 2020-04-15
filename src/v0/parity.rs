@@ -292,7 +292,7 @@ mod test {
         )
     }
     #[test]
-    fn usage_preceeding_not_before_is_invalid() {
+    fn usage_preceding_not_before_is_invalid() {
         let holder = [1_u8; 32];
         let doughnut = DoughnutV0 {
             issuer: [0_u8; 32],

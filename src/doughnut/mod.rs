@@ -5,13 +5,32 @@
 //!
 
 use crate::v0::parity::DoughnutV0;
-use codec::{Decode, Encode, Error};
+use codec::{Decode, Encode, Error, Input, Output};
 use core::convert::TryFrom;
 
-/// A versioned doughnut wrapper. It proxies to the real,inner doughnut type
-#[derive(Encode, Decode, Clone, Debug, Eq, PartialEq)]
+/// A versioned doughnut wrapper.
+/// It provides utility for backwards compatibility in downstream projects.
+/// Internally it proxies to the real, inner doughnut version.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Doughnut {
     V0(DoughnutV0),
+}
+
+impl Encode for Doughnut {
+    fn encode_to<W: Output>(&self, dest: &mut W) {
+        match self {
+            // encode transparently
+            Doughnut::V0(inner) => inner.encode_to(dest),
+        }
+    }
+}
+
+impl Decode for Doughnut {
+    fn decode<I: Input>(input: &mut I) -> std::result::Result<Self, Error> {
+        // TODO: check the first byte without consuming and proxy to the correct decoder version
+        // for now try decode a version 0 no matter what, as that is the only type that exists.
+        Ok(Doughnut::V0(DoughnutV0::decode(input)?))
+    }
 }
 
 #[allow(irrefutable_let_patterns)]
@@ -49,5 +68,28 @@ mod test {
         let versioned_doughnut = DoughnutV0::try_from(doughnut).unwrap();
 
         assert_eq!(doughnut_v0, versioned_doughnut);
+    }
+
+    #[test]
+    fn versioned_doughnut_v0_codec_is_transparent() {
+        let domains = vec![("something".to_string(), vec![0, 1, 2, 3, 4])];
+        let doughnut_v0 = DoughnutV0 {
+            issuer: [1_u8; 32],
+            holder: [2_u8; 32],
+            domains,
+            expiry: 0,
+            not_before: 0,
+            payload_version: 3,
+            signature_version: 3,
+            signature: H512::default(),
+        };
+        let expected = doughnut_v0.encode();
+
+        assert_eq!(expected, Doughnut::V0(doughnut_v0.clone()).encode());
+
+        assert_eq!(
+            Doughnut::V0(doughnut_v0),
+            Doughnut::decode(&mut &expected[..]).expect("it decodes")
+        );
     }
 }
