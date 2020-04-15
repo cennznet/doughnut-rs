@@ -9,8 +9,7 @@ use codec::{Decode, Encode, Error, Input, Output};
 use core::convert::TryFrom;
 
 /// A versioned doughnut wrapper.
-/// It provides utility for backwards compatibility in downstream projects.
-/// Internally it proxies to the real, inner doughnut version.
+/// Its codec implementation is transparent, proxying to the real, inner doughnut version.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Doughnut {
     V0(DoughnutV0),
@@ -26,7 +25,7 @@ impl Encode for Doughnut {
 }
 
 impl Decode for Doughnut {
-    fn decode<I: Input>(input: &mut I) -> std::result::Result<Self, Error> {
+    fn decode<I: Input>(input: &mut I) -> Result<Self, Error> {
         // TODO: check the first byte without consuming and proxy to the correct decoder version
         // for now try decode a version 0 no matter what, as that is the only type that exists.
         Ok(Doughnut::V0(DoughnutV0::decode(input)?))
