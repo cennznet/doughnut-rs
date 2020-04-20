@@ -5,7 +5,7 @@ let holder = new Uint8Array(32);
 let expiry = 100;
 let not_before = 1;
 
-describe("wasm doughnut works", () => {
+describe("wasm doughnut", () => {
   test("create doughnut should work", () => {
     let d = Doughnut
       .new(issuer, holder, expiry, not_before)
@@ -22,7 +22,7 @@ describe("wasm doughnut works", () => {
     // expect(d.domain('cennznet')).toEqual([1, 2, 3]);
   });
 
-  test("it should init doughnut from payload", () => {
+  test("it should create doughnut from payload", () => {
     let payload = [
       64, 24, 64, 22, 126, 150, 15, 176, 190, 210, 156, 179, 149, 142, 84, 153, 4, 203, 61, 62,
       185, 76, 45, 162, 220, 254, 188, 163, 187, 63, 39, 186, 113, 126, 12, 60, 121, 179, 67,
@@ -42,4 +42,17 @@ describe("wasm doughnut works", () => {
     expect(d.encode().toString()).toEqual(payload.toString());
     expect(d.payload_version()).toEqual(2);
   });
+
+  test("it should sign the doughnut with signer", () => {
+  });
+
+  test("it should verify the signature with correct doughnut", () => {
+
+  });
+
+  test("it should be failed to verify the signature with bad doughnut", () => {
+
+  });
+
+
 });

@@ -8,6 +8,8 @@ use crate::v0::parity::DoughnutV0;
 use codec::{Decode, Encode, Error, Input, Output};
 use core::convert::TryFrom;
 
+pub mod shim;
+
 /// A versioned doughnut wrapper.
 /// Its codec implementation is transparent, proxying to the real, inner doughnut version.
 #[derive(Clone, Debug, Eq, PartialEq)]

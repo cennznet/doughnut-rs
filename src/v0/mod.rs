@@ -18,7 +18,6 @@ use crate::error::CodecError;
 use crate::traits::DoughnutApi;
 
 pub mod parity;
-pub mod shim;
 
 const VERSION: u16 = 0;
 const VERSION_MASK: u16 = 0x7FF;
