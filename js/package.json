@@ -1,0 +1,14 @@
+{
+  "name": "@cennznet/wasm-doughnut",
+  "version": "0.0.1",
+  "author": "centrality@dev.com",
+  "scripts": {
+    "compile": "cd .. && wasm-pack build --target nodejs --scope cennznet --out-name doughnut --out-dir ./js/lib",
+    "test": "jest"
+  },
+  "files": [],
+  "main": "index.js",
+  "devDependencies": {
+    "jest": "^25.4.0"
+  }
+}
