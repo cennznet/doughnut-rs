@@ -7,8 +7,7 @@ use ed25519_dalek::{
     KEYPAIR_LENGTH as ED_KEYPAIR_LENGTH, SECRET_KEY_LENGTH as ED_SECRET_KEY_LENGTH,
 };
 use schnorrkel::{
-    signing_context, PublicKey as Sr25519Pub, SecretKey as Sr25519Sec,
-    Signature as Sr25519Sig,
+    signing_context, PublicKey as Sr25519Pub, SecretKey as Sr25519Sec, Signature as Sr25519Sig,
 };
 
 // TODO: should change context to `cennznet`

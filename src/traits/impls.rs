@@ -117,10 +117,10 @@ impl SignDoughnut for Doughnut {
 mod test {
     use super::*;
     use crate::traits::DoughnutVerify;
-    use schnorrkel::{ExpansionMode, MiniSecretKey, KEYPAIR_LENGTH, SECRET_KEY_LENGTH};
+    use codec::Decode;
     use ed25519_dalek::{PublicKey, SecretKey};
     use primitive_types::H512;
-    use codec::Decode;
+    use schnorrkel::{ExpansionMode, MiniSecretKey, KEYPAIR_LENGTH, SECRET_KEY_LENGTH};
 
     fn generate_defautl_seed() -> Vec<u8> {
         (0..32).map(|_| 1).collect()
@@ -264,7 +264,7 @@ mod test {
         let mut doughnut = make_doughnut(public, 0);
         let signature = doughnut.sign(&secret);
 
-        // FIXME: get different signature with sr25519 sign same message ? 
+        // FIXME: get different signature with sr25519 sign same message ?
         // doughnut.signature = H512::from_slice(&signature);
 
         // assert_eq!(doughnut.sign(&secret), signature);
@@ -279,7 +279,6 @@ mod test {
 
         // signature should be same if payload not change
         assert_eq!(doughnut.sign(&secret).unwrap(), signature);
-
         // verify signature should work
         doughnut.signature = H512::from_slice(&signature);
         assert_eq!(doughnut.verify(), Ok(()));
