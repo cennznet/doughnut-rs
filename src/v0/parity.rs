@@ -137,12 +137,12 @@ impl DoughnutApi for DoughnutV0 {
 
 impl Decode for DoughnutV0 {
     fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
-        let payload_byte_0 = input.read_byte()?.swap_bits();
-        let payload_byte_1 = input.read_byte()?.swap_bits();
+        let version_byte_0 = input.read_byte()?.swap_bits();
+        let version_byte_1 = input.read_byte()?.swap_bits();
 
-        let payload_version = u16::from_le_bytes([payload_byte_0, payload_byte_1 & 0b1110_0000]);
+        let payload_version = u16::from_le_bytes([version_byte_0, version_byte_1 & 0b1110_0000]);
 
-        let signature_version = (payload_byte_1 & SIGNATURE_MASK) >> 3;
+        let signature_version = (version_byte_1 & SIGNATURE_MASK) >> 3;
 
         let domain_count_and_not_before_byte = input.read_byte()?;
         let permission_domain_count = (domain_count_and_not_before_byte.swap_bits() >> 1) + 1;
