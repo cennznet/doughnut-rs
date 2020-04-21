@@ -19,7 +19,7 @@ use crate::alloc::{
 use crate::traits::DoughnutApi;
 
 const NOT_BEFORE_MASK: u8 = 0b1000_0000;
-const SIGNATURE_MASK: u8 = 0b1111_1000;
+const SIGNATURE_MASK: u8 = 0b0001_1111;
 const VERSION_UPPER_MASK: u8 = 0b0000_0111;
 const VERSION_11BIT_MASK: u16 = 0b0000_0111_1111_1111;
 
@@ -43,7 +43,7 @@ impl DoughnutV0 {
             (self.payload_version & VERSION_11BIT_MASK).swap_bits();
 
         payload_version_and_signature_version |=
-            u16::from(self.signature_version & 0x1f).swap_bits() >> 11;
+            u16::from(self.signature_version & SIGNATURE_MASK).swap_bits() >> 11;
         dest.write(&payload_version_and_signature_version.to_be_bytes());
 
         let mut domain_count_and_not_before_byte =
@@ -68,7 +68,8 @@ impl DoughnutV0 {
         // Write permission domain headers
         for (key, payload) in &self.domains {
             let mut key_buf = [0_u8; 16];
-            key_buf[..key.len()].clone_from_slice(&key.as_bytes());
+            let length = key_buf.len().min(key.len());
+            key_buf[..length].clone_from_slice(&key.as_bytes()[..length]);
             dest.write(&key_buf);
             for b in &(payload.len() as u16).to_le_bytes() {
                 dest.push_byte(b.swap_bits());
@@ -146,7 +147,7 @@ impl Decode for DoughnutV0 {
         let payload_version =
             u16::from_le_bytes([version_byte_0, version_byte_1 & VERSION_UPPER_MASK]);
 
-        let signature_version = (version_byte_1 & SIGNATURE_MASK) >> 3;
+        let signature_version = (version_byte_1 & SIGNATURE_MASK.swap_bits()) >> 3;
 
         let domain_count_and_not_before_byte = input.read_byte()?;
         let permission_domain_count = (domain_count_and_not_before_byte.swap_bits() >> 1) + 1;
@@ -390,5 +391,41 @@ mod test {
         let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
         assert_eq!(parsed_doughnut.payload_version, 0x0000);
         assert_eq!(parsed_doughnut.signature_version, 0x1f);
+    }
+
+    #[test]
+    fn short_domain_name_is_parsed() {
+        let holder = [1_u8; 32];
+        let doughnut = DoughnutV0 {
+            issuer: [0_u8; 32],
+            holder,
+            domains: vec![("Smol".to_string(), vec![])],
+            expiry: 0,
+            not_before: 0,
+            payload_version: 0x0000,
+            signature_version: 0xff,
+            signature: H512::default(),
+        };
+
+        let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
+        assert_eq!(parsed_doughnut.domains[0].0, "Smol");
+    }
+
+    #[test]
+    fn long_domain_name_is_truncated() {
+        let holder = [1_u8; 32];
+        let doughnut = DoughnutV0 {
+            issuer: [0_u8; 32],
+            holder,
+            domains: vec![("SweetLikeAChic-a-CherryCola".to_string(), vec![])],
+            expiry: 0,
+            not_before: 0,
+            payload_version: 0x0000,
+            signature_version: 0xff,
+            signature: H512::default(),
+        };
+
+        let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
+        assert_eq!(parsed_doughnut.domains[0].0, "SweetLikeAChic-a");
     }
 }
