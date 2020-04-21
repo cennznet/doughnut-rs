@@ -5,8 +5,8 @@
 //!
 
 use crate::alloc::vec::Vec;
-use crate::error::{ValidationError, VerifyError};
-use crate::traits::{DoughnutApi, DoughnutVerify};
+use crate::error::{ValidationError, VerifyError, SignError};
+use crate::traits::{DoughnutApi, DoughnutVerify, SignDoughnut};
 
 #[cfg(feature = "std")]
 use crate::doughnut::Doughnut;
@@ -15,7 +15,7 @@ use crate::doughnut::Doughnut;
 use crate::v0::{parity::DoughnutV0 as ParityDoughnutV0, DoughnutV0};
 
 #[cfg(feature = "std")]
-use crate::signature::verify_signature;
+use crate::signature::{sign, verify_signature};
 
 // Dummy implementation for unit type
 impl DoughnutApi for () {
@@ -59,9 +59,9 @@ impl DoughnutVerify for () {
 impl<'a> DoughnutVerify for DoughnutV0<'a> {
     fn verify(&self) -> Result<(), VerifyError> {
         verify_signature(
-            self.signature().as_ref(),
+            &self.signature(),
             self.signature_version(),
-            self.issuer().as_ref(),
+            &self.issuer(),
             &self.payload(),
         )
     }
@@ -71,9 +71,9 @@ impl<'a> DoughnutVerify for DoughnutV0<'a> {
 impl DoughnutVerify for ParityDoughnutV0 {
     fn verify(&self) -> Result<(), VerifyError> {
         verify_signature(
-            &self.signature.as_ref(),
+            &self.signature(),
             self.signature_version(),
-            &self.issuer().as_ref(),
+            &self.issuer(),
             &self.payload(),
         )
     }
@@ -90,11 +90,82 @@ impl DoughnutVerify for Doughnut {
     }
 }
 
+#[cfg(feature = "std")]
+impl SignDoughnut for ParityDoughnutV0 {
+    fn sign(&self, secret: &[u8]) -> Result<Vec<u8>, SignError> {
+        sign(
+            &self.issuer(),
+            secret,
+            self.signature_version(),
+            &self.payload(),
+        )
+    }
+}
+
+#[cfg(feature = "std")]
+#[allow(unreachable_patterns)]
+impl SignDoughnut for Doughnut {
+    fn sign(&self, secret: &[u8]) -> Result<Vec<u8>, SignError> {
+        match self {
+            Self::V0(v0) => v0.sign(secret),
+            _ => Err(SignError::UnsupportedVersion),
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::traits::DoughnutVerify;
+    use ed25519_dalek::{SecretKey, PublicKey};
+    use schnorrkel::{ExpansionMode, MiniSecretKey, KEYPAIR_LENGTH, SECRET_KEY_LENGTH};
+    use primitive_types::H512;
     use codec::Decode;
+
+    fn generate_defautl_seed() -> Vec<u8> {
+		(0..32).map(|_| 1 ).collect()
+	}
+
+    fn generate_sr25519_keypair() -> (Vec<u8>, Vec<u8>) {
+        let seed = generate_defautl_seed();
+        let keypair = MiniSecretKey::from_bytes(seed.as_slice())
+            .unwrap()
+            .expand_to_keypair(ExpansionMode::Ed25519)
+            .to_half_ed25519_bytes()
+            .to_vec();
+        
+        let private = keypair[0..SECRET_KEY_LENGTH].to_vec();
+		let public = keypair[SECRET_KEY_LENGTH..KEYPAIR_LENGTH].to_vec();
+        (public, private)
+    }
+
+    fn generate_ed25519_keypair() -> (Vec<u8>, Vec<u8>) {
+        let seed = generate_defautl_seed();
+        let secret = SecretKey::from_bytes(seed.as_slice()).unwrap();
+	    let public: PublicKey = (&secret).into();
+
+        let mut pair = vec![];
+	    pair.extend_from_slice(&seed);
+	    pair.extend_from_slice(public.as_bytes());
+
+        (public.as_bytes().to_vec(), pair.clone())
+    }
+
+    fn make_doughnut(public: Vec<u8>, signature_version: u8) -> ParityDoughnutV0 {
+        let mut issuer = [0; 32];
+        issuer.copy_from_slice(public.as_slice());
+
+        ParityDoughnutV0 {
+            issuer,
+            holder: [1_u8; 32],
+            domains: vec![("test".to_string(), vec![0])],
+            expiry: 10,
+            not_before: 0,
+            payload_version: 0,
+            signature_version,
+            signature: H512::default()
+        }
+    }
 
     #[test]
     fn it_verifies_an_sr25519_signed_doughnut_v0() {
@@ -185,5 +256,47 @@ mod test {
         ];
         let doughnut = Doughnut::decode(&mut &encoded[..]).expect("It is a valid doughnut");
         assert_eq!(doughnut.verify(), Ok(()));
+    }
+
+    #[test]
+    fn sign_doughnut_with_sr25519_works() {
+        let (public, secret) = generate_sr25519_keypair();
+        let mut doughnut = make_doughnut(public, 0);
+        // let signature = doughnut.sign(&secret);
+
+        // doughnut.signature = H512::from_slice(&signature);
+
+        // assert_eq!(doughnut.sign(&secret), signature);
+        // assert_eq!(doughnut.verify(), Ok(()));
+    }
+
+    #[test]
+    fn sign_doughnut_with_ed25519_works() {
+        let (public, secret) = generate_ed25519_keypair();
+        let mut doughnut = make_doughnut(public, 1);
+        let signature = doughnut.sign(&secret).unwrap();
+
+        // signature should be same if payload not change
+        assert_eq!(doughnut.sign(&secret).unwrap(), signature);
+        
+        // verify signature should work
+        doughnut.signature = H512::from_slice(&signature);
+        assert_eq!(doughnut.verify(), Ok(()));
+    }
+
+    #[test]
+    fn sign_doughnut_with_invalid_key_should_fail() {
+        // sig with invalid ed25519 keypair should fail
+        let issuer = [1u8; 32].to_vec();
+        let (_, secret) = generate_ed25519_keypair();
+        let doughnut = make_doughnut(issuer.clone(), 1);
+
+        assert_eq!(doughnut.sign(&secret), Err(SignError::InvalidKeypair));
+
+        // sig with invalid sr25519 keypair should fail
+        // let (_, secret) = generate_sr25519_keypair();
+        // let doughnut = make_doughnut(issuer, 0);
+
+        // assert_eq!(doughnut.sign(&secret), Err(SignError::InvalidKeypair));
     }
 }

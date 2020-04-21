@@ -36,3 +36,15 @@ pub enum VerifyError {
     /// The signature does not verify the payload from signer
     Invalid,
 }
+
+/// Error type for sign message
+#[cfg_attr(feature = "std", derive(PartialEq, Debug))]
+pub enum SignError {
+    /// Unsupported signature version
+    UnsupportedVersion,
+    /// PublicKey not match
+    PublicKeyNotMatch,
+    /// Keypair is invalid
+    InvalidKeypair,
+}
+
