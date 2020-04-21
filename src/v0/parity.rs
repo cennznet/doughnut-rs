@@ -19,7 +19,9 @@ use crate::alloc::{
 use crate::traits::DoughnutApi;
 
 const NOT_BEFORE_MASK: u8 = 0b1000_0000;
-const SIGNATURE_MASK: u8 = 0b0001_1111;
+const SIGNATURE_MASK: u8 = 0b1111_1000;
+const VERSION_UPPER_MASK: u8 = 0b0000_0111;
+const VERSION_11BIT_MASK: u16 = 0b0000_0111_1111_1111;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DoughnutV0 {
@@ -37,10 +39,11 @@ impl DoughnutV0 {
     /// Encodes the doughnut into an byte array and writes the result into a given memory
     /// if `encode_signature` is false, the final signature bytes are not included in the result
     fn encode_to_with_signature_optional<T: Output>(&self, dest: &mut T, encode_signature: bool) {
-        let mut payload_version_and_signature_version = self.payload_version.swap_bits();
+        let mut payload_version_and_signature_version =
+            (self.payload_version & VERSION_11BIT_MASK).swap_bits();
 
         payload_version_and_signature_version |=
-            u16::from(self.signature_version).swap_bits() >> 11;
+            u16::from(self.signature_version & 0x1f).swap_bits() >> 11;
         dest.write(&payload_version_and_signature_version.to_be_bytes());
 
         let mut domain_count_and_not_before_byte =
@@ -140,7 +143,8 @@ impl Decode for DoughnutV0 {
         let version_byte_0 = input.read_byte()?.swap_bits();
         let version_byte_1 = input.read_byte()?.swap_bits();
 
-        let payload_version = u16::from_le_bytes([version_byte_0, version_byte_1 & 0b1110_0000]);
+        let payload_version =
+            u16::from_le_bytes([version_byte_0, version_byte_1 & VERSION_UPPER_MASK]);
 
         let signature_version = (version_byte_1 & SIGNATURE_MASK) >> 3;
 
@@ -329,5 +333,62 @@ mod test {
             doughnut.validate(holder, u64::max_value()),
             Err(ValidationError::Conversion)
         )
+    }
+
+    #[test]
+    fn versions_encode_and_decode() {
+        let holder = [1_u8; 32];
+        let doughnut = DoughnutV0 {
+            issuer: [0_u8; 32],
+            holder,
+            domains: vec![("TestDomain".to_string(), vec![])],
+            expiry: 0,
+            not_before: 0,
+            payload_version: 0x0515,
+            signature_version: 0x1a,
+            signature: H512::default(),
+        };
+
+        let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
+        assert_eq!(parsed_doughnut.signature_version, 0x1a);
+        assert_eq!(parsed_doughnut.payload_version, 0x0515);
+    }
+
+    #[test]
+    fn payload_version_does_not_cross_contaminate() {
+        let holder = [1_u8; 32];
+        let doughnut = DoughnutV0 {
+            issuer: [0_u8; 32],
+            holder,
+            domains: vec![("TestDomain".to_string(), vec![])],
+            expiry: 0,
+            not_before: 0,
+            payload_version: 0xffff,
+            signature_version: 0x00,
+            signature: H512::default(),
+        };
+
+        let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
+        assert_eq!(parsed_doughnut.signature_version, 0x00);
+        assert_eq!(parsed_doughnut.payload_version, VERSION_11BIT_MASK);
+    }
+
+    #[test]
+    fn signature_version_does_not_cross_contaminate() {
+        let holder = [1_u8; 32];
+        let doughnut = DoughnutV0 {
+            issuer: [0_u8; 32],
+            holder,
+            domains: vec![("TestDomain".to_string(), vec![])],
+            expiry: 0,
+            not_before: 0,
+            payload_version: 0x0000,
+            signature_version: 0xff,
+            signature: H512::default(),
+        };
+
+        let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
+        assert_eq!(parsed_doughnut.payload_version, 0x0000);
+        assert_eq!(parsed_doughnut.signature_version, 0x1f);
     }
 }
