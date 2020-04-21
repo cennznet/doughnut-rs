@@ -9,6 +9,7 @@
   "files": [],
   "main": "index.js",
   "devDependencies": {
+    "@polkadot/util-crypto": "^2.8.1",
     "jest": "^25.4.0"
   }
 }

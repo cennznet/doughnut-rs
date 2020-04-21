@@ -1,15 +1,16 @@
-// Copyright 2020 Centrality Investments Limited
+// Copyright 2019 Centrality Investments Limited
 
 // !
 // ! Allow users to create, sign, and inspect doughnuts in JS
 // ! Maybe use closures to pass in signer
 // ! Builder-ish patter to make doughnuts
 
-use wasm_bindgen::prelude::*;
 use crate::doughnut::Doughnut;
+use crate::traits::{DoughnutApi, DoughnutVerify, SignDoughnut};
 use crate::v0::parity::DoughnutV0;
-use crate::traits::{DoughnutApi, DoughnutVerify};
 use codec::{Decode, Encode};
+use primitive_types::H512;
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
@@ -23,11 +24,11 @@ extern "C" {
 fn from_slice(bytes: &[u8]) -> [u8; 32] {
     let mut array = [0; 32];
     if bytes.len() < 32 {
-      log("operation failed, expected 32 byte array");
-      return array;
+        log("operation failed, expected 32 byte array");
+        return array;
     }
     let bytes = &bytes[..array.len()]; // panics if not enough data
-    array.copy_from_slice(bytes); 
+    array.copy_from_slice(bytes);
     array
 }
 
@@ -53,6 +54,7 @@ impl DoughnutHandle {
     pub fn add_payload_version(&mut self, payload_version: u16) -> Self {
         if let Doughnut::V0(mut doughnut) = self.0.clone() {
             doughnut.payload_version = payload_version;
+            return Self(Doughnut::V0(doughnut));
         } else {
             log("Setting payload version failed. Unsupported doughnut version");
         }
@@ -63,6 +65,7 @@ impl DoughnutHandle {
     pub fn add_domain(&mut self, key: &str, value: &[u8]) -> Self {
         if let Doughnut::V0(mut doughnut) = self.0.clone() {
             doughnut.domains.push((key.to_string(), value.to_vec()));
+            return Self(Doughnut::V0(doughnut));
         } else {
             log("Adding domain failed. Unsupported doughnut version");
         }
@@ -73,15 +76,24 @@ impl DoughnutHandle {
     pub fn add_signature_version(&mut self, signature_version: u8) -> Self {
         if let Doughnut::V0(mut doughnut) = self.0.clone() {
             doughnut.signature_version = signature_version;
+            return Self(Doughnut::V0(doughnut));
         } else {
             log("Adding signature version failed. Unsupported doughnut version");
         }
         self.clone()
     }
 
-    // pub fn sign(&mut self, signer: &[u8]) -> Self {
-    //     self.clone()
-    // }
+    /// sign the doughnut payload
+    pub fn sign(&mut self, secret_key: &[u8]) -> Self {
+        if let Doughnut::V0(mut doughnut) = self.0.clone() {
+            let signature = doughnut.sign(secret_key).unwrap();
+            doughnut.signature = H512::from_slice(signature.as_ref());
+            return Self(Doughnut::V0(doughnut));
+        } else {
+            log("Sign the doughnut payload failed. Unsupported doughnut version");
+        }
+        self.clone()
+    }
 
     /// Return the doughnut issuer
     pub fn issuer(&self) -> Vec<u8> {
@@ -126,7 +138,7 @@ impl DoughnutHandle {
     /// Return the doughnut payload bytes
     pub fn payload(&self) -> Vec<u8> {
         if let Doughnut::V0(doughnut) = self.0.clone() {
-            return doughnut.payload().to_vec();
+            return doughnut.payload();
         } else {
             log("Getting payload failed. Unsupported doughnut version");
         }
@@ -174,9 +186,9 @@ impl DoughnutHandle {
     }
 
     /// Validate the doughnut is usable by a public key (`who`) at the current timestamp (`not_before` <= `now` <= `expiry`)
-    pub fn validate(&self, who: &[u8], now: u32) -> bool {
+    pub fn validate(&self, who: &[u8], when: u32) -> bool {
         if let Doughnut::V0(doughnut) = self.0.clone() {
-            return doughnut.validate(who, now).is_ok();
+            return doughnut.validate(who, when).is_ok();
         } else {
             log("validating doughnut failed. Unsupported doughnut version");
         }

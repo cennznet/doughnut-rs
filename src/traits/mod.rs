@@ -5,7 +5,7 @@
 //!
 
 use crate::alloc::vec::Vec;
-use crate::error::{ValidationError, VerifyError};
+use crate::error::{SignError, ValidationError, VerifyError};
 use core::convert::TryInto;
 mod impls;
 
@@ -69,4 +69,10 @@ pub trait DoughnutApi {
 pub trait DoughnutVerify {
     /// Verify the doughnut signature, return whether it is valid or not
     fn verify(&self) -> Result<(), VerifyError>;
+}
+
+/// Provide sign signature for doughnut payload
+pub trait SignDoughnut {
+    /// Sign doughnut payload, return signature
+    fn sign(&self, secret: &[u8]) -> Result<Vec<u8>, SignError>;
 }
