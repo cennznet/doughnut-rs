@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "author": "centrality@dev.com",
   "scripts": {
-    "compile": "cd .. && wasm-pack build --target nodejs --scope cennznet --out-name doughnut --out-dir ./js/lib",
+    "build": "sh build.sh",
     "test": "jest"
   },
   "files": [],

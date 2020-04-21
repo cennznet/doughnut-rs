@@ -1,7 +1,7 @@
 const { stringToU8a } =  require('@polkadot/util');
 const { schnorrkelKeypairFromSeed, naclKeypairFromSeed } = require('@polkadot/util-crypto');
 const { waitReady } = require('@polkadot/wasm-crypto');
-const Doughnut = require('../lib/doughnut').DoughnutHandle;
+const Doughnut = require('../lib/doughnut').Doughnut;
 
 let payload = [
   64, 24, 64, 22, 126, 150, 15, 176, 190, 210, 156, 179, 149, 142, 84, 153, 4, 203, 61, 62,
@@ -42,10 +42,6 @@ const create_doughnut = (issuer) => {
 };
 
 describe("wasm doughnut", () => {
-  beforeEach(async () => {
-    await waitReady();
-  });
-
   test("it should create doughnut with valid params", () => {
     let d = create_doughnut(issuer);
 
@@ -91,17 +87,5 @@ describe("wasm doughnut", () => {
 
     // d.sign(secretKey);
     // expect(d.verify()).toEqual(true);
-  });
-
-  test("it should verify the signature with valid doughnut", () => {
-
-  });
-
-  test("it should be failed to sign the doughnut with invalid signer", () => {
-
-  });
-
-  test("it should be failed to verify the signature with invalid doughnut", () => {
-
   });
 });
