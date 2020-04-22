@@ -30,8 +30,8 @@ pub fn verify_signature(
     signer: &[u8],
     payload: &[u8],
 ) -> Result<(), VerifyError> {
-    let version = SignatureVersion::try_from(version_byte).map_err(|_| false);
-    match version.unwrap() {
+    let version = SignatureVersion::try_from(version_byte)?;
+    match version {
         SignatureVersion::Ed25519 => verify_ed25519_signature(signature_bytes, signer, payload),
         SignatureVersion::Sr25519 => verify_sr25519_signature(signature_bytes, signer, payload),
     }
@@ -70,26 +70,27 @@ mod test {
     use super::*;
     // The ed25519 and schnorrkel libs use different implementations of `OsRng`
     // two different libraries are used: `rand` and `rand_core` as a workaround
-    use rand::{prelude::*};
-    use rand_core::OsRng;
     use ed25519_dalek::Keypair as edKeypair;
+    use rand::prelude::*;
+    use rand_core::OsRng;
     use schnorrkel::Keypair as srKeypair;
 
     #[test]
     fn test_ed25519_signature_verifies() {
-        let mut csprng = OsRng{};
+        let mut csprng = OsRng {};
         let keypair: edKeypair = edKeypair::generate(&mut csprng);
         let payload = "To a deep sea diver who is swimming with a raincoat";
         verify_ed25519_signature(
-                &keypair.sign(&payload.as_bytes()).to_bytes(),
-                &keypair.public.to_bytes(),
-                payload.as_bytes()
-            ).unwrap();
+            &keypair.sign(&payload.as_bytes()).to_bytes(),
+            &keypair.public.to_bytes(),
+            payload.as_bytes(),
+        )
+        .unwrap();
     }
 
     #[test]
     fn test_ed25519_signature_does_not_verify() {
-        let mut csprng = OsRng{};
+        let mut csprng = OsRng {};
         let keypair: edKeypair = edKeypair::generate(&mut csprng);
         let payload = "To a deep sea diver who is swimming with a raincoat";
         let signed_payload = "To a deep sea diver who is swimming without a raincoat";
@@ -111,10 +112,11 @@ mod test {
         let context = signing_context(b"substrate");
         let signature = keypair.sign(context.bytes(payload.as_bytes()));
         verify_sr25519_signature(
-                &signature.to_bytes(),
-                &keypair.public.to_bytes(),
-                payload.as_bytes()
-            ).unwrap();
+            &signature.to_bytes(),
+            &keypair.public.to_bytes(),
+            payload.as_bytes(),
+        )
+        .unwrap();
     }
 
     #[test]
@@ -149,6 +151,75 @@ mod test {
                 payload.as_bytes()
             ),
             Err(VerifyError::Invalid)
+        );
+    }
+
+    #[test]
+    fn test_verifies_ed25519_version() {
+        let mut csprng = OsRng {};
+        let keypair: edKeypair = edKeypair::generate(&mut csprng);
+        let payload = "When I get to you";
+        verify_signature(
+            &keypair.sign(&payload.as_bytes()).to_bytes(),
+            1,
+            &keypair.public.to_bytes(),
+            payload.as_bytes(),
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn test_verifies_sr25519_version() {
+        let mut csprng: ThreadRng = thread_rng();
+        let keypair: srKeypair = srKeypair::generate_with(&mut csprng);
+        let payload = "When I get to you";
+        let context = signing_context(b"substrate");
+        let signature = keypair.sign(context.bytes(payload.as_bytes()));
+
+        verify_signature(
+            &signature.to_bytes(),
+            0,
+            &keypair.public.to_bytes(),
+            payload.as_bytes(),
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn test_error_on_wrong_version() {
+        let mut csprng: ThreadRng = thread_rng();
+        let keypair: srKeypair = srKeypair::generate_with(&mut csprng);
+        let payload = "When I get to you";
+        let context = signing_context(b"substrate");
+        let signature = keypair.sign(context.bytes(payload.as_bytes()));
+
+        assert_eq!(
+            verify_signature(
+                &signature.to_bytes(),
+                1,
+                &keypair.public.to_bytes(),
+                payload.as_bytes()
+            ),
+            Err(VerifyError::BadSignatureFormat)
+        );
+    }
+
+    #[test]
+    fn test_error_on_bad_version() {
+        let mut csprng: ThreadRng = thread_rng();
+        let keypair: srKeypair = srKeypair::generate_with(&mut csprng);
+        let payload = "When I get to you";
+        let context = signing_context(b"substrate");
+        let signature = keypair.sign(context.bytes(payload.as_bytes()));
+
+        assert_eq!(
+            verify_signature(
+                &signature.to_bytes(),
+                0x1f,
+                &keypair.public.to_bytes(),
+                payload.as_bytes()
+            ),
+            Err(VerifyError::UnsupportedVersion)
         );
     }
 }
