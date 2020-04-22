@@ -11,7 +11,7 @@ use schnorrkel::{
 };
 
 // TODO: should change context to `cennznet`
-const SIGNING_CTX: &'static [u8] = b"substrate";
+const SIGNING_CTX: &[u8] = b"substrate";
 
 /// Doughnut signature version
 enum SignatureVersion {
@@ -71,7 +71,7 @@ fn sign_sr25519(public: &[u8], secret: &[u8], message: &[u8]) -> Result<Vec<u8>,
 /// Sign a massage with ed25519 keypair
 fn sign_ed25519(public: &[u8], secret: &[u8], message: &[u8]) -> Result<Vec<u8>, SignError> {
     let public_key = &secret[ED_SECRET_KEY_LENGTH..ED_KEYPAIR_LENGTH];
-    if (from_slice(public) != from_slice(public_key)) {
+    if from_slice(public) != from_slice(public_key) {
         return Err(SignError::InvalidKeypair);
     }
 

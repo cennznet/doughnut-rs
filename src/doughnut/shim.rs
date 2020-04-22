@@ -5,6 +5,8 @@
 // ! Maybe use closures to pass in signer
 // ! Builder-ish patter to make doughnuts
 
+use crate::alloc::string::ToString;
+use crate::alloc::vec::Vec;
 use crate::doughnut::Doughnut;
 use crate::traits::{DoughnutApi, DoughnutVerify, SignDoughnut};
 use crate::v0::parity::DoughnutV0;
@@ -38,6 +40,8 @@ fn from_slice(bytes: &[u8]) -> [u8; 32] {
 pub struct DoughnutHandle(Doughnut);
 
 #[wasm_bindgen]
+#[cfg(feature = "std")]
+#[allow(irrefutable_let_patterns)]
 impl DoughnutHandle {
     /// Create a new Doughnut, it is always v0 for now
     pub fn new(issuer: &[u8], holder: &[u8], expiry: u32, not_before: u32) -> Self {
@@ -158,7 +162,7 @@ impl DoughnutHandle {
     /// Return the doughnut signature version
     pub fn signature_version(&self) -> u8 {
         if let Doughnut::V0(doughnut) = self.0.clone() {
-            return doughnut.signature_version().into();
+            return doughnut.signature_version();
         } else {
             log("Getting signature verrsion failed. Unsupported doughnut version");
         }
@@ -168,9 +172,9 @@ impl DoughnutHandle {
     /// Return the doughnut payload version
     pub fn payload_version(&self) -> u16 {
         if let Doughnut::V0(doughnut) = self.0.clone() {
-            return doughnut.payload_version.into();
+            return doughnut.payload_version;
         } else {
-            log("Getting signature verrsion failed. Unsupported doughnut version");
+            log("Getting payload verrsion failed. Unsupported doughnut version");
         }
         0
     }
@@ -201,7 +205,7 @@ impl DoughnutHandle {
     }
 
     /// Decode doughnut with encoded values
-    pub fn decode(input: Vec<u8>) -> Self {
+    pub fn decode(input: &[u8]) -> Self {
         let doughnut = Doughnut::decode(&mut &input[..]).unwrap();
         DoughnutHandle(doughnut)
     }
