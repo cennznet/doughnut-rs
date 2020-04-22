@@ -15,7 +15,7 @@ extern crate std as alloc;
 #[cfg(test)]
 extern crate rand;
 #[cfg(test)]
-extern crate sha2;
+extern crate rand_core;
 
 mod doughnut;
 pub use doughnut::Doughnut;

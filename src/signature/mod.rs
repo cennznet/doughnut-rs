@@ -68,8 +68,12 @@ fn verify_sr25519_signature(
 #[cfg(test)]
 mod test {
     use super::*;
-    use rand::rngs::OsRng;
+    // The ed25519 and schnorrkel libs use different implementations of `OsRng`
+    // two different libraries are used: `rand` and `rand_core` as a workaround
+    use rand::{prelude::*};
+    use rand_core::OsRng;
     use ed25519_dalek::Keypair as edKeypair;
+    use schnorrkel::Keypair as srKeypair;
 
     #[test]
     fn test_ed25519_signature_verifies() {
@@ -92,6 +96,55 @@ mod test {
         assert_eq!(
             verify_ed25519_signature(
                 &keypair.sign(&signed_payload.as_bytes()).to_bytes(),
+                &keypair.public.to_bytes(),
+                payload.as_bytes()
+            ),
+            Err(VerifyError::Invalid)
+        );
+    }
+
+    #[test]
+    fn test_sr25519_signature_verifies() {
+        let mut csprng: ThreadRng = thread_rng();
+        let keypair: srKeypair = srKeypair::generate_with(&mut csprng);
+        let payload = "Where your crystal mind and magenta feelings";
+        let context = signing_context(b"substrate");
+        let signature = keypair.sign(context.bytes(payload.as_bytes()));
+        verify_sr25519_signature(
+                &signature.to_bytes(),
+                &keypair.public.to_bytes(),
+                payload.as_bytes()
+            ).unwrap();
+    }
+
+    #[test]
+    fn test_sr25519_signature_does_not_verify_bad_signature() {
+        let mut csprng: ThreadRng = thread_rng();
+        let keypair: srKeypair = srKeypair::generate_with(&mut csprng);
+        let payload = "Where your crystal mind and magenta feelings";
+        let signed_payload = "Where your crystal mind and purple feelings";
+        let context = signing_context(b"substrate");
+        let signature = keypair.sign(context.bytes(signed_payload.as_bytes()));
+        assert_eq!(
+            verify_sr25519_signature(
+                &signature.to_bytes(),
+                &keypair.public.to_bytes(),
+                payload.as_bytes()
+            ),
+            Err(VerifyError::Invalid)
+        );
+    }
+
+    #[test]
+    fn test_sr25519_signature_does_not_verify_bad_domain() {
+        let mut csprng: ThreadRng = thread_rng();
+        let keypair: srKeypair = srKeypair::generate_with(&mut csprng);
+        let payload = "Where your crystal mind and magenta feelings";
+        let context = signing_context(b"hoaniland");
+        let signature = keypair.sign(context.bytes(payload.as_bytes()));
+        assert_eq!(
+            verify_sr25519_signature(
+                &signature.to_bytes(),
                 &keypair.public.to_bytes(),
                 payload.as_bytes()
             ),
