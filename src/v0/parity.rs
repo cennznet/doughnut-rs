@@ -11,6 +11,7 @@
 use bit_reverse::ParallelReverse;
 use codec::{Decode, Encode, Input, Output};
 use primitive_types::H512;
+use core::convert::TryFrom;
 
 use crate::alloc::{
     string::{String, ToString},
@@ -22,6 +23,8 @@ const NOT_BEFORE_MASK: u8 = 0b1000_0000;
 const SIGNATURE_MASK: u8 = 0b0001_1111;
 const VERSION_UPPER_MASK: u8 = 0b0000_0111;
 const VERSION_11BIT_MASK: u16 = 0b0000_0111_1111_1111;
+
+const MAX_DOMAINS: usize = 128;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DoughnutV0 {
@@ -39,6 +42,15 @@ impl DoughnutV0 {
     /// Encodes the doughnut into an byte array and writes the result into a given memory
     /// if `encode_signature` is false, the final signature bytes are not included in the result
     fn encode_to_with_signature_optional<T: Output>(&self, dest: &mut T, encode_signature: bool) {
+        // Defensive early return when there are no domains
+        if self.domains.is_empty() || self.domains.len() > MAX_DOMAINS {
+            return;
+        }
+        let domain_count = u8::try_from(self.domains.len() - 1);
+        if domain_count.is_err() {
+            return;
+        }
+
         let mut payload_version_and_signature_version =
             (self.payload_version & VERSION_11BIT_MASK).swap_bits();
 
@@ -47,7 +59,7 @@ impl DoughnutV0 {
         dest.write(&payload_version_and_signature_version.to_be_bytes());
 
         let mut domain_count_and_not_before_byte =
-            (((self.domains.len() as u8) - 1) << 1).swap_bits();
+            (domain_count.unwrap() << 1).swap_bits();
         if self.not_before > 0 {
             domain_count_and_not_before_byte |= NOT_BEFORE_MASK;
         }
@@ -236,7 +248,7 @@ mod test {
         (
             issuer:$issuer:expr,
             holder:$holder:expr,
-            domains:[$(($domain:expr, $payload:expr))*],
+            domains:$domains:expr,
             expiry:$expiry:expr,
             not_before:$not_before:expr,
             payload_version:$pv:expr,
@@ -246,7 +258,7 @@ mod test {
             DoughnutV0 {
                 issuer: $issuer,
                 holder: $holder,
-                domains: vec![$( ($domain, $payload),)*],
+                domains: $domains,
                 expiry: $expiry,
                 not_before: $not_before,
                 payload_version: $pv,
@@ -262,7 +274,7 @@ mod test {
             doughnut_builder!(
                 issuer:[0_u8; 32],
                 holder:$holder,
-                domains:[("cennznet".to_string(), vec![0])],
+                domains:vec![("cennznet".to_string(), vec![0])],
                 expiry: $expiry,
                 not_before: $not_before,
                 payload_version: 0,
@@ -277,7 +289,7 @@ mod test {
             doughnut_builder!(
                 issuer:[0_u8; 32],
                 holder:[1_u8; 32],
-                domains:[("cennznet".to_string(), vec![0])],
+                domains:vec![("cennznet".to_string(), vec![0])],
                 expiry: 0,
                 not_before: 0,
                 payload_version: $pv,
@@ -286,12 +298,12 @@ mod test {
             )
         };
         (
-            domains:[$(($domain:expr, $payload:expr))*],
+            domains:$domains:expr,
         ) => {
             doughnut_builder!(
                 issuer: [0_u8; 32],
                 holder: [1_u8; 32],
-                domains: [$(($domain, $payload))*],
+                domains: $domains,
                 expiry: 0,
                 not_before: 0,
                 payload_version: 0,
@@ -422,9 +434,51 @@ mod test {
     }
 
     #[test]
+    fn no_domains_fails_encoding() {
+        let doughnut = doughnut_builder!(
+            domains: vec![],
+        );
+
+        let encoded = doughnut.encode();
+        assert_eq!(encoded, []);
+    }
+
+    #[test]
+    fn too_many_domains_fails_encoding() {
+        let mut domains: Vec<(String, Vec<u8>)> = vec![];
+        for x in 0..MAX_DOMAINS + 1 {
+            domains.push((x.to_string(), vec![]));
+        }
+
+        let doughnut = doughnut_builder!(
+            domains: domains,
+        );
+
+        let encoded = doughnut.encode();
+        assert_eq!(encoded, []);
+    }
+
+    #[test]
+    fn can_encode_up_to_max_domains() {
+        let mut domains: Vec<(String, Vec<u8>)> = vec![];
+        for x in 0..MAX_DOMAINS {
+            domains.push((x.to_string(), vec![]));
+        }
+
+        let doughnut = doughnut_builder!(
+            domains: domains,
+        );
+
+        let encoded = doughnut.encode();
+        let expected_length = 135 + (18 * MAX_DOMAINS);
+
+        assert_eq!(encoded.len(), expected_length);
+    }
+
+    #[test]
     fn short_domain_name_is_parsed() {
         let doughnut = doughnut_builder!(
-            domains: [("Smol".to_string(), vec![])],
+            domains: vec![("Smol".to_string(), vec![])],
         );
 
         let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
@@ -434,7 +488,7 @@ mod test {
     #[test]
     fn long_domain_name_is_truncated() {
         let doughnut = doughnut_builder!(
-            domains: [("SweetLikeAChic-a-CherryCola".to_string(), vec![])],
+            domains: vec![("SweetLikeAChic-a-CherryCola".to_string(), vec![])],
         );
 
         let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
