@@ -11,6 +11,12 @@ extern crate alloc;
 #[macro_use]
 extern crate std as alloc;
 
+// for test only
+#[cfg(test)]
+extern crate rand;
+#[cfg(test)]
+extern crate sha2;
+
 mod doughnut;
 pub use doughnut::Doughnut;
 

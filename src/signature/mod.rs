@@ -64,3 +64,38 @@ fn verify_sr25519_signature(
         .verify(signing_context(b"substrate").bytes(payload), &signature)
         .map_err(|_| VerifyError::Invalid)
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use rand::rngs::OsRng;
+    use ed25519_dalek::Keypair as edKeypair;
+
+    #[test]
+    fn test_ed25519_signature_verifies() {
+        let mut csprng = OsRng{};
+        let keypair: edKeypair = edKeypair::generate(&mut csprng);
+        let payload = "To a deep sea diver who is swimming with a raincoat";
+        verify_ed25519_signature(
+                &keypair.sign(&payload.as_bytes()).to_bytes(),
+                &keypair.public.to_bytes(),
+                payload.as_bytes()
+            ).unwrap();
+    }
+
+    #[test]
+    fn test_ed25519_signature_does_not_verify() {
+        let mut csprng = OsRng{};
+        let keypair: edKeypair = edKeypair::generate(&mut csprng);
+        let payload = "To a deep sea diver who is swimming with a raincoat";
+        let signed_payload = "To a deep sea diver who is swimming without a raincoat";
+        assert_eq!(
+            verify_ed25519_signature(
+                &keypair.sign(&signed_payload.as_bytes()).to_bytes(),
+                &keypair.public.to_bytes(),
+                payload.as_bytes()
+            ),
+            Err(VerifyError::Invalid)
+        );
+    }
+}
