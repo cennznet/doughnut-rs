@@ -5,6 +5,8 @@ use core::convert::TryFrom;
 use ed25519_dalek::{PublicKey as Ed25519Pub, Signature as Ed25519Sig};
 use schnorrkel::{signing_context, PublicKey as Sr25519Pub, Signature as Sr25519Sig};
 
+pub const CONTEXT_ID: &[u8] = b"substrate";
+
 /// Doughnut signature version
 enum SignatureVersion {
     Sr25519 = 0,
@@ -61,7 +63,7 @@ fn verify_sr25519_signature(
         Sr25519Sig::from_bytes(signature_bytes).map_err(|_| VerifyError::BadSignatureFormat)?;
     let public_key = Sr25519Pub::from_bytes(signer).map_err(|_| VerifyError::BadPublicKeyFormat)?;
     public_key
-        .verify(signing_context(b"substrate").bytes(payload), &signature)
+        .verify(signing_context(CONTEXT_ID).bytes(payload), &signature)
         .map_err(|_| VerifyError::Invalid)
 }
 
@@ -75,10 +77,19 @@ mod test {
     use rand_core::OsRng;
     use schnorrkel::Keypair as srKeypair;
 
+    fn generate_ed25519_keypair() -> edKeypair {
+        let mut csprng = OsRng {};
+        edKeypair::generate(&mut csprng)
+    }
+
+    fn generate_sr25519_keypair() -> srKeypair {
+        let mut csprng: ThreadRng = thread_rng();
+        srKeypair::generate_with(&mut csprng)
+    }
+
     #[test]
     fn test_ed25519_signature_verifies() {
-        let mut csprng = OsRng {};
-        let keypair: edKeypair = edKeypair::generate(&mut csprng);
+        let keypair = generate_ed25519_keypair();
         let payload = "To a deep sea diver who is swimming with a raincoat";
         verify_ed25519_signature(
             &keypair.sign(&payload.as_bytes()).to_bytes(),
@@ -90,8 +101,7 @@ mod test {
 
     #[test]
     fn test_ed25519_signature_does_not_verify() {
-        let mut csprng = OsRng {};
-        let keypair: edKeypair = edKeypair::generate(&mut csprng);
+        let keypair = generate_ed25519_keypair();
         let payload = "To a deep sea diver who is swimming with a raincoat";
         let signed_payload = "To a deep sea diver who is swimming without a raincoat";
         assert_eq!(
@@ -106,10 +116,9 @@ mod test {
 
     #[test]
     fn test_sr25519_signature_verifies() {
-        let mut csprng: ThreadRng = thread_rng();
-        let keypair: srKeypair = srKeypair::generate_with(&mut csprng);
+        let keypair = generate_sr25519_keypair();
         let payload = "Where your crystal mind and magenta feelings";
-        let context = signing_context(b"substrate");
+        let context = signing_context(CONTEXT_ID);
         let signature = keypair.sign(context.bytes(payload.as_bytes()));
         verify_sr25519_signature(
             &signature.to_bytes(),
@@ -121,11 +130,10 @@ mod test {
 
     #[test]
     fn test_sr25519_signature_does_not_verify_bad_signature() {
-        let mut csprng: ThreadRng = thread_rng();
-        let keypair: srKeypair = srKeypair::generate_with(&mut csprng);
+        let keypair = generate_sr25519_keypair();
         let payload = "Where your crystal mind and magenta feelings";
         let signed_payload = "Where your crystal mind and purple feelings";
-        let context = signing_context(b"substrate");
+        let context = signing_context(CONTEXT_ID);
         let signature = keypair.sign(context.bytes(signed_payload.as_bytes()));
         assert_eq!(
             verify_sr25519_signature(
@@ -139,8 +147,7 @@ mod test {
 
     #[test]
     fn test_sr25519_signature_does_not_verify_bad_domain() {
-        let mut csprng: ThreadRng = thread_rng();
-        let keypair: srKeypair = srKeypair::generate_with(&mut csprng);
+        let keypair = generate_sr25519_keypair();
         let payload = "Where your crystal mind and magenta feelings";
         let context = signing_context(b"hoaniland");
         let signature = keypair.sign(context.bytes(payload.as_bytes()));
@@ -156,8 +163,7 @@ mod test {
 
     #[test]
     fn test_verifies_ed25519_version() {
-        let mut csprng = OsRng {};
-        let keypair: edKeypair = edKeypair::generate(&mut csprng);
+        let keypair = generate_ed25519_keypair();
         let payload = "When I get to you";
         verify_signature(
             &keypair.sign(&payload.as_bytes()).to_bytes(),
@@ -170,10 +176,9 @@ mod test {
 
     #[test]
     fn test_verifies_sr25519_version() {
-        let mut csprng: ThreadRng = thread_rng();
-        let keypair: srKeypair = srKeypair::generate_with(&mut csprng);
+        let keypair = generate_sr25519_keypair();
         let payload = "When I get to you";
-        let context = signing_context(b"substrate");
+        let context = signing_context(CONTEXT_ID);
         let signature = keypair.sign(context.bytes(payload.as_bytes()));
 
         verify_signature(
@@ -187,10 +192,9 @@ mod test {
 
     #[test]
     fn test_error_on_wrong_version() {
-        let mut csprng: ThreadRng = thread_rng();
-        let keypair: srKeypair = srKeypair::generate_with(&mut csprng);
+        let keypair = generate_sr25519_keypair();
         let payload = "When I get to you";
-        let context = signing_context(b"substrate");
+        let context = signing_context(CONTEXT_ID);
         let signature = keypair.sign(context.bytes(payload.as_bytes()));
 
         assert_eq!(
@@ -206,10 +210,9 @@ mod test {
 
     #[test]
     fn test_error_on_bad_version() {
-        let mut csprng: ThreadRng = thread_rng();
-        let keypair: srKeypair = srKeypair::generate_with(&mut csprng);
+        let keypair = generate_sr25519_keypair();
         let payload = "When I get to you";
-        let context = signing_context(b"substrate");
+        let context = signing_context(CONTEXT_ID);
         let signature = keypair.sign(context.bytes(payload.as_bytes()));
 
         assert_eq!(
