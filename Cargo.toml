@@ -11,6 +11,10 @@ primitive-types = { version = "<1.0", default-features = false }
 schnorrkel = { version = "^0.8.5", optional = true }
 ed25519-dalek = { version = "1.0.0-pre.1", optional = true }
 
+[dev-dependencies]
+rand = "0.6"
+rand_core = "0.5.1"
+
 [features]
 default = ["std"]
 std = [
