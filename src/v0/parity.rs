@@ -222,7 +222,7 @@ impl Decode for DoughnutV0 {
         }
 
         let mut signature = [0_u8; 64];
-        let _ = input.read(&mut signature);
+        let _ = input.read(&mut signature)?;
 
         Ok(Self {
             holder,
@@ -279,7 +279,7 @@ mod test {
                 not_before: $not_before,
                 payload_version: 0,
                 signature_version: 0,
-                signature: H512::default(),
+                signature: H512::from([0xa5; 64]),
             )
         };
         (
@@ -294,7 +294,7 @@ mod test {
                 not_before: 0,
                 payload_version: $pv,
                 signature_version: $sv,
-                signature: H512::default(),
+                signature: H512::from([0xa5; 64]),
             )
         };
         (
@@ -308,7 +308,7 @@ mod test {
                 not_before: 0,
                 payload_version: 0,
                 signature_version: 0,
-                signature: H512::default(),
+                signature: H512::from([0xa5; 64]),
             )
         };
         (holder: $holder:expr,) => {
@@ -318,6 +318,7 @@ mod test {
                 not_before: 0,
             )
         };
+        () => { doughnut_builder!(holder: [1_u8; 32],) };
     }
 
     // Make a unix timestamp `when` seconds from the invocation
@@ -493,5 +494,42 @@ mod test {
 
         let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
         assert_eq!(parsed_doughnut.domains[0].0, "SweetLikeAChic-a");
+    }
+
+    #[test]
+    fn full_encode_and_decode_works() {
+        let domains = vec![
+            ("Come".to_string(), vec![0x42, 0x72, 0x65, 0x61, 0x74, 0x68, 0x65]),
+            ("stand".to_string(), vec![0x69, 0x6e, 0x20, 0x61, 0x6e, 0x64]),
+            ("a".to_string(), vec![0x67,0x65,0x74]),
+            ("little".to_string(), vec![0x61]),
+            ("bit".to_string(), vec![0x62,0x69,0x74]),
+            ("closer".to_string(), vec![0x68 ,0x69 ,0x67 ,0x68 ,0x65 ,0x72]),
+        ];
+        let doughnut = doughnut_builder! (
+            issuer: [0x55_u8; 32],
+            holder: [0x88_u8; 32],
+            domains: domains,
+            expiry: 0x1234,
+            not_before: 0x5678,
+            payload_version: 0xab,
+            signature_version: 0xc,
+            signature: H512::from([0xa5; 64]),
+        );
+
+        let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
+
+        assert_eq!(doughnut, parsed_doughnut);
+    }
+
+    #[test]
+    fn decode_error_with_missing_byte() {
+        let doughnut = doughnut_builder! ();
+        let encoded = doughnut.encode();
+        let length = encoded.len() - 1;
+
+        let result = DoughnutV0::decode(&mut &encoded[..length]);
+
+        assert_eq!(result, Err(codec::Error::from("Not enough data to fill buffer")));
     }
 }
