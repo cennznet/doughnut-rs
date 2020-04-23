@@ -10,8 +10,8 @@
 
 use bit_reverse::ParallelReverse;
 use codec::{Decode, Encode, Input, Output};
-use primitive_types::H512;
 use core::convert::TryFrom;
+use primitive_types::H512;
 
 use crate::alloc::{
     string::{String, ToString},
@@ -58,8 +58,7 @@ impl DoughnutV0 {
             u16::from(self.signature_version & SIGNATURE_MASK).swap_bits() >> 11;
         dest.write(&payload_version_and_signature_version.to_be_bytes());
 
-        let mut domain_count_and_not_before_byte =
-            (domain_count.unwrap() << 1).swap_bits();
+        let mut domain_count_and_not_before_byte = (domain_count.unwrap() << 1).swap_bits();
         if self.not_before > 0 {
             domain_count_and_not_before_byte |= NOT_BEFORE_MASK;
         }
@@ -217,7 +216,7 @@ impl Decode for DoughnutV0 {
             unsafe {
                 payload.set_len(payload_length);
             }
-            let _ = input.read(&mut payload);
+            let _ = input.read(&mut payload)?;
             domains.push((key, payload));
         }
 
@@ -226,8 +225,7 @@ impl Decode for DoughnutV0 {
 
         if input.read_byte().is_ok() {
             Err(codec::Error::from("Doughnut contains unexpected bytes"))
-        }
-        else {
+        } else {
             Ok(Self {
                 holder,
                 issuer,
@@ -363,9 +361,7 @@ mod test {
     #[test]
     fn usage_by_non_holder_is_invalid() {
         let holder = [1_u8; 32];
-        let doughnut = doughnut_builder!(
-            holder: holder,
-        );
+        let doughnut = doughnut_builder!(holder: holder,);
 
         let not_the_holder = [2_u8; 32];
         assert_eq!(
@@ -441,9 +437,7 @@ mod test {
 
     #[test]
     fn no_domains_fails_encoding() {
-        let doughnut = doughnut_builder!(
-            domains: vec![],
-        );
+        let doughnut = doughnut_builder!(domains: vec![],);
 
         let encoded = doughnut.encode();
         assert_eq!(encoded, []);
@@ -456,9 +450,7 @@ mod test {
             domains.push((x.to_string(), vec![]));
         }
 
-        let doughnut = doughnut_builder!(
-            domains: domains,
-        );
+        let doughnut = doughnut_builder!(domains: domains,);
 
         let encoded = doughnut.encode();
         assert_eq!(encoded, []);
@@ -471,9 +463,7 @@ mod test {
             domains.push((x.to_string(), vec![]));
         }
 
-        let doughnut = doughnut_builder!(
-            domains: domains,
-        );
+        let doughnut = doughnut_builder!(domains: domains,);
 
         let encoded = doughnut.encode();
         let expected_length = 135 + (18 * MAX_DOMAINS);
@@ -483,9 +473,7 @@ mod test {
 
     #[test]
     fn short_domain_name_is_parsed() {
-        let doughnut = doughnut_builder!(
-            domains: vec![("Smol".to_string(), vec![])],
-        );
+        let doughnut = doughnut_builder!(domains: vec![("Smol".to_string(), vec![])],);
 
         let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
         assert_eq!(parsed_doughnut.domains[0].0, "Smol");
@@ -493,9 +481,8 @@ mod test {
 
     #[test]
     fn long_domain_name_is_truncated() {
-        let doughnut = doughnut_builder!(
-            domains: vec![("SweetLikeAChic-a-CherryCola".to_string(), vec![])],
-        );
+        let doughnut =
+            doughnut_builder!(domains: vec![("SweetLikeAChic-a-CherryCola".to_string(), vec![])],);
 
         let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
         assert_eq!(parsed_doughnut.domains[0].0, "SweetLikeAChic-a");
@@ -504,12 +491,21 @@ mod test {
     #[test]
     fn full_encode_and_decode_works() {
         let domains = vec![
-            ("Come".to_string(), vec![0x42, 0x72, 0x65, 0x61, 0x74, 0x68, 0x65]),
-            ("stand".to_string(), vec![0x69, 0x6e, 0x20, 0x61, 0x6e, 0x64]),
-            ("a".to_string(), vec![0x67,0x65,0x74]),
+            (
+                "Come".to_string(),
+                vec![0x42, 0x72, 0x65, 0x61, 0x74, 0x68, 0x65],
+            ),
+            (
+                "stand".to_string(),
+                vec![0x69, 0x6e, 0x20, 0x61, 0x6e, 0x64],
+            ),
+            ("a".to_string(), vec![0x67, 0x65, 0x74]),
             ("little".to_string(), vec![0x61]),
-            ("bit".to_string(), vec![0x62,0x69,0x74]),
-            ("closer".to_string(), vec![0x68 ,0x69 ,0x67 ,0x68 ,0x65 ,0x72]),
+            ("bit".to_string(), vec![0x62, 0x69, 0x74]),
+            (
+                "closer".to_string(),
+                vec![0x68, 0x69, 0x67, 0x68, 0x65, 0x72],
+            ),
         ];
         let doughnut = doughnut_builder! (
             issuer: [0x55_u8; 32],
@@ -529,13 +525,16 @@ mod test {
 
     #[test]
     fn decode_error_with_missing_byte() {
-        let doughnut = doughnut_builder! ();
+        let doughnut = doughnut_builder!();
         let encoded = doughnut.encode();
         let length = encoded.len() - 1;
 
         let result = DoughnutV0::decode(&mut &encoded[..length]);
 
-        assert_eq!(result, Err(codec::Error::from("Not enough data to fill buffer")));
+        assert_eq!(
+            result,
+            Err(codec::Error::from("Not enough data to fill buffer"))
+        );
     }
 
     #[test]
@@ -544,17 +543,50 @@ mod test {
 
         let result = DoughnutV0::decode(&mut &encoded[..]);
 
-        assert_eq!(result, Err(codec::Error::from("Not enough data to fill buffer")));
+        assert_eq!(
+            result,
+            Err(codec::Error::from("Not enough data to fill buffer"))
+        );
     }
 
     #[test]
     fn decode_error_with_too_many_bytes() {
-        let doughnut = doughnut_builder! ();
+        let doughnut = doughnut_builder!();
         let encoded = doughnut.encode();
-        let encoded = vec![encoded,vec![0x00]].concat();
+        let encoded = vec![encoded, vec![0x00]].concat();
 
         let result = DoughnutV0::decode(&mut &encoded[..]);
 
-        assert_eq!(result, Err(codec::Error::from("Doughnut contains unexpected bytes")));
+        assert_eq!(
+            result,
+            Err(codec::Error::from("Doughnut contains unexpected bytes"))
+        );
+    }
+
+    #[test]
+    fn decode_error_with_bad_domain_character() {
+        let doughnut = doughnut_builder!();
+        let mut encoded = doughnut.encode();
+        encoded[72] = 0xff; //invalid utf-8
+
+        let result = DoughnutV0::decode(&mut &encoded[..]);
+
+        assert_eq!(
+            result,
+            Err(codec::Error::from("domain keys should be utf8 encoded"))
+        );
+    }
+
+    #[test]
+    fn decode_error_with_incorrect_domain_length() {
+        let doughnut = doughnut_builder!(domains: vec![("ZeroLength".to_string(), vec![])],);
+        let mut encoded = doughnut.encode();
+        encoded[72 + 16] = 0xff; //invalid utf-8
+
+        let result = DoughnutV0::decode(&mut &encoded[..]);
+        assert_eq!(
+            result,
+            Err(codec::Error::from("Not enough data to fill buffer"))
+        );
     }
 }
