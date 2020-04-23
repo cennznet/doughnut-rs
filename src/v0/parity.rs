@@ -216,12 +216,12 @@ impl Decode for DoughnutV0 {
             unsafe {
                 payload.set_len(payload_length);
             }
-            let _ = input.read(&mut payload)?;
+            input.read(&mut payload)?;
             domains.push((key, payload));
         }
 
         let mut signature = [0_u8; 64];
-        let _ = input.read(&mut signature)?;
+        input.read(&mut signature)?;
 
         if input.read_byte().is_ok() {
             Err(codec::Error::from("Doughnut contains unexpected bytes"))
