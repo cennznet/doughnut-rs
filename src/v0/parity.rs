@@ -224,16 +224,21 @@ impl Decode for DoughnutV0 {
         let mut signature = [0_u8; 64];
         let _ = input.read(&mut signature)?;
 
-        Ok(Self {
-            holder,
-            issuer,
-            expiry,
-            not_before,
-            signature_version,
-            payload_version,
-            domains,
-            signature: H512::from(signature),
-        })
+        if input.read_byte().is_ok() {
+            Err(codec::Error::from("Doughnut contains unexpected bytes"))
+        }
+        else {
+            Ok(Self {
+                holder,
+                issuer,
+                expiry,
+                not_before,
+                signature_version,
+                payload_version,
+                domains,
+                signature: H512::from(signature),
+            })
+        }
     }
 }
 
@@ -531,5 +536,25 @@ mod test {
         let result = DoughnutV0::decode(&mut &encoded[..length]);
 
         assert_eq!(result, Err(codec::Error::from("Not enough data to fill buffer")));
+    }
+
+    #[test]
+    fn decode_error_with_no_bytes() {
+        let encoded = [];
+
+        let result = DoughnutV0::decode(&mut &encoded[..]);
+
+        assert_eq!(result, Err(codec::Error::from("Not enough data to fill buffer")));
+    }
+
+    #[test]
+    fn decode_error_with_too_many_bytes() {
+        let doughnut = doughnut_builder! ();
+        let encoded = doughnut.encode();
+        let encoded = vec![encoded,vec![0x00]].concat();
+
+        let result = DoughnutV0::decode(&mut &encoded[..]);
+
+        assert_eq!(result, Err(codec::Error::from("Doughnut contains unexpected bytes")));
     }
 }
