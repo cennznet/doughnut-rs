@@ -95,6 +95,13 @@ mod test {
     use super::*;
     use crate::traits::DoughnutVerify;
     use codec::Decode;
+    use ed25519_dalek::Keypair as edKeypair;
+    use rand_core::OsRng;
+
+    fn generate_ed25519_keypair() -> edKeypair {
+        let mut csprng = OsRng {};
+        edKeypair::generate(&mut csprng)
+    }
 
     #[test]
     fn it_verifies_an_sr25519_signed_doughnut_v0() {
@@ -135,17 +142,22 @@ mod test {
 
     #[test]
     fn it_verifies_an_ed25519_signed_doughnut_v0() {
-        let encoded: Vec<u8> = vec![
-            0, 16, 64, 146, 208, 89, 131, 220, 161, 15, 74, 192, 166, 187, 159, 8, 15, 123, 164,
-            194, 246, 5, 28, 68, 241, 208, 207, 151, 203, 118, 92, 41, 23, 152, 109, 146, 208, 89,
-            131, 220, 161, 15, 74, 192, 166, 187, 159, 8, 15, 123, 164, 194, 246, 5, 28, 68, 241,
-            208, 207, 151, 203, 118, 92, 41, 23, 152, 109, 196, 94, 16, 0, 115, 111, 109, 101, 116,
-            104, 105, 110, 103, 0, 0, 0, 0, 0, 0, 0, 128, 0, 115, 111, 109, 101, 116, 104, 105,
-            110, 103, 69, 108, 115, 101, 0, 0, 0, 128, 0, 0, 0, 193, 0, 93, 66, 180, 167, 98, 155,
-            91, 210, 93, 219, 155, 196, 43, 2, 49, 192, 139, 137, 2, 152, 155, 238, 181, 232, 47,
-            89, 196, 16, 189, 116, 132, 74, 64, 49, 115, 237, 225, 216, 85, 238, 183, 255, 196,
-            218, 41, 20, 38, 238, 247, 32, 111, 33, 87, 133, 57, 122, 204, 250, 233, 34, 8, 2,
-        ];
+        let keypair = generate_ed25519_keypair();
+        let holder = vec![0x15; 32];
+        let payload: Vec<u8> = [
+            vec![128, 0, 64], // versions
+            keypair.public.to_bytes().to_vec(),
+            holder,
+            vec![196, 94, 16, 0], // timestamps
+            // Domain Data
+            vec![
+                115, 111, 109, 101, 116, 104, 105, 110, 103, 0, 0, 0, 0, 0, 0, 0, 128, 0, 115, 111,
+                109, 101, 116, 104, 105, 110, 103, 69, 108, 115, 101, 0, 0, 0, 128, 0, 0, 0,
+            ],
+        ]
+        .concat();
+        let signature = keypair.sign(&payload);
+        let encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();
         let doughnut: ParityDoughnutV0 =
             Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut v0");
         assert_eq!(doughnut.verify(), Ok(()));
@@ -154,7 +166,7 @@ mod test {
     #[test]
     fn ed25519_signed_doughnut_v0_has_invalid_signature() {
         let encoded: Vec<u8> = vec![
-            0, 16, 64, 146, 208, 89, 131, 220, 161, 15, 74, 192, 166, 187, 159, 8, 15, 123, 164,
+            128, 0, 64, 146, 208, 89, 131, 220, 161, 15, 74, 192, 166, 187, 159, 8, 15, 123, 164,
             194, 246, 5, 28, 68, 241, 208, 207, 151, 203, 118, 92, 41, 23, 152, 109, 146, 208, 89,
             131, 220, 161, 15, 74, 192, 166, 187, 159, 8, 15, 123, 164, 194, 246, 5, 28, 68, 241,
             208, 207, 151, 203, 118, 92, 41, 23, 152, 109, 196, 94, 16, 0, 115, 111, 109, 101, 116,

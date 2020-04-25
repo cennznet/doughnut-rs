@@ -20,7 +20,7 @@ use crate::traits::DoughnutApi;
 
 const NOT_BEFORE_MASK: u8 = 0b1000_0000;
 const SIGNATURE_MASK: u8 = 0b0001_1111;
-const VERSION_UPPER_MASK: u8 = 0b0000_0111;
+const VERSION_SHIFT: usize = 5;
 const VERSION_11BIT_MASK: u16 = 0b0000_0111_1111_1111;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -39,12 +39,16 @@ impl DoughnutV0 {
     /// Encodes the doughnut into an byte array and writes the result into a given memory
     /// if `encode_signature` is false, the final signature bytes are not included in the result
     fn encode_to_with_signature_optional<T: Output>(&self, dest: &mut T, encode_signature: bool) {
-        let mut payload_version_and_signature_version =
-            (self.payload_version & VERSION_11BIT_MASK).swap_bits();
+        let version_data = ((self.payload_version & VERSION_11BIT_MASK) << VERSION_SHIFT)
+            | u16::from(self.signature_version & SIGNATURE_MASK);
 
-        payload_version_and_signature_version |=
-            u16::from(self.signature_version & SIGNATURE_MASK).swap_bits() >> 11;
-        dest.write(&payload_version_and_signature_version.to_be_bytes());
+        let version_bytes: Vec<u8> = version_data
+            .to_le_bytes()
+            .iter()
+            .map(|&b| b.swap_bits())
+            .collect();
+
+        dest.write(&version_bytes);
 
         let mut domain_count_and_not_before_byte =
             (((self.domains.len() as u8) - 1) << 1).swap_bits();
@@ -144,10 +148,10 @@ impl Decode for DoughnutV0 {
         let version_byte_0 = input.read_byte()?.swap_bits();
         let version_byte_1 = input.read_byte()?.swap_bits();
 
-        let payload_version =
-            u16::from_le_bytes([version_byte_0, version_byte_1 & VERSION_UPPER_MASK]);
+        let version_data = u16::from_le_bytes([version_byte_0, version_byte_1]);
 
-        let signature_version = (version_byte_1 & SIGNATURE_MASK.swap_bits()) >> 3;
+        let payload_version = (version_data >> VERSION_SHIFT) & VERSION_11BIT_MASK;
+        let signature_version = version_byte_0 & SIGNATURE_MASK;
 
         let domain_count_and_not_before_byte = input.read_byte()?;
         let permission_domain_count = (domain_count_and_not_before_byte.swap_bits() >> 1) + 1;
@@ -201,10 +205,7 @@ impl Decode for DoughnutV0 {
         }
 
         for (key, payload_length) in q {
-            let mut payload = Vec::with_capacity(payload_length);
-            unsafe {
-                payload.set_len(payload_length);
-            }
+            let mut payload = vec![0; payload_length as usize];
             let _ = input.read(&mut payload);
             domains.push((key, payload));
         }
@@ -334,6 +335,44 @@ mod test {
             doughnut.validate(holder, u64::max_value()),
             Err(ValidationError::Conversion)
         )
+    }
+
+    #[test]
+    fn payload_version_encoding_correctly() {
+        let holder = [1_u8; 32];
+        let doughnut = DoughnutV0 {
+            issuer: [0_u8; 32],
+            holder,
+            domains: vec![("TestDomain".to_string(), vec![])],
+            expiry: 0,
+            not_before: 0,
+            payload_version: 0x0251,
+            signature_version: 0x00,
+            signature: H512::default(),
+        };
+
+        let encoded = doughnut.encode();
+        assert_eq!(encoded[0], 0x04);
+        assert_eq!(encoded[1], 0x52);
+    }
+
+    #[test]
+    fn signature_version_encoding_correctly() {
+        let holder = [1_u8; 32];
+        let doughnut = DoughnutV0 {
+            issuer: [0_u8; 32],
+            holder,
+            domains: vec![("TestDomain".to_string(), vec![])],
+            expiry: 0,
+            not_before: 0,
+            payload_version: 0x0000,
+            signature_version: 0x11,
+            signature: H512::default(),
+        };
+
+        let encoded = doughnut.encode();
+        assert_eq!(encoded[0], 0x88);
+        assert_eq!(encoded[1], 0x00);
     }
 
     #[test]
