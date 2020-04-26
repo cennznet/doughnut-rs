@@ -195,22 +195,4 @@ mod test {
             Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut v0");
         assert_eq!(doughnut.verify(), Err(VerifyError::Invalid));
     }
-
-    #[test]
-    fn it_verifies_an_sr25519_signed_doughnut() {
-        let keypair = generate_sr25519_keypair();
-        let context = signing_context(CONTEXT_ID);
-        let header: Vec<u8> = vec![0, 0, 192];
-        let issuer = vec_bits_swap!(keypair.public.to_bytes().to_vec());
-        let holder = vec_bits_swap!(vec![0x15; 32]);
-
-        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
-
-        let signature = keypair.sign(context.bytes(&payload));
-        let encoded: Vec<u8> = [payload, vec_bits_swap!(signature.to_bytes().to_vec())].concat();
-
-        let doughnut: ParityDoughnutV0 =
-            Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut v0");
-        assert_eq!(doughnut.verify(), Ok(()));
-    }
 }
