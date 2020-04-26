@@ -114,18 +114,28 @@ mod test {
         srKeypair::generate_with(&mut csprng)
     }
 
-    fn test_domain_data() -> Vec<u8> {
-        vec![
-            196, 94, 16, 0, 75, 32, 0, 0, 115, 111, 109, 101, 116, 104, 105, 110, 103, 0, 0, 0, 0,
-            0, 0, 0, 128, 0, 115, 111, 109, 101, 116, 104, 105, 110, 103, 69, 108, 115, 101, 0, 0,
-            0, 128, 0, 0, 0,
-        ]
-    }
-
     macro_rules! vec_bits_swap {
         ($vector:expr) => {
             $vector.iter().map(|&b: &u8| b.swap_bits()).collect();
         };
+    }
+
+    fn test_domain_data() -> Vec<u8> {
+        let domain_id_1 = vec_bits_swap!(vec![
+            115, 111, 109, 101, 116, 104, 105, 110, 103, 0, 0, 0, 0, 0, 0, 0
+        ]);
+        let domain_id_2 = vec_bits_swap!(vec![
+            115, 111, 109, 101, 116, 104, 105, 110, 103, 69, 108, 115, 101, 0, 0, 0
+        ]);
+        [
+            vec![196, 94, 16, 0, 75, 32, 0, 0], // expiry and not before
+            domain_id_1,
+            vec![128, 0], // domain length
+            domain_id_2,
+            vec![128, 0], // domain length
+            vec![0, 0],   // domain data
+        ]
+        .concat()
     }
 
     #[test]

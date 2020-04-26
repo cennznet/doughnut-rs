@@ -75,7 +75,7 @@ impl DoughnutV0 {
             let mut key_buf = [0_u8; 16];
             let length = key_buf.len().min(key.len());
             key_buf[..length].clone_from_slice(&key.as_bytes()[..length]);
-            dest.write(&key_buf);
+            dest.write(&swap_vector_bits(&key_buf));
             for b in &(payload.len() as u16).to_le_bytes() {
                 dest.push_byte(b.swap_bits());
             }
@@ -197,7 +197,7 @@ impl Decode for DoughnutV0 {
         for _ in 0..permission_domain_count {
             let mut key_buf: [u8; 16] = Default::default();
             let _ = input.read(&mut key_buf);
-            let key = core::str::from_utf8(&key_buf)
+            let key = core::str::from_utf8(&swap_vector_bits(&key_buf))
                 .map_err(|_| codec::Error::from("domain keys should be utf8 encoded"))?
                 .trim_matches(char::from(0))
                 .to_string();

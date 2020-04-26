@@ -107,9 +107,12 @@ impl<'a> DoughnutApi for DoughnutV0<'a> {
                 self.0[(offset + 17) as usize].swap_bits(),
             ]);
 
+            let key_vec: Vec<u8> = self.0[offset as usize..(offset + 16) as usize]
+                .iter()
+                .map(|&b| b.swap_bits())
+                .collect();
             // TODO: Raise error on invalid UTF-8
-            let key = core::str::from_utf8(&self.0[offset as usize..(offset + 16) as usize])
-                .unwrap_or("<invalid>");
+            let key = core::str::from_utf8(&key_vec).unwrap_or("<invalid>");
             let key_clean = key.trim_matches(char::from(0));
             if domain == key_clean {
                 return Some(
