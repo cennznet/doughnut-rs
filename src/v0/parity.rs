@@ -23,6 +23,10 @@ const SIGNATURE_MASK: u8 = 0b0001_1111;
 const VERSION_SHIFT: usize = 5;
 const VERSION_11BIT_MASK: u16 = 0b0000_0111_1111_1111;
 
+fn swap_vector_bits(input: &[u8]) -> Vec<u8> {
+    input.iter().map(|&b| b.swap_bits()).collect()
+}
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DoughnutV0 {
     pub issuer: [u8; 32],
@@ -42,11 +46,7 @@ impl DoughnutV0 {
         let version_data = ((self.payload_version & VERSION_11BIT_MASK) << VERSION_SHIFT)
             | u16::from(self.signature_version & SIGNATURE_MASK);
 
-            let version_bytes: Vec<u8> = version_data
-            .to_le_bytes()
-            .iter()
-            .map(|&b| b.swap_bits())
-            .collect();
+        let version_bytes: Vec<u8> = swap_vector_bits(&version_data.to_le_bytes());
 
         dest.write(&version_bytes);
 
@@ -57,21 +57,8 @@ impl DoughnutV0 {
         }
         dest.push_byte(domain_count_and_not_before_byte);
 
-        let issuer_le: Vec<u8> = self
-            .issuer
-            .to_vec()
-            .iter()
-            .map(|&b| b.swap_bits())
-            .collect();
-        let holder_le: Vec<u8> = self
-            .holder
-            .to_vec()
-            .iter()
-            .map(|&b| b.swap_bits())
-            .collect();
-
-        dest.write(&issuer_le);
-        dest.write(&holder_le);
+        dest.write(&swap_vector_bits(&self.issuer));
+        dest.write(&swap_vector_bits(&self.holder));
 
         for b in &self.expiry.to_le_bytes() {
             dest.push_byte(b.swap_bits());
@@ -99,17 +86,8 @@ impl DoughnutV0 {
             dest.write(payload);
         }
 
-        // Encode signature as LE and write to buffer
-        let signature_le: Vec<u8> = self
-            .signature
-            .as_bytes()
-            .to_vec()
-            .iter()
-            .map(|&b| b.swap_bits())
-            .collect();
-
         if encode_signature {
-            dest.write(&signature_le);
+            dest.write(&swap_vector_bits(&self.signature.as_bytes()));
         }
     }
 }
@@ -186,13 +164,10 @@ impl Decode for DoughnutV0 {
         let mut holder_le: [u8; 32] = Default::default();
         let _ = input.read(&mut holder_le);
 
-        let issuer_vec: Vec<u8> = issuer_le.to_vec().iter().map(|&b| b.swap_bits()).collect();
-        let holder_vec: Vec<u8> = holder_le.to_vec().iter().map(|&b| b.swap_bits()).collect();
-
         let mut issuer: [u8; 32] = Default::default();
         let mut holder: [u8; 32] = Default::default();
-        issuer.copy_from_slice(&issuer_vec);
-        holder.copy_from_slice(&holder_vec);
+        issuer.copy_from_slice(&swap_vector_bits(&issuer_le));
+        holder.copy_from_slice(&swap_vector_bits(&holder_le));
 
         let expiry = u32::from_le_bytes([
             input.read_byte()?.swap_bits(),
@@ -243,14 +218,8 @@ impl Decode for DoughnutV0 {
         let mut signature_le: [u8; 64] = [0; 64];
         let _ = input.read(&mut signature_le);
 
-        let signature_vec: Vec<u8> = signature_le
-            .to_vec()
-            .iter()
-            .map(|&b| b.swap_bits())
-            .collect();
-
         let mut signature_slice: [u8; 64] = [0; 64];
-        signature_slice.copy_from_slice(&signature_vec);
+        signature_slice.copy_from_slice(&swap_vector_bits(&signature_le));
 
         let signature = H512::from(signature_slice);
 
