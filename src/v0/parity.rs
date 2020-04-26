@@ -56,8 +56,22 @@ impl DoughnutV0 {
             domain_count_and_not_before_byte |= NOT_BEFORE_MASK;
         }
         dest.push_byte(domain_count_and_not_before_byte);
-        dest.write(&self.issuer);
-        dest.write(&self.holder);
+
+        let issuer_le: Vec<u8> = self
+            .issuer
+            .to_vec()
+            .iter()
+            .map(|&b| b.swap_bits())
+            .collect();
+        let holder_le: Vec<u8> = self
+            .holder
+            .to_vec()
+            .iter()
+            .map(|&b| b.swap_bits())
+            .collect();
+
+        dest.write(&issuer_le);
+        dest.write(&holder_le);
 
         for b in &self.expiry.to_le_bytes() {
             dest.push_byte(b.swap_bits());
@@ -158,11 +172,18 @@ impl Decode for DoughnutV0 {
         let has_not_before =
             (domain_count_and_not_before_byte & NOT_BEFORE_MASK) == NOT_BEFORE_MASK;
 
-        let mut issuer: [u8; 32] = Default::default();
-        let _ = input.read(&mut issuer);
+        let mut issuer_le: [u8; 32] = Default::default();
+        let _ = input.read(&mut issuer_le);
+        let mut holder_le: [u8; 32] = Default::default();
+        let _ = input.read(&mut holder_le);
 
-        let mut holder: [u8; 32] = Default::default();
-        let _ = input.read(&mut holder);
+        let issuer_vec: Vec<u8> = issuer_le.to_vec().iter().map(|&b| b.swap_bits()).collect();
+        let holder_vec: Vec<u8> = holder_le.to_vec().iter().map(|&b| b.swap_bits()).collect();
+
+        let mut issuer = [0x0_u8; 32];
+        let mut holder = [0x0_u8; 32];
+        issuer.copy_from_slice(&issuer_vec);
+        holder.copy_from_slice(&holder_vec);
 
         let expiry = u32::from_le_bytes([
             input.read_byte()?.swap_bits(),

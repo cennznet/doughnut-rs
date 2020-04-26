@@ -93,30 +93,54 @@ impl DoughnutVerify for Doughnut {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::signature::CONTEXT_ID;
     use crate::traits::DoughnutVerify;
+    use bit_reverse::ParallelReverse;
     use codec::Decode;
+    // The ed25519 and schnorrkel libs use different implementations of `OsRng`
+    // two different libraries are used: `rand` and `rand_core` as a workaround
     use ed25519_dalek::Keypair as edKeypair;
+    use rand::prelude::*;
     use rand_core::OsRng;
+    use schnorrkel::{signing_context, Keypair as srKeypair};
 
     fn generate_ed25519_keypair() -> edKeypair {
         let mut csprng = OsRng {};
         edKeypair::generate(&mut csprng)
     }
 
+    fn generate_sr25519_keypair() -> srKeypair {
+        let mut csprng: ThreadRng = thread_rng();
+        srKeypair::generate_with(&mut csprng)
+    }
+
+    fn test_domain_data() -> Vec<u8> {
+        vec![
+            196, 94, 16, 0, 75, 32, 0, 0, 115, 111, 109, 101, 116, 104, 105, 110, 103, 0, 0, 0, 0,
+            0, 0, 0, 128, 0, 115, 111, 109, 101, 116, 104, 105, 110, 103, 69, 108, 115, 101, 0, 0,
+            0, 128, 0, 0, 0,
+        ]
+    }
+
+    macro_rules! vec_bits_swap {
+        ($vector:expr) => {
+            $vector.iter().map(|&b: &u8| b.swap_bits()).collect();
+        };
+    }
+
     #[test]
     fn it_verifies_an_sr25519_signed_doughnut_v0() {
-        let encoded: Vec<u8> = vec![
-            0, 0, 192, 22, 126, 150, 15, 176, 190, 210, 156, 179, 149, 142, 84, 153, 4, 203, 61,
-            62, 185, 76, 45, 162, 220, 254, 188, 163, 187, 63, 39, 186, 113, 126, 12, 60, 121, 179,
-            67, 105, 121, 244, 39, 137, 174, 55, 85, 167, 73, 111, 50, 249, 10, 145, 141, 125, 105,
-            138, 38, 93, 144, 45, 224, 70, 206, 246, 116, 196, 94, 16, 0, 75, 32, 0, 0, 115, 111,
-            109, 101, 116, 104, 105, 110, 103, 0, 0, 0, 0, 0, 0, 0, 128, 0, 115, 111, 109, 101,
-            116, 104, 105, 110, 103, 69, 108, 115, 101, 0, 0, 0, 128, 0, 0, 0, 194, 49, 227, 242,
-            93, 169, 14, 8, 188, 144, 133, 72, 160, 73, 70, 158, 77, 125, 86, 135, 185, 127, 22,
-            43, 221, 19, 104, 232, 24, 87, 99, 78, 183, 51, 108, 178, 229, 37, 245, 206, 210, 122,
-            133, 163, 88, 91, 105, 45, 183, 101, 251, 88, 233, 90, 187, 48, 247, 163, 156, 68, 22,
-            62, 4, 133,
-        ];
+        let keypair = generate_sr25519_keypair();
+        let context = signing_context(CONTEXT_ID);
+        let header: Vec<u8> = vec![0, 0, 192];
+        let issuer = vec_bits_swap!(keypair.public.to_bytes().to_vec());
+        let holder = vec_bits_swap!(vec![0x15; 32]);
+
+        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+
+        let signature = keypair.sign(context.bytes(&payload));
+        let encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();
+
         let doughnut: ParityDoughnutV0 =
             Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut v0");
         assert_eq!(doughnut.verify(), Ok(()));
@@ -124,38 +148,30 @@ mod test {
 
     #[test]
     fn sr25519_signed_doughnut_v0_has_invalid_signature() {
-        let encoded: Vec<u8> = vec![
-            0, 0, 64, 22, 126, 150, 15, 176, 190, 210, 156, 179, 149, 142, 84, 153, 4, 203, 61, 62,
-            185, 76, 45, 162, 220, 254, 188, 163, 187, 63, 39, 186, 113, 126, 12, 60, 121, 179, 67,
-            105, 121, 244, 39, 137, 174, 55, 85, 167, 73, 111, 50, 249, 10, 145, 141, 125, 105,
-            138, 38, 93, 144, 45, 224, 70, 206, 246, 116, 196, 94, 16, 0, 115, 111, 109, 101, 116,
-            104, 105, 110, 103, 0, 0, 0, 0, 0, 0, 0, 128, 0, 115, 111, 109, 101, 116, 104, 105,
-            110, 103, 69, 108, 115, 101, 0, 0, 0, 128, 0, 0, 0, 126, 225, 133, 233, 233, 213, 238,
-            3, 88, 7, 202, 58, 150, 82, 73, 106, 220, 150, 238, 21, 220, 55, 194, 201, 68, 82, 182,
-            115, 26, 141, 78, 99, 119, 28, 146, 102, 222, 145, 242, 154, 50, 195, 147, 46, 158,
-            209, 10, 28, 64, 133, 75, 49, 111, 168, 28, 239, 140, 46, 195, 184, 18, 50, 17, 128,
-        ];
+        let keypair = generate_sr25519_keypair();
+        let keypair_invalid = generate_sr25519_keypair();
+        let context = signing_context(CONTEXT_ID);
+        let header: Vec<u8> = vec![0, 0, 192];
+        let issuer = vec_bits_swap!(keypair.public.to_bytes().to_vec());
+        let holder = vec_bits_swap!(vec![0x15; 32]);
+
+        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+
+        let signature = keypair_invalid.sign(context.bytes(&payload));
+        let encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();
         let doughnut: ParityDoughnutV0 =
             Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut v0");
+
         assert_eq!(doughnut.verify(), Err(VerifyError::Invalid));
     }
 
     #[test]
     fn it_verifies_an_ed25519_signed_doughnut_v0() {
         let keypair = generate_ed25519_keypair();
-        let holder = vec![0x15; 32];
-        let payload: Vec<u8> = [
-            vec![128, 0, 64], // versions
-            keypair.public.to_bytes().to_vec(),
-            holder,
-            vec![196, 94, 16, 0], // timestamps
-            // Domain Data
-            vec![
-                115, 111, 109, 101, 116, 104, 105, 110, 103, 0, 0, 0, 0, 0, 0, 0, 128, 0, 115, 111,
-                109, 101, 116, 104, 105, 110, 103, 69, 108, 115, 101, 0, 0, 0, 128, 0, 0, 0,
-            ],
-        ]
-        .concat();
+        let header: Vec<u8> = vec![128, 0, 192];
+        let issuer = vec_bits_swap!(keypair.public.to_bytes().to_vec());
+        let holder = vec_bits_swap!(vec![0x15; 32]);
+        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
         let signature = keypair.sign(&payload);
         let encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();
         let doughnut: ParityDoughnutV0 =
@@ -165,17 +181,15 @@ mod test {
 
     #[test]
     fn ed25519_signed_doughnut_v0_has_invalid_signature() {
-        let encoded: Vec<u8> = vec![
-            128, 0, 64, 146, 208, 89, 131, 220, 161, 15, 74, 192, 166, 187, 159, 8, 15, 123, 164,
-            194, 246, 5, 28, 68, 241, 208, 207, 151, 203, 118, 92, 41, 23, 152, 109, 146, 208, 89,
-            131, 220, 161, 15, 74, 192, 166, 187, 159, 8, 15, 123, 164, 194, 246, 5, 28, 68, 241,
-            208, 207, 151, 203, 118, 92, 41, 23, 152, 109, 196, 94, 16, 0, 115, 111, 109, 101, 116,
-            104, 105, 110, 103, 0, 0, 0, 0, 0, 0, 0, 128, 0, 115, 111, 109, 101, 116, 104, 105,
-            110, 103, 69, 108, 115, 101, 0, 0, 0, 128, 0, 0, 0, 193, 0, 93, 66, 180, 167, 98, 155,
-            91, 210, 93, 219, 155, 196, 43, 2, 49, 192, 139, 137, 2, 152, 155, 238, 181, 232, 47,
-            89, 196, 16, 189, 116, 132, 74, 64, 49, 115, 237, 225, 216, 85, 238, 183, 255, 196,
-            218, 41, 20, 38, 238, 247, 32, 111, 33, 87, 133, 57, 122, 204, 250, 233, 34, 2, 0,
-        ];
+        let keypair = generate_ed25519_keypair();
+        let header: Vec<u8> = vec![128, 0, 192];
+        let issuer = vec_bits_swap!(keypair.public.to_bytes().to_vec());
+        let holder = vec_bits_swap!(vec![0x15; 32]);
+        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+        let signature = keypair.sign(&payload);
+        let mut encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();
+        let index = encoded.len() - 1;
+        encoded[index] = 0x00;
         let doughnut: ParityDoughnutV0 =
             Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut v0");
         assert_eq!(doughnut.verify(), Err(VerifyError::Invalid));
@@ -183,19 +197,19 @@ mod test {
 
     #[test]
     fn it_verifies_an_sr25519_signed_doughnut() {
-        let encoded: Vec<u8> = vec![
-            0, 0, 192, 22, 126, 150, 15, 176, 190, 210, 156, 179, 149, 142, 84, 153, 4, 203, 61,
-            62, 185, 76, 45, 162, 220, 254, 188, 163, 187, 63, 39, 186, 113, 126, 12, 60, 121, 179,
-            67, 105, 121, 244, 39, 137, 174, 55, 85, 167, 73, 111, 50, 249, 10, 145, 141, 125, 105,
-            138, 38, 93, 144, 45, 224, 70, 206, 246, 116, 196, 94, 16, 0, 75, 32, 0, 0, 115, 111,
-            109, 101, 116, 104, 105, 110, 103, 0, 0, 0, 0, 0, 0, 0, 128, 0, 115, 111, 109, 101,
-            116, 104, 105, 110, 103, 69, 108, 115, 101, 0, 0, 0, 128, 0, 0, 0, 194, 49, 227, 242,
-            93, 169, 14, 8, 188, 144, 133, 72, 160, 73, 70, 158, 77, 125, 86, 135, 185, 127, 22,
-            43, 221, 19, 104, 232, 24, 87, 99, 78, 183, 51, 108, 178, 229, 37, 245, 206, 210, 122,
-            133, 163, 88, 91, 105, 45, 183, 101, 251, 88, 233, 90, 187, 48, 247, 163, 156, 68, 22,
-            62, 4, 133,
-        ];
-        let doughnut = Doughnut::decode(&mut &encoded[..]).expect("It is a valid doughnut");
+        let keypair = generate_sr25519_keypair();
+        let context = signing_context(CONTEXT_ID);
+        let header: Vec<u8> = vec![0, 0, 192];
+        let issuer = vec_bits_swap!(keypair.public.to_bytes().to_vec());
+        let holder = vec_bits_swap!(vec![0x15; 32]);
+
+        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+
+        let signature = keypair.sign(context.bytes(&payload));
+        let encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();
+
+        let doughnut: ParityDoughnutV0 =
+            Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut v0");
         assert_eq!(doughnut.verify(), Ok(()));
     }
 }

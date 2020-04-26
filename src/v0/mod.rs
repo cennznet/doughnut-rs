@@ -256,8 +256,9 @@ mod test {
 
     #[test]
     fn it_is_a_valid_usage() {
-        let holder = [1_u8; 32];
-        let encoded = make_doughnut(holder, [0_u8; 32], 10, 0);
+        let holder_le = [0x80_u8; 32];
+        let holder = [0x01_u8; 32];
+        let encoded = make_doughnut(holder_le, [0_u8; 32], 10, 0);
         let doughnut = Doughnut::new(&encoded).unwrap();
 
         assert!(doughnut.validate(&holder, make_unix_timestamp(0)).is_ok())
@@ -265,8 +266,9 @@ mod test {
 
     #[test]
     fn usage_after_expiry_is_invalid() {
-        let holder = [1_u8; 32];
-        let encoded = make_doughnut(holder, [0_u8; 32], 0, 0);
+        let holder_le = [0x80_u8; 32];
+        let holder = [0x01_u8; 32];
+        let encoded = make_doughnut(holder_le, [0_u8; 32], 0, 0);
         let doughnut = Doughnut::new(&encoded).unwrap();
 
         assert_eq!(
@@ -289,8 +291,9 @@ mod test {
 
     #[test]
     fn usage_preceeding_not_before_is_invalid() {
-        let holder = [1_u8; 32];
-        let encoded = make_doughnut(holder, [0_u8; 32], 12, 10);
+        let holder_le = [0x80_u8; 32];
+        let holder = [0x01_u8; 32];
+        let encoded = make_doughnut(holder_le, [0_u8; 32], 12, 10);
         let doughnut = Doughnut::new(&encoded).unwrap();
 
         assert_eq!(
