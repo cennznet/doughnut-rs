@@ -73,22 +73,27 @@ fn it_works_v0_parity() {
         60, 121, 179, 67, 105, 121, 244, 39, 137, 174, 55, 85, 167, 73, 111, 50, 249, 10, 145, 141,
         125, 105, 138, 38, 93, 144, 45, 224, 70, 206, 246, 116
     ]);
+    let signature: Vec<u8> = vec![
+        8, 185, 184, 138, 72, 86, 187, 125, 166, 109, 176, 31, 104, 162, 235, 78, 157, 166, 8, 137,
+        191, 33, 202, 128, 138, 165, 73, 244, 67, 247, 37, 13, 218, 44, 244, 54, 137, 179, 56, 110,
+        152, 170, 180, 218, 107, 177, 170, 58, 91, 62, 24, 240, 248, 244, 13, 51, 235, 3, 21, 63,
+        79, 192, 137, 6,
+    ];
+    let signature_encoded: Vec<u8> = vec_bits_swap!(signature.clone());
 
-    let payload: Vec<u8> = [
+    let encoded: Vec<u8> = [
         header,
         issuer,
         holder,
         vec![
             196, 94, 16, 0, 115, 111, 109, 101, 116, 104, 105, 110, 103, 0, 0, 0, 0, 0, 0, 0, 128,
             0, 115, 111, 109, 101, 116, 104, 105, 110, 103, 69, 108, 115, 101, 0, 0, 0, 128, 0, 0,
-            0, 8, 185, 184, 138, 72, 86, 187, 125, 166, 109, 176, 31, 104, 162, 235, 78, 157, 166,
-            8, 137, 191, 33, 202, 128, 138, 165, 73, 244, 67, 247, 37, 13, 218, 44, 244, 54, 137,
-            179, 56, 110, 152, 170, 180, 218, 107, 177, 170, 58, 91, 62, 24, 240, 248, 244, 13, 51,
-            235, 3, 21, 63, 79, 192, 137, 6,
+            0,
         ],
+        signature_encoded,
     ]
     .concat();
-    let d = ParityDoughnutV0::decode(&mut &payload[..]).expect("It works");
+    let d = ParityDoughnutV0::decode(&mut &encoded[..]).expect("It works");
 
     assert_eq!(d.signature_version, 3);
     assert_eq!(d.payload_version, 2);
@@ -110,8 +115,8 @@ fn it_works_v0_parity() {
     );
     assert_eq!(d.get_domain("something"), Some(&[0_u8][..]));
     assert_eq!(d.get_domain("somethingElse"), Some(&[0_u8][..]));
-    assert_eq!(&d.signature[..], &payload[(payload.len() - 64) as usize..],);
-    assert_eq!(d.encode(), payload);
+    assert_eq!(&d.signature[..], &signature[..],);
+    assert_eq!(d.encode(), encoded);
 }
 
 #[test]

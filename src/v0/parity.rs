@@ -42,7 +42,7 @@ impl DoughnutV0 {
         let version_data = ((self.payload_version & VERSION_11BIT_MASK) << VERSION_SHIFT)
             | u16::from(self.signature_version & SIGNATURE_MASK);
 
-        let version_bytes: Vec<u8> = version_data
+            let version_bytes: Vec<u8> = version_data
             .to_le_bytes()
             .iter()
             .map(|&b| b.swap_bits())
@@ -99,8 +99,17 @@ impl DoughnutV0 {
             dest.write(payload);
         }
 
+        // Encode signature as LE and write to buffer
+        let signature_le: Vec<u8> = self
+            .signature
+            .as_bytes()
+            .to_vec()
+            .iter()
+            .map(|&b| b.swap_bits())
+            .collect();
+
         if encode_signature {
-            dest.write(self.signature.as_bytes());
+            dest.write(&signature_le);
         }
     }
 }
@@ -180,8 +189,8 @@ impl Decode for DoughnutV0 {
         let issuer_vec: Vec<u8> = issuer_le.to_vec().iter().map(|&b| b.swap_bits()).collect();
         let holder_vec: Vec<u8> = holder_le.to_vec().iter().map(|&b| b.swap_bits()).collect();
 
-        let mut issuer = [0x0_u8; 32];
-        let mut holder = [0x0_u8; 32];
+        let mut issuer: [u8; 32] = Default::default();
+        let mut holder: [u8; 32] = Default::default();
         issuer.copy_from_slice(&issuer_vec);
         holder.copy_from_slice(&holder_vec);
 
@@ -231,8 +240,19 @@ impl Decode for DoughnutV0 {
             domains.push((key, payload));
         }
 
-        let mut signature = [0_u8; 64];
-        let _ = input.read(&mut signature);
+        let mut signature_le: [u8; 64] = [0; 64];
+        let _ = input.read(&mut signature_le);
+
+        let signature_vec: Vec<u8> = signature_le
+            .to_vec()
+            .iter()
+            .map(|&b| b.swap_bits())
+            .collect();
+
+        let mut signature_slice: [u8; 64] = [0; 64];
+        signature_slice.copy_from_slice(&signature_vec);
+
+        let signature = H512::from(signature_slice);
 
         Ok(Self {
             holder,
@@ -242,7 +262,7 @@ impl Decode for DoughnutV0 {
             signature_version,
             payload_version,
             domains,
-            signature: H512::from(signature),
+            signature,
         })
     }
 }

@@ -139,7 +139,7 @@ mod test {
         let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
 
         let signature = keypair.sign(context.bytes(&payload));
-        let encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();
+        let encoded: Vec<u8> = [payload, vec_bits_swap!(signature.to_bytes().to_vec())].concat();
 
         let doughnut: ParityDoughnutV0 =
             Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut v0");
@@ -158,7 +158,7 @@ mod test {
         let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
 
         let signature = keypair_invalid.sign(context.bytes(&payload));
-        let encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();
+        let encoded: Vec<u8> = [payload, vec_bits_swap!(signature.to_bytes().to_vec())].concat();
         let doughnut: ParityDoughnutV0 =
             Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut v0");
 
@@ -173,7 +173,7 @@ mod test {
         let holder = vec_bits_swap!(vec![0x15; 32]);
         let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
         let signature = keypair.sign(&payload);
-        let encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();
+        let encoded: Vec<u8> = [payload, vec_bits_swap!(signature.to_bytes().to_vec())].concat();
         let doughnut: ParityDoughnutV0 =
             Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut v0");
         assert_eq!(doughnut.verify(), Ok(()));
@@ -187,7 +187,8 @@ mod test {
         let holder = vec_bits_swap!(vec![0x15; 32]);
         let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
         let signature = keypair.sign(&payload);
-        let mut encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();
+        let mut encoded: Vec<u8> =
+            [payload, vec_bits_swap!(signature.to_bytes().to_vec())].concat();
         let index = encoded.len() - 1;
         encoded[index] = 0x00;
         let doughnut: ParityDoughnutV0 =
@@ -206,7 +207,7 @@ mod test {
         let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
 
         let signature = keypair.sign(context.bytes(&payload));
-        let encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();
+        let encoded: Vec<u8> = [payload, vec_bits_swap!(signature.to_bytes().to_vec())].concat();
 
         let doughnut: ParityDoughnutV0 =
             Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut v0");
