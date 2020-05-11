@@ -10,6 +10,7 @@
 
 use bit_reverse::ParallelReverse;
 use codec::{Decode, Encode, Input, Output};
+use core::convert::TryFrom;
 use primitive_types::H512;
 
 use crate::alloc::{
@@ -22,6 +23,8 @@ const NOT_BEFORE_MASK: u8 = 0b1000_0000;
 const SIGNATURE_MASK: u8 = 0b0001_1111;
 const VERSION_UPPER_MASK: u8 = 0b0000_0111;
 const VERSION_11BIT_MASK: u16 = 0b0000_0111_1111_1111;
+
+const MAX_DOMAINS: usize = 128;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DoughnutV0 {
@@ -39,6 +42,15 @@ impl DoughnutV0 {
     /// Encodes the doughnut into an byte array and writes the result into a given memory
     /// if `encode_signature` is false, the final signature bytes are not included in the result
     fn encode_to_with_signature_optional<T: Output>(&self, dest: &mut T, encode_signature: bool) {
+        // Defensive early return when there are no domains
+        if self.domains.is_empty() || self.domains.len() > MAX_DOMAINS {
+            return;
+        }
+        let domain_count = u8::try_from(self.domains.len() - 1);
+        if domain_count.is_err() {
+            return;
+        }
+
         let mut payload_version_and_signature_version =
             (self.payload_version & VERSION_11BIT_MASK).swap_bits();
 
@@ -46,8 +58,7 @@ impl DoughnutV0 {
             u16::from(self.signature_version & SIGNATURE_MASK).swap_bits() >> 11;
         dest.write(&payload_version_and_signature_version.to_be_bytes());
 
-        let mut domain_count_and_not_before_byte =
-            (((self.domains.len() as u8) - 1) << 1).swap_bits();
+        let mut domain_count_and_not_before_byte = (domain_count.unwrap() << 1).swap_bits();
         if self.not_before > 0 {
             domain_count_and_not_before_byte |= NOT_BEFORE_MASK;
         }
@@ -205,23 +216,27 @@ impl Decode for DoughnutV0 {
             unsafe {
                 payload.set_len(payload_length);
             }
-            let _ = input.read(&mut payload);
+            input.read(&mut payload)?;
             domains.push((key, payload));
         }
 
         let mut signature = [0_u8; 64];
-        let _ = input.read(&mut signature);
+        input.read(&mut signature)?;
 
-        Ok(Self {
-            holder,
-            issuer,
-            expiry,
-            not_before,
-            signature_version,
-            payload_version,
-            domains,
-            signature: H512::from(signature),
-        })
+        if input.read_byte().is_ok() {
+            Err(codec::Error::from("Doughnut contains unexpected bytes"))
+        } else {
+            Ok(Self {
+                holder,
+                issuer,
+                expiry,
+                not_before,
+                signature_version,
+                payload_version,
+                domains,
+                signature: H512::from(signature),
+            })
+        }
     }
 }
 
@@ -231,6 +246,83 @@ mod test {
     use crate::error::ValidationError;
     use std::ops::Add;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+    macro_rules! doughnut_builder {
+        (
+            issuer:$issuer:expr,
+            holder:$holder:expr,
+            domains:$domains:expr,
+            expiry:$expiry:expr,
+            not_before:$not_before:expr,
+            payload_version:$pv:expr,
+            signature_version:$sv:expr,
+            signature:$signature:expr,
+        ) => {
+            DoughnutV0 {
+                issuer: $issuer,
+                holder: $holder,
+                domains: $domains,
+                expiry: $expiry,
+                not_before: $not_before,
+                payload_version: $pv,
+                signature_version: $sv,
+                signature: $signature,
+            }
+        };
+        (
+            holder: $holder:expr,
+            expiry:$expiry:expr,
+            not_before:$not_before:expr,
+        ) => {
+            doughnut_builder!(
+                issuer:[0_u8; 32],
+                holder:$holder,
+                domains:vec![("cennznet".to_string(), vec![0])],
+                expiry: $expiry,
+                not_before: $not_before,
+                payload_version: 0,
+                signature_version: 0,
+                signature: H512::from([0xa5; 64]),
+            )
+        };
+        (
+            payload_version: $pv:expr,
+            signature_version: $sv:expr,
+        ) => {
+            doughnut_builder!(
+                issuer:[0_u8; 32],
+                holder:[1_u8; 32],
+                domains:vec![("cennznet".to_string(), vec![0])],
+                expiry: 0,
+                not_before: 0,
+                payload_version: $pv,
+                signature_version: $sv,
+                signature: H512::from([0xa5; 64]),
+            )
+        };
+        (
+            domains:$domains:expr,
+        ) => {
+            doughnut_builder!(
+                issuer: [0_u8; 32],
+                holder: [1_u8; 32],
+                domains: $domains,
+                expiry: 0,
+                not_before: 0,
+                payload_version: 0,
+                signature_version: 0,
+                signature: H512::from([0xa5; 64]),
+            )
+        };
+        (holder: $holder:expr,) => {
+            doughnut_builder!(
+                holder: $holder,
+                expiry: 0,
+                not_before: 0,
+            )
+        };
+        () => { doughnut_builder!(holder: [1_u8; 32],) };
+    }
 
     // Make a unix timestamp `when` seconds from the invocation
     fn make_unix_timestamp(seconds: u64) -> u32 {
@@ -244,32 +336,22 @@ mod test {
     #[test]
     fn it_is_a_valid_usage() {
         let holder = [1_u8; 32];
-        let doughnut = DoughnutV0 {
-            issuer: [0_u8; 32],
-            holder,
-            domains: Vec::default(),
+        let doughnut = doughnut_builder!(
+            holder: holder,
             expiry: make_unix_timestamp(10),
             not_before: 0,
-            payload_version: 0,
-            signature_version: 0,
-            signature: H512::default(), // No need to check signature here
-        };
+        );
 
         assert!(doughnut.validate(holder, make_unix_timestamp(0)).is_ok())
     }
     #[test]
     fn usage_after_expiry_is_invalid() {
         let holder = [1_u8; 32];
-        let doughnut = DoughnutV0 {
-            issuer: [0_u8; 32],
-            holder,
-            domains: Vec::default(),
-            expiry: make_unix_timestamp(0),
+        let doughnut = doughnut_builder!(
+            holder: holder,
+            expiry: 0,
             not_before: 0,
-            payload_version: 0,
-            signature_version: 0,
-            signature: H512::default(), // No need to check signature here
-        };
+        );
 
         assert_eq!(
             doughnut.validate(holder, make_unix_timestamp(5)),
@@ -279,16 +361,7 @@ mod test {
     #[test]
     fn usage_by_non_holder_is_invalid() {
         let holder = [1_u8; 32];
-        let doughnut = DoughnutV0 {
-            issuer: [0_u8; 32],
-            holder,
-            domains: Vec::default(),
-            expiry: make_unix_timestamp(10),
-            not_before: 0,
-            payload_version: 0,
-            signature_version: 0,
-            signature: H512::default(), // No need to check signature here
-        };
+        let doughnut = doughnut_builder!(holder: holder,);
 
         let not_the_holder = [2_u8; 32];
         assert_eq!(
@@ -299,16 +372,11 @@ mod test {
     #[test]
     fn usage_preceding_not_before_is_invalid() {
         let holder = [1_u8; 32];
-        let doughnut = DoughnutV0 {
-            issuer: [0_u8; 32],
-            holder,
-            domains: Vec::default(),
+        let doughnut = doughnut_builder!(
+            holder: holder,
             expiry: make_unix_timestamp(12),
             not_before: make_unix_timestamp(10),
-            payload_version: 0,
-            signature_version: 0,
-            signature: H512::default(), // No need to check signature here
-        };
+        );
 
         assert_eq!(
             doughnut.validate(holder, make_unix_timestamp(0)),
@@ -319,16 +387,11 @@ mod test {
     #[test]
     fn validate_with_timestamp_overflow_fails() {
         let holder = [1_u8; 32];
-        let doughnut = DoughnutV0 {
-            issuer: [0_u8; 32],
-            holder,
-            domains: Vec::default(),
+        let doughnut = doughnut_builder!(
+            holder: holder,
             expiry: 0,
             not_before: 0,
-            payload_version: 0,
-            signature_version: 0,
-            signature: H512::default(),
-        };
+        );
 
         assert_eq!(
             doughnut.validate(holder, u64::max_value()),
@@ -338,17 +401,10 @@ mod test {
 
     #[test]
     fn versions_encode_and_decode() {
-        let holder = [1_u8; 32];
-        let doughnut = DoughnutV0 {
-            issuer: [0_u8; 32],
-            holder,
-            domains: vec![("TestDomain".to_string(), vec![])],
-            expiry: 0,
-            not_before: 0,
+        let doughnut = doughnut_builder!(
             payload_version: 0x0515,
             signature_version: 0x1a,
-            signature: H512::default(),
-        };
+        );
 
         let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
         assert_eq!(parsed_doughnut.signature_version, 0x1a);
@@ -357,17 +413,10 @@ mod test {
 
     #[test]
     fn payload_version_does_not_cross_contaminate() {
-        let holder = [1_u8; 32];
-        let doughnut = DoughnutV0 {
-            issuer: [0_u8; 32],
-            holder,
-            domains: vec![("TestDomain".to_string(), vec![])],
-            expiry: 0,
-            not_before: 0,
+        let doughnut = doughnut_builder!(
             payload_version: 0xffff,
             signature_version: 0x00,
-            signature: H512::default(),
-        };
+        );
 
         let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
         assert_eq!(parsed_doughnut.signature_version, 0x00);
@@ -376,17 +425,10 @@ mod test {
 
     #[test]
     fn signature_version_does_not_cross_contaminate() {
-        let holder = [1_u8; 32];
-        let doughnut = DoughnutV0 {
-            issuer: [0_u8; 32],
-            holder,
-            domains: vec![("TestDomain".to_string(), vec![])],
-            expiry: 0,
-            not_before: 0,
+        let doughnut = doughnut_builder!(
             payload_version: 0x0000,
             signature_version: 0xff,
-            signature: H512::default(),
-        };
+        );
 
         let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
         assert_eq!(parsed_doughnut.payload_version, 0x0000);
@@ -394,18 +436,44 @@ mod test {
     }
 
     #[test]
+    fn no_domains_fails_encoding() {
+        let doughnut = doughnut_builder!(domains: vec![],);
+
+        let encoded = doughnut.encode();
+        assert_eq!(encoded, []);
+    }
+
+    #[test]
+    fn too_many_domains_fails_encoding() {
+        let mut domains: Vec<(String, Vec<u8>)> = vec![];
+        for x in 0..MAX_DOMAINS + 1 {
+            domains.push((x.to_string(), vec![]));
+        }
+
+        let doughnut = doughnut_builder!(domains: domains,);
+
+        let encoded = doughnut.encode();
+        assert_eq!(encoded, []);
+    }
+
+    #[test]
+    fn can_encode_up_to_max_domains() {
+        let mut domains: Vec<(String, Vec<u8>)> = vec![];
+        for x in 0..MAX_DOMAINS {
+            domains.push((x.to_string(), vec![]));
+        }
+
+        let doughnut = doughnut_builder!(domains: domains,);
+
+        let encoded = doughnut.encode();
+        let expected_length = 135 + (18 * MAX_DOMAINS);
+
+        assert_eq!(encoded.len(), expected_length);
+    }
+
+    #[test]
     fn short_domain_name_is_parsed() {
-        let holder = [1_u8; 32];
-        let doughnut = DoughnutV0 {
-            issuer: [0_u8; 32],
-            holder,
-            domains: vec![("Smol".to_string(), vec![])],
-            expiry: 0,
-            not_before: 0,
-            payload_version: 0x0000,
-            signature_version: 0xff,
-            signature: H512::default(),
-        };
+        let doughnut = doughnut_builder!(domains: vec![("Smol".to_string(), vec![])],);
 
         let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
         assert_eq!(parsed_doughnut.domains[0].0, "Smol");
@@ -413,19 +481,112 @@ mod test {
 
     #[test]
     fn long_domain_name_is_truncated() {
-        let holder = [1_u8; 32];
-        let doughnut = DoughnutV0 {
-            issuer: [0_u8; 32],
-            holder,
-            domains: vec![("SweetLikeAChic-a-CherryCola".to_string(), vec![])],
-            expiry: 0,
-            not_before: 0,
-            payload_version: 0x0000,
-            signature_version: 0xff,
-            signature: H512::default(),
-        };
+        let doughnut =
+            doughnut_builder!(domains: vec![("SweetLikeAChic-a-CherryCola".to_string(), vec![])],);
 
         let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
         assert_eq!(parsed_doughnut.domains[0].0, "SweetLikeAChic-a");
+    }
+
+    #[test]
+    fn full_encode_and_decode_works() {
+        let domains = vec![
+            (
+                "Come".to_string(),
+                vec![0x42, 0x72, 0x65, 0x61, 0x74, 0x68, 0x65],
+            ),
+            (
+                "stand".to_string(),
+                vec![0x69, 0x6e, 0x20, 0x61, 0x6e, 0x64],
+            ),
+            ("a".to_string(), vec![0x67, 0x65, 0x74]),
+            ("little".to_string(), vec![0x61]),
+            ("bit".to_string(), vec![0x62, 0x69, 0x74]),
+            (
+                "closer".to_string(),
+                vec![0x68, 0x69, 0x67, 0x68, 0x65, 0x72],
+            ),
+        ];
+        let doughnut = doughnut_builder! (
+            issuer: [0x55_u8; 32],
+            holder: [0x88_u8; 32],
+            domains: domains,
+            expiry: 0x1234,
+            not_before: 0x5678,
+            payload_version: 0xab,
+            signature_version: 0xc,
+            signature: H512::from([0xa5; 64]),
+        );
+
+        let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
+
+        assert_eq!(doughnut, parsed_doughnut);
+    }
+
+    #[test]
+    fn decode_error_with_missing_byte() {
+        let doughnut = doughnut_builder!();
+        let encoded = doughnut.encode();
+        let length = encoded.len() - 1;
+
+        let result = DoughnutV0::decode(&mut &encoded[..length]);
+
+        assert_eq!(
+            result,
+            Err(codec::Error::from("Not enough data to fill buffer"))
+        );
+    }
+
+    #[test]
+    fn decode_error_with_no_bytes() {
+        let encoded = [];
+
+        let result = DoughnutV0::decode(&mut &encoded[..]);
+
+        assert_eq!(
+            result,
+            Err(codec::Error::from("Not enough data to fill buffer"))
+        );
+    }
+
+    #[test]
+    fn decode_error_with_too_many_bytes() {
+        let doughnut = doughnut_builder!();
+        let encoded = doughnut.encode();
+        let encoded = vec![encoded, vec![0x00]].concat();
+
+        let result = DoughnutV0::decode(&mut &encoded[..]);
+
+        assert_eq!(
+            result,
+            Err(codec::Error::from("Doughnut contains unexpected bytes"))
+        );
+    }
+
+    #[test]
+    fn decode_error_with_bad_domain_character() {
+        let doughnut = doughnut_builder!();
+        let mut encoded = doughnut.encode();
+        encoded[72] = 0xff; //invalid utf-8
+
+        let result = DoughnutV0::decode(&mut &encoded[..]);
+
+        assert_eq!(
+            result,
+            Err(codec::Error::from("domain keys should be utf8 encoded"))
+        );
+    }
+
+    #[test]
+    fn decode_error_with_incorrect_domain_length() {
+        let doughnut = doughnut_builder!(domains: vec![("ZeroLength".to_string(), vec![])],);
+        let mut encoded = doughnut.encode();
+        encoded[72 + 16] = 0xff; //invalid utf-8
+
+        let result = DoughnutV0::decode(&mut &encoded[..]);
+        assert_eq!(
+            result,
+            Err(codec::Error::from("Not enough data to fill buffer"))
+        );
     }
 }
