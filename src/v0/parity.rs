@@ -206,10 +206,7 @@ impl Decode for DoughnutV0 {
         }
 
         for (key, payload_length) in q {
-            let mut payload = Vec::with_capacity(payload_length);
-            unsafe {
-                payload.set_len(payload_length);
-            }
+            let mut payload = vec![0; payload_length as usize];
             input.read(&mut payload)?;
             domains.push((key, payload));
         }
