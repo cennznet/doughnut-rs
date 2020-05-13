@@ -95,7 +95,6 @@ mod test {
     use super::*;
     use crate::signature::CONTEXT_ID;
     use crate::traits::DoughnutVerify;
-    use bit_reverse::ParallelReverse;
     use codec::Decode;
     // The ed25519 and schnorrkel libs use different implementations of `OsRng`
     // two different libraries are used: `rand` and `rand_core` as a workaround
@@ -214,6 +213,7 @@ mod test {
 
         let mut encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();
         let index = encoded.len() - 1;
+        // Make the signature invalid
         encoded[index] = 0x00;
 
         let doughnut: ParityDoughnutV0 =
