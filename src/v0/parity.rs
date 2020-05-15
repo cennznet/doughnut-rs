@@ -8,7 +8,6 @@
 
 #![allow(clippy::cast_possible_truncation)]
 
-use bit_reverse::ParallelReverse;
 use codec::{Decode, Encode, Input, Output};
 use core::convert::TryFrom;
 use primitive_types::H512;
@@ -19,10 +18,10 @@ use crate::alloc::{
 };
 use crate::traits::DoughnutApi;
 
-const NOT_BEFORE_MASK: u8 = 0b1000_0000;
+const NOT_BEFORE_MASK: u8 = 0b0000_0001;
 const SIGNATURE_MASK: u8 = 0b0001_1111;
-const VERSION_UPPER_MASK: u8 = 0b0000_0111;
-const VERSION_11BIT_MASK: u16 = 0b0000_0111_1111_1111;
+const SIGNATURE_OFFSET: usize = 11;
+const VERSION_MASK: u16 = 0b0000_0111_1111_1111;
 
 const MAX_DOMAINS: usize = 128;
 
@@ -51,14 +50,13 @@ impl DoughnutV0 {
             return;
         }
 
-        let mut payload_version_and_signature_version =
-            (self.payload_version & VERSION_11BIT_MASK).swap_bits();
+        let mut version_data = self.payload_version & VERSION_MASK;
 
-        payload_version_and_signature_version |=
-            u16::from(self.signature_version & SIGNATURE_MASK).swap_bits() >> 11;
-        dest.write(&payload_version_and_signature_version.to_be_bytes());
+        version_data |= u16::from(self.signature_version & SIGNATURE_MASK) << SIGNATURE_OFFSET;
+        dest.write(&version_data.to_le_bytes());
 
-        let mut domain_count_and_not_before_byte = (domain_count.unwrap() << 1).swap_bits();
+        let mut domain_count_and_not_before_byte = domain_count.unwrap() << 1;
+
         if self.not_before > 0 {
             domain_count_and_not_before_byte |= NOT_BEFORE_MASK;
         }
@@ -67,12 +65,12 @@ impl DoughnutV0 {
         dest.write(&self.holder);
 
         for b in &self.expiry.to_le_bytes() {
-            dest.push_byte(b.swap_bits());
+            dest.push_byte(*b);
         }
 
         if self.not_before > 0 {
             for b in &self.not_before.to_le_bytes() {
-                dest.push_byte(b.swap_bits());
+                dest.push_byte(*b);
             }
         }
 
@@ -83,7 +81,7 @@ impl DoughnutV0 {
             key_buf[..length].clone_from_slice(&key.as_bytes()[..length]);
             dest.write(&key_buf);
             for b in &(payload.len() as u16).to_le_bytes() {
-                dest.push_byte(b.swap_bits());
+                dest.push_byte(*b);
             }
         }
 
@@ -97,6 +95,7 @@ impl DoughnutV0 {
         }
     }
 }
+
 impl Encode for DoughnutV0 {
     fn encode_to<T: Output>(&self, dest: &mut T) {
         self.encode_to_with_signature_optional(dest, true);
@@ -152,16 +151,14 @@ impl DoughnutApi for DoughnutV0 {
 
 impl Decode for DoughnutV0 {
     fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
-        let version_byte_0 = input.read_byte()?.swap_bits();
-        let version_byte_1 = input.read_byte()?.swap_bits();
+        let version_data = u16::from_le_bytes([input.read_byte()?, input.read_byte()?]);
 
-        let payload_version =
-            u16::from_le_bytes([version_byte_0, version_byte_1 & VERSION_UPPER_MASK]);
+        let payload_version = version_data & VERSION_MASK;
 
-        let signature_version = (version_byte_1 & SIGNATURE_MASK.swap_bits()) >> 3;
+        let signature_version = ((version_data >> SIGNATURE_OFFSET) as u8) & SIGNATURE_MASK;
 
         let domain_count_and_not_before_byte = input.read_byte()?;
-        let permission_domain_count = (domain_count_and_not_before_byte.swap_bits() >> 1) + 1;
+        let permission_domain_count = (domain_count_and_not_before_byte >> 1) + 1;
         let has_not_before =
             (domain_count_and_not_before_byte & NOT_BEFORE_MASK) == NOT_BEFORE_MASK;
 
@@ -172,18 +169,18 @@ impl Decode for DoughnutV0 {
         let _ = input.read(&mut holder);
 
         let expiry = u32::from_le_bytes([
-            input.read_byte()?.swap_bits(),
-            input.read_byte()?.swap_bits(),
-            input.read_byte()?.swap_bits(),
-            input.read_byte()?.swap_bits(),
+            input.read_byte()?,
+            input.read_byte()?,
+            input.read_byte()?,
+            input.read_byte()?,
         ]);
 
         let not_before = if has_not_before {
             u32::from_le_bytes([
-                input.read_byte()?.swap_bits(),
-                input.read_byte()?.swap_bits(),
-                input.read_byte()?.swap_bits(),
-                input.read_byte()?.swap_bits(),
+                input.read_byte()?,
+                input.read_byte()?,
+                input.read_byte()?,
+                input.read_byte()?,
             ])
         } else {
             0
@@ -204,18 +201,12 @@ impl Decode for DoughnutV0 {
                 .trim_matches(char::from(0))
                 .to_string();
 
-            let payload_length = u16::from_le_bytes([
-                input.read_byte()?.swap_bits(),
-                input.read_byte()?.swap_bits(),
-            ]);
+            let payload_length = u16::from_le_bytes([input.read_byte()?, input.read_byte()?]);
             q.push((key, payload_length as usize));
         }
 
         for (key, payload_length) in q {
-            let mut payload = Vec::with_capacity(payload_length);
-            unsafe {
-                payload.set_len(payload_length);
-            }
+            let mut payload = vec![0; payload_length as usize];
             input.read(&mut payload)?;
             domains.push((key, payload));
         }
@@ -420,7 +411,7 @@ mod test {
 
         let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
         assert_eq!(parsed_doughnut.signature_version, 0x00);
-        assert_eq!(parsed_doughnut.payload_version, VERSION_11BIT_MASK);
+        assert_eq!(parsed_doughnut.payload_version, VERSION_MASK);
     }
 
     #[test]

@@ -218,11 +218,9 @@ impl<'a> Encode for DoughnutV0<'a> {
 
 #[cfg(test)]
 mod test {
-    use super::DoughnutV0 as Doughnut;
     use crate::error::ValidationError;
     use crate::traits::DoughnutApi;
     use crate::v0::parity::DoughnutV0;
-    use codec::Encode;
     use primitive_types::H512;
     use std::ops::Add;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -238,7 +236,12 @@ mod test {
     }
 
     /// Utility to make an encoded doughnut
-    fn make_doughnut(holder: [u8; 32], issuer: [u8; 32], expiry: u64, not_before: u64) -> Vec<u8> {
+    fn make_doughnut(
+        holder: [u8; 32],
+        issuer: [u8; 32],
+        expiry: u64,
+        not_before: u64,
+    ) -> DoughnutV0 {
         // NOTE: We use parity version to create the test doughnut since this module's version
         // is just a bytes window
         DoughnutV0 {
@@ -251,14 +254,12 @@ mod test {
             signature_version: 0,
             signature: H512::default(), // No need to check signature here
         }
-        .encode()
     }
 
     #[test]
     fn it_is_a_valid_usage() {
         let holder = [1_u8; 32];
-        let encoded = make_doughnut(holder, [0_u8; 32], 10, 0);
-        let doughnut = Doughnut::new(&encoded).unwrap();
+        let doughnut = make_doughnut(holder, [0_u8; 32], 10, 0);
 
         assert!(doughnut.validate(&holder, make_unix_timestamp(0)).is_ok())
     }
@@ -266,8 +267,7 @@ mod test {
     #[test]
     fn usage_after_expiry_is_invalid() {
         let holder = [1_u8; 32];
-        let encoded = make_doughnut(holder, [0_u8; 32], 0, 0);
-        let doughnut = Doughnut::new(&encoded).unwrap();
+        let doughnut = make_doughnut(holder, [0_u8; 32], 0, 0);
 
         assert_eq!(
             doughnut.validate(holder, make_unix_timestamp(10)),
@@ -277,8 +277,8 @@ mod test {
 
     #[test]
     fn usage_by_non_holder_is_invalid() {
-        let encoded = make_doughnut([1_u8; 32], [0_u8; 32], 10, 0);
-        let doughnut = Doughnut::new(&encoded).unwrap();
+        let holder = [1_u8; 32];
+        let doughnut = make_doughnut(holder, [0_u8; 32], 10, 0);
 
         let not_the_holder = [2_u8; 32];
         assert_eq!(
@@ -290,8 +290,7 @@ mod test {
     #[test]
     fn usage_preceeding_not_before_is_invalid() {
         let holder = [1_u8; 32];
-        let encoded = make_doughnut(holder, [0_u8; 32], 12, 10);
-        let doughnut = Doughnut::new(&encoded).unwrap();
+        let doughnut = make_doughnut(holder, [0_u8; 32], 12, 10);
 
         assert_eq!(
             doughnut.validate(&holder, make_unix_timestamp(0)),
