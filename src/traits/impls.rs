@@ -8,10 +8,11 @@ use crate::{
 };
 
 #[cfg(feature = "std")]
-use crate::v0::{parity::DoughnutV0 as ParityDoughnutV0, DoughnutV0};
-
-#[cfg(feature = "std")]
-use crate::signature::verify_signature;
+use crate::{
+    doughnut::Doughnut,
+    signature::verify_signature,
+    v0::{parity::DoughnutV0 as ParityDoughnutV0, DoughnutV0},
+};
 
 // Dummy implementation for unit type
 impl DoughnutApi for () {
@@ -72,6 +73,17 @@ impl DoughnutVerify for ParityDoughnutV0 {
             &self.issuer(),
             &self.payload(),
         )
+    }
+}
+
+#[cfg(feature = "std")]
+#[allow(unreachable_patterns)]
+impl DoughnutVerify for Doughnut {
+    fn verify(&self) -> Result<(), VerifyError> {
+        match self {
+            Self::V0(v0) => v0.verify(),
+            _ => Err(VerifyError::UnsupportedVersion),
+        }
     }
 }
 
