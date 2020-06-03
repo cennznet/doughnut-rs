@@ -1,12 +1,11 @@
-// Copyright 2019 Centrality Investments Limited
+// Copyright 2019-2020 Centrality Investments Limited
 
 #![cfg(test)]
-
-use alloc::vec::Vec;
 
 use crate::doughnut::Doughnut;
 use crate::traits::{DoughnutApi, DoughnutVerify};
 use crate::v0::{parity, DoughnutV0};
+use alloc::vec::Vec;
 use codec::{Decode, Encode};
 use core::convert::TryFrom;
 use parity::DoughnutV0 as ParityDoughnutV0;

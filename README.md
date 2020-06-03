@@ -34,12 +34,26 @@ assert!(doughnut.verify());
 
 # Contributing
 The following checks should pass  
-```
+```bash
 # Do the usual
 cargo fmt && \
-cargo build && \
+cargo check && \
 cargo test
 
 # Check 'no std' mode compiles
-cargo +nightly check --no-default-features
+cargo check --no-default-features
 ```
+
+## Generate JS/Wasm bindings
+This crate also provides generated JS bindings using [wasm-pack](https://rustwasm.github.io/docs/wasm-pack/). To generate the package run:
+```bash
+# install wasm pack
+curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+# build
+cd js/ && yarn build
+
+# Run tests
+yarn test
+```
+

@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/rust:1.41.0
+      - image: circleci/rust:1.43.1
     steps:
       - checkout
       - run:
@@ -34,6 +34,13 @@ jobs:
           command: |
             cargo +nightly --version --verbose
             cargo +nightly check --no-default-features
+      - run:
+          name: Check JS build
+          command: \
+            apt-get install yarn
+            cd js
+            yarn build
+            yarn test
 workflows:
   version: 2
   run-build:

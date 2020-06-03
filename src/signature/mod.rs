@@ -1,4 +1,4 @@
-// Copyright 2019 Centrality Investments Limited
+// Copyright 2019-2020 Centrality Investments Limited
 
 use crate::error::VerifyError;
 use core::convert::TryFrom;

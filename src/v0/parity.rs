@@ -1,4 +1,4 @@
-// Copyright 2019 Centrality Investments Limited
+// Copyright 2019-2020 Centrality Investments Limited
 
 //!
 //! Doughnut V0 codec
@@ -25,7 +25,7 @@ const VERSION_MASK: u16 = 0b0000_0111_1111_1111;
 
 const MAX_DOMAINS: usize = 128;
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct DoughnutV0 {
     pub issuer: [u8; 32],
     pub holder: [u8; 32],

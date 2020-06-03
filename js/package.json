@@ -1,0 +1,31 @@
+{
+  "name": "@plugnet/doughnut-wasm",
+  "version": "0.0.1",
+  "description": "Wasm Doughnut codec",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "jest": "^26.0.1"
+  },
+  "scripts": {
+    "build": "sh build.sh",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cennznet/doughnut-rs.git"
+  },
+  "keywords": [
+    "doughnut"
+  ],
+  "author": "Centrality Developers",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/cennznet/doughnut-rs/issues"
+  },
+  "homepage": "https://github.com/cennznet/doughnut-rs/js#readme"
+}
