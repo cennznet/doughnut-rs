@@ -1,4 +1,4 @@
-# @plugnet/doughnut
+# @plugnet/doughnut-wasm
 
 Wasm Doughnut codec and maker.
 Currently compliant with the version 0 spec.  

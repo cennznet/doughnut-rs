@@ -31,11 +31,9 @@ impl DoughnutApi for () {
         0
     }
     fn payload(&self) -> Vec<u8> {
-        Default::default()
+        Vec::<u8>::default()
     }
-    fn signature(&self) -> Self::Signature {
-        ()
-    }
+    fn signature(&self) -> Self::Signature {}
     fn signature_version(&self) -> u8 {
         255
     }
@@ -201,8 +199,12 @@ mod test {
 
         let mut encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();
         let index = encoded.len() - 1;
+
         // Make the signature invalid
-        encoded[index] = 0x00;
+        encoded[index] = match encoded[index] {
+            0 => 1,
+            _ => 0,
+        };
 
         let doughnut: ParityDoughnutV0 =
             Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut");

@@ -36,9 +36,14 @@ jobs:
             cargo +nightly check --no-default-features
       - run:
           name: Check JS build
-          command: \
-            apt-get install yarn
-            cd js
+          command: |
+            # install npm + yarn + wasm-pack
+            sudo apt install npm
+            curl -o- -L https://yarnpkg.com/install.sh | bash
+            export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
+            curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+            # test js package build
+            cd js && yarn
             yarn build
             yarn test
 workflows:
