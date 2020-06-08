@@ -3,6 +3,9 @@ name = "doughnut_rs"
 version = "0.3.2"
 authors = ["Centrality Developers <developers@centrality.ai>"]
 edition = "2018"
+description = "The official rust doughnut codec"
+license = "UNLICENSED"
+repository = "https://github.com/cennznet/doughnut-rs"
 
 [dependencies]
 bit_reverse = { version = "0.1.8", default-features = false }
@@ -22,4 +25,9 @@ std = [
   "ed25519-dalek",
   "primitive-types/std",
   "schnorrkel",
+]
+
+[workspace]
+members = [
+    "js",
 ]

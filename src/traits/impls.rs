@@ -1,21 +1,18 @@
-// Copyright 2019 Centrality Investments Limited
+// Copyright 2019-2020 Centrality Investments Limited
 
-//!
 //! Doughnut trait impls
-//!
-
-use crate::alloc::vec::Vec;
-use crate::error::{ValidationError, VerifyError};
-use crate::traits::{DoughnutApi, DoughnutVerify};
-
-#[cfg(feature = "std")]
-use crate::doughnut::Doughnut;
+use crate::{
+    alloc::vec::Vec,
+    error::{ValidationError, VerifyError},
+    traits::{DoughnutApi, DoughnutVerify},
+};
 
 #[cfg(feature = "std")]
-use crate::v0::{parity::DoughnutV0 as ParityDoughnutV0, DoughnutV0};
-
-#[cfg(feature = "std")]
-use crate::signature::verify_signature;
+use crate::{
+    doughnut::Doughnut,
+    signature::verify_signature,
+    v0::{parity::DoughnutV0 as ParityDoughnutV0, DoughnutV0},
+};
 
 // Dummy implementation for unit type
 impl DoughnutApi for () {
@@ -35,7 +32,7 @@ impl DoughnutApi for () {
         0
     }
     fn payload(&self) -> Vec<u8> {
-        Vec::default()
+        Vec::<u8>::default()
     }
     fn signature(&self) -> Self::Signature {}
     fn signature_version(&self) -> u8 {
@@ -59,9 +56,9 @@ impl DoughnutVerify for () {
 impl<'a> DoughnutVerify for DoughnutV0<'a> {
     fn verify(&self) -> Result<(), VerifyError> {
         verify_signature(
-            self.signature().as_ref(),
+            &self.signature(),
             self.signature_version(),
-            self.issuer().as_ref(),
+            &self.issuer(),
             &self.payload(),
         )
     }
@@ -71,9 +68,9 @@ impl<'a> DoughnutVerify for DoughnutV0<'a> {
 impl DoughnutVerify for ParityDoughnutV0 {
     fn verify(&self) -> Result<(), VerifyError> {
         verify_signature(
-            &self.signature.as_ref(),
+            &self.signature(),
             self.signature_version(),
-            &self.issuer().as_ref(),
+            &self.issuer(),
             &self.payload(),
         )
     }
@@ -148,11 +145,12 @@ mod test {
         let encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();
 
         let doughnut: ParityDoughnutV0 =
-            Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut v0");
+            Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut");
         assert_eq!(doughnut.verify(), Ok(()));
 
         // enclosed doughnut
-        let doughnut = Doughnut::decode(&mut &encoded[..]).expect("It is a valid doughnut");
+        let doughnut: ParityDoughnutV0 =
+            Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut");
         assert_eq!(doughnut.verify(), Ok(()));
     }
 
@@ -174,7 +172,7 @@ mod test {
         let encoded: Vec<u8> = [payload, invalid_signature.to_bytes().to_vec()].concat();
 
         let doughnut: ParityDoughnutV0 =
-            Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut v0");
+            Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut");
         assert_eq!(doughnut.verify(), Err(VerifyError::Invalid));
     }
 
@@ -194,7 +192,7 @@ mod test {
         let encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();
 
         let doughnut: ParityDoughnutV0 =
-            Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut v0");
+            Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut");
         assert_eq!(doughnut.verify(), Ok(()));
     }
 
@@ -213,11 +211,15 @@ mod test {
 
         let mut encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();
         let index = encoded.len() - 1;
+
         // Make the signature invalid
-        encoded[index] = 0x00;
+        encoded[index] = match encoded[index] {
+            0 => 1,
+            _ => 0,
+        };
 
         let doughnut: ParityDoughnutV0 =
-            Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut v0");
+            Decode::decode(&mut &encoded[..]).expect("It is a valid doughnut");
         assert_eq!(doughnut.verify(), Err(VerifyError::Invalid));
     }
 }
