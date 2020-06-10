@@ -1,8 +1,8 @@
 # compile the rust codebase
+echo "building js pkg for $1 out to: $2"
 wasm-pack build \
-    --target nodejs \
+    --target $1 \
     --scope plugnet \
     --out-name doughnut \
-    --out-dir lib \
+    --out-dir $2 \
     --release
-

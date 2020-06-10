@@ -3,3 +3,4 @@
 .vscode
 /js/node_modules
 /js/lib
+/js/target

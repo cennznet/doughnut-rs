@@ -27,7 +27,7 @@ std = [
   "schnorrkel",
 ]
 
-[workspace]
-members = [
-    "js",
-]
+#[workspace]
+#members = [
+#    "js",
+#]

@@ -29,10 +29,10 @@ fn from_slice_32(bytes: &[u8]) -> [u8; 32] {
 }
 
 /// A js handle for a rust versioned doughnut struct
-#[wasm_bindgen(constructor)]
+#[wasm_bindgen(js_name = Doughnut)]
 pub struct JsHandle(Doughnut);
 
-#[wasm_bindgen]
+#[wasm_bindgen(js_class = Doughnut)]
 #[allow(irrefutable_let_patterns)]
 impl JsHandle {
     #[wasm_bindgen(constructor)]
