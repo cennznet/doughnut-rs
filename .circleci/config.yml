@@ -59,6 +59,8 @@ jobs:
           command: |
             echo "//registry.npmjs.org/:_authToken=${NPM_KEY}" > ~/.npmrc
             cd js
+            # node vs npm versions are funny
+            npm uninstall -g npm
             npm pack
             npm publish --tag next
   clippy:
