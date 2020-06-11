@@ -27,7 +27,3 @@ std = [
   "schnorrkel",
 ]
 
-#[workspace]
-#members = [
-#    "js",
-#]
