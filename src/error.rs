@@ -36,3 +36,14 @@ pub enum VerifyError {
     /// The signature does not verify the payload from signer
     Invalid,
 }
+
+/// A signature signing error
+#[cfg_attr(feature = "std", derive(PartialEq, Debug))]
+pub enum SigningError {
+    // Provided public/secret key is invalid ed25519 signing
+    InvalidEd25519Key,
+    // Provided public key is invalid for sr25519 signing
+    InvalidSr25519PublicKey,
+    // Provided secret key is invalid for sr25519 signing
+    InvalidSr25519SecretKey,
+}

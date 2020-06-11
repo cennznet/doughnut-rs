@@ -1,9 +1,15 @@
 // Copyright 2019-2020 Centrality Investments Limited
 
-use crate::error::VerifyError;
+use crate::error::{SigningError, VerifyError};
 use core::convert::TryFrom;
-use ed25519_dalek::{PublicKey as Ed25519Pub, Signature as Ed25519Sig};
-use schnorrkel::{signing_context, PublicKey as Sr25519Pub, Signature as Sr25519Sig};
+
+use ed25519_dalek::{
+    Keypair as Ed25519Keypair, PublicKey as Ed25519PublicKey, Signature as Ed25519Signature,
+};
+use schnorrkel::{
+    signing_context, PublicKey as Sr25519PublicKey, SecretKey as Sr25519SecretKey,
+    Signature as Sr25519Signature,
+};
 
 pub const CONTEXT_ID: &[u8] = b"substrate";
 
@@ -22,6 +28,36 @@ impl TryFrom<u8> for SignatureVersion {
             _ => Err(VerifyError::UnsupportedVersion),
         }
     }
+}
+
+/// Sign an ed25519 signature
+pub fn sign_ed25519(
+    public_key: &[u8],
+    secret_key: &[u8],
+    payload: &[u8],
+) -> Result<Vec<u8>, SigningError> {
+    let pair_bytes: Vec<u8> = [secret_key.to_vec(), public_key.to_vec()].concat();
+    let keypair =
+        Ed25519Keypair::from_bytes(&pair_bytes).map_err(|_| SigningError::InvalidEd25519Key)?;
+
+    Ok(keypair.sign(payload).to_bytes().to_vec())
+}
+
+/// Sign an sr25519 signature
+pub fn sign_sr25519(
+    public_key: &[u8],
+    secret_key: &[u8],
+    payload: &[u8],
+) -> Result<Vec<u8>, SigningError> {
+    let secret_key = Sr25519SecretKey::from_ed25519_bytes(secret_key)
+        .map_err(|_| SigningError::InvalidSr25519SecretKey)?;
+    let public_key = Sr25519PublicKey::from_bytes(public_key)
+        .map_err(|_| SigningError::InvalidSr25519PublicKey)?;
+
+    Ok(secret_key
+        .sign_simple(CONTEXT_ID, payload, &public_key)
+        .to_bytes()
+        .to_vec())
 }
 
 /// Verify the signature for a `DoughnutApi` impl type
@@ -45,9 +81,10 @@ fn verify_ed25519_signature(
     signer: &[u8],
     payload: &[u8],
 ) -> Result<(), VerifyError> {
-    let signature =
-        Ed25519Sig::from_bytes(signature_bytes).map_err(|_| VerifyError::BadSignatureFormat)?;
-    let public_key = Ed25519Pub::from_bytes(signer).map_err(|_| VerifyError::BadPublicKeyFormat)?;
+    let signature = Ed25519Signature::from_bytes(signature_bytes)
+        .map_err(|_| VerifyError::BadSignatureFormat)?;
+    let public_key =
+        Ed25519PublicKey::from_bytes(signer).map_err(|_| VerifyError::BadPublicKeyFormat)?;
     public_key
         .verify(payload, &signature)
         .map_err(|_| VerifyError::Invalid)
@@ -59,9 +96,10 @@ fn verify_sr25519_signature(
     signer: &[u8],
     payload: &[u8],
 ) -> Result<(), VerifyError> {
-    let signature =
-        Sr25519Sig::from_bytes(signature_bytes).map_err(|_| VerifyError::BadSignatureFormat)?;
-    let public_key = Sr25519Pub::from_bytes(signer).map_err(|_| VerifyError::BadPublicKeyFormat)?;
+    let signature = Sr25519Signature::from_bytes(signature_bytes)
+        .map_err(|_| VerifyError::BadSignatureFormat)?;
+    let public_key =
+        Sr25519PublicKey::from_bytes(signer).map_err(|_| VerifyError::BadPublicKeyFormat)?;
     public_key
         .verify(signing_context(CONTEXT_ID).bytes(payload), &signature)
         .map_err(|_| VerifyError::Invalid)
@@ -72,19 +110,49 @@ mod test {
     use super::*;
     // The ed25519 and schnorrkel libs use different implementations of `OsRng`
     // two different libraries are used: `rand` and `rand_core` as a workaround
-    use ed25519_dalek::Keypair as edKeypair;
     use rand::prelude::*;
     use rand_core::OsRng;
-    use schnorrkel::Keypair as srKeypair;
 
-    fn generate_ed25519_keypair() -> edKeypair {
+    use ed25519_dalek::{Keypair as Ed25519Keypair, SIGNATURE_LENGTH as ED25519_SIGNATURE_LENGTH};
+
+    use schnorrkel::{Keypair as Sr25519Keypair, SIGNATURE_LENGTH as SR25519_SIGNATURE_LENGTH};
+
+    fn generate_ed25519_keypair() -> Ed25519Keypair {
         let mut csprng = OsRng {};
-        edKeypair::generate(&mut csprng)
+        Ed25519Keypair::generate(&mut csprng)
     }
 
-    fn generate_sr25519_keypair() -> srKeypair {
+    fn generate_sr25519_keypair() -> Sr25519Keypair {
         let mut csprng: ThreadRng = thread_rng();
-        srKeypair::generate_with(&mut csprng)
+        Sr25519Keypair::generate_with(&mut csprng)
+    }
+
+    #[test]
+    fn can_sign_ed25519() {
+        let keypair = generate_ed25519_keypair();
+        let public_key = keypair.public.to_bytes();
+        let secret_key = keypair.secret.as_bytes();
+        let payload = "this is a payload".as_bytes();
+        let signature = sign_ed25519(&public_key, secret_key, payload).unwrap();
+
+        verify_ed25519_signature(&signature, &public_key, payload)
+            .expect("Signed signature can be verified");
+
+        assert!(signature.len() == ED25519_SIGNATURE_LENGTH);
+    }
+
+    #[test]
+    fn can_sign_sr25519() {
+        let keypair = generate_sr25519_keypair();
+        let public_key = keypair.public.to_bytes();
+        let secret_key = keypair.secret.to_ed25519_bytes();
+        let payload = "this is a payload".as_bytes();
+        let signature = sign_sr25519(&public_key, &secret_key, payload).unwrap();
+
+        verify_sr25519_signature(&signature, &public_key, payload)
+            .expect("Signed signature can be verified");
+
+        assert!(signature.len() == SR25519_SIGNATURE_LENGTH);
     }
 
     #[test]

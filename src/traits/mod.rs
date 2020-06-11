@@ -5,8 +5,10 @@
 //!
 
 use crate::alloc::vec::Vec;
-use crate::error::{ValidationError, VerifyError};
+use crate::error::{SigningError, ValidationError, VerifyError};
 use core::convert::TryInto;
+use primitive_types::H512;
+
 mod impls;
 
 /// A version agnostic API trait to expose a doughnut's underlying data.
@@ -63,6 +65,14 @@ pub trait DoughnutApi {
         }
         Ok(())
     }
+}
+
+pub trait Signing {
+    /// sign using Ed25519 method
+    fn sign_ed25519(&mut self, secret_key: &[u8]) -> Result<H512, SigningError>;
+
+    /// sign using Sr25519 method
+    fn sign_sr25519(&mut self, secret_key: &[u8]) -> Result<H512, SigningError>;
 }
 
 /// Provide doughnut signature checks
