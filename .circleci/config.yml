@@ -62,7 +62,7 @@ jobs:
             # node vs npm versions are funny
             npm uninstall -g npm
             npm pack
-            npm publish --tag next
+            npm publish --public --tag next
   clippy:
     docker:
       - image: circleci/rust:1.43.1
