@@ -1,4 +1,25 @@
-version: 2
+version: 2.1
+commands:
+  build-js:
+    steps:
+      - run:
+          name: Js install + Build
+          command: |
+            # install npm + yarn + wasm-pack
+            sudo apt install npm
+            curl -o- -L https://yarnpkg.com/install.sh | bash
+            export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
+            curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+            # buidl
+            cd js && yarn build
+  test-js:
+    steps:
+      - run:
+          name: Js Test
+          command: |
+            # set PATH env var- not carrying over :/
+            export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
+            cd js && yarn && yarn test
 jobs:
   build:
     docker:
@@ -6,15 +27,10 @@ jobs:
     steps:
       - checkout
       - run:
-          name: setup
-          command: |
-            rustup component add rustfmt clippy
-            rustup install nightly
-      - run:
-          name: cargo build
+          name: cargo check
           command: |
             cargo --version --verbose
-            cargo build
+            cargo check
       - run:
           name: cargo fmt
           command: |
@@ -25,29 +41,48 @@ jobs:
           command: |
             cargo test
       - run:
-          name: cargo clippy
-          command: |
-            cargo clean
-            cargo clippy -- -D warnings
-      - run:
           name: "Check 'no std' build"
           command: |
-            cargo +nightly --version --verbose
-            cargo +nightly check --no-default-features
+            cargo --version --verbose
+            cargo check --no-default-features
+      # JS
+      - build-js
+      - test-js
+  publish-js:
+    docker:
+      - image: circleci/rust:1.43.1
+    steps:
+      - checkout
+      - build-js
       - run:
-          name: Check JS build
+          name: Publish to NPM
           command: |
-            # install npm + yarn + wasm-pack
-            sudo apt install npm
-            curl -o- -L https://yarnpkg.com/install.sh | bash
-            export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
-            curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-            # test js package build
-            cd js && yarn
-            yarn build
-            yarn test
+            echo "//registry.npmjs.org/:_authToken=${NPM_KEY}" > ~/.npmrc
+            cd js
+            npm pack
+            npm publish --tag next
+  clippy:
+    docker:
+      - image: circleci/rust:1.43.1
+    steps:
+      - checkout
+      - run:
+          name: cargo clippy
+          command: |
+            rustup component add rustfmt clippy
+            cargo clippy -- -D warnings
 workflows:
   version: 2
   run-build:
     jobs:
       - build
+      - clippy
+      # only publish to npm on release branch
+      - publish-js:
+          requires:
+          - build
+          - clippy
+          filters:
+            branches:
+              only:
+                - /^[0-9]+[.][0-9]+[.][0-9](-[a-zA-Z].+)?$/
