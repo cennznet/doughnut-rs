@@ -4,7 +4,7 @@
 
 use doughnut_rs::{
     traits::{DoughnutApi, DoughnutVerify},
-    v0::parity::DoughnutV0,
+    v0::DoughnutV0,
     Doughnut,
 };
 use parity_scale_codec::{Decode, Encode};
