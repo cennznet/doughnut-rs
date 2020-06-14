@@ -1,4 +1,4 @@
-const Doughnut = require('../lib/doughnut').JsHandle;
+const Doughnut = require('../libNode/doughnut').Doughnut;
 
 let encodedDoughnut = new Uint8Array([
   // version and domain count
