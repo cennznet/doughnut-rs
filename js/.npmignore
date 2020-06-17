@@ -3,5 +3,8 @@ target
 src
 Cargo.lock
 Cargo.toml
+
 # js stuff
 node_modules
+test
+build.sh
