@@ -1,0 +1,7 @@
+# rust stuff, we don't want in npm package
+target
+src
+Cargo.lock
+Cargo.toml
+# js stuff
+node_modules
