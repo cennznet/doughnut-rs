@@ -1,18 +1,17 @@
 {
   "name": "@plugnet/doughnut-wasm",
-  "version": "0.0.1",
+  "version": "0.0.1-dev.2",
   "description": "Wasm Doughnut codec",
-  "main": "./libNode/doughnut.js",
-  "browser": "./libBrowser/doughnut.js",
-  "directories": {
-    "libNode": "libNode",
-    "libBrowser": "libBrowser",
-    "test": "test"
-  },
+  "main": "libNode/doughnut.js",
+  "browser": "libBrowser/doughnut.js",
   "dependencies": {},
   "devDependencies": {
     "jest": "^26.0.1"
   },
+  "files": [
+    "libBrowser/*",
+    "libNode/*"
+  ],
   "scripts": {
     "build": "rm -rf libNode libBrowser && sh build.sh browser libBrowser && sh build.sh nodejs libNode",
     "test": "jest"

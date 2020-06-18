@@ -6,3 +6,8 @@ wasm-pack build \
     --out-name doughnut \
     --out-dir $2 \
     --release
+
+# Remove wasm-pack generated files
+# They are unintentionally excluding required files when `npm pack` is run
+rm -rf $2/{package.json,README.md,.gitignore,LICENSE}
+
