@@ -61,8 +61,11 @@ jobs:
             cd js
             # node vs npm versions are funny
             npm uninstall -g npm
-            npm pack
-            npm publish --access public --tag next
+            # Yank old package versions
+            npm unpublish @cennznet/cennznut-wasm@0.0.1
+            npm unpublish @cennznet/cennznut-wasm@0.0.2
+            npm unpublish @cennznet/cennznut-wasm@0.0.1-dev.1
+            npm unpublish @cennznet/cennznut-wasm@0.0.1-dev.2
   clippy:
     docker:
       - image: circleci/rust:1.43.1
