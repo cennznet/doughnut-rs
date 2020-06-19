@@ -53,24 +53,26 @@ impl DoughnutApi for () {
 
 #[cfg(feature = "std")]
 impl Signing for DoughnutV0 {
-    fn sign_ed25519(&mut self, secret_key: &[u8]) -> Result<H512, SigningError> {
+    fn sign_ed25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
         sign_ed25519(&self.issuer(), secret_key, &self.payload())
             .map(|signed_signature| H512::from_slice(&signed_signature))
             .map(|signature| {
-                self.signature = signature;
+                self.signature = signature; // Store signature as type:H512
                 self.signature_version = 1 as u8;
                 signature
             })
+            .map(|signature| H512::to_fixed_bytes(signature).to_vec()) // Export signature as type:Vec<u8>
     }
 
-    fn sign_sr25519(&mut self, secret_key: &[u8]) -> Result<H512, SigningError> {
+    fn sign_sr25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
         sign_sr25519(&self.issuer(), secret_key, &self.payload())
             .map(|signed_signature| H512::from_slice(&signed_signature))
             .map(|signature| {
-                self.signature = signature;
+                self.signature = signature; // Store signature as type:H512
                 self.signature_version = 0 as u8;
                 signature
             })
+            .map(|signature| H512::to_fixed_bytes(signature).to_vec()) // Export signature as type:Vec<u8>
     }
 }
 
@@ -155,7 +157,11 @@ mod test {
         let issuer = keypair.public.to_bytes().to_vec();
         let holder = vec![0x15; 32];
         let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
-        let invalid_signature_bytes = keypair.sign(context.bytes(&[0u8])).to_bytes().to_vec();
+        let invalid_payload_stub = [0u8];
+        let invalid_signature_bytes = keypair
+            .sign(context.bytes(&invalid_payload_stub))
+            .to_bytes()
+            .to_vec();
         let encoded_with_invalid_signature: Vec<u8> = [payload, invalid_signature_bytes].concat();
         let mut doughnut: DoughnutV0 = Decode::decode(&mut &encoded_with_invalid_signature[..])
             .expect("It is a valid doughnut");
@@ -165,10 +171,10 @@ mod test {
         assert_eq!(doughnut.verify(), Err(VerifyError::Invalid));
 
         // Sign a Doughnut and return newly signed signature
-        let signature = doughnut.sign_sr25519(&secret_key).expect("it signed ok");
+        let signature: Vec<u8> = doughnut.sign_sr25519(&secret_key).expect("it signed ok");
 
         // Assume signature is assigned to a Doughnut after signing
-        assert_eq!(doughnut.signature, signature);
+        assert_eq!(doughnut.signature, H512::from_slice(signature.as_slice()));
 
         // Assume signature_version is assigned to a Doughnut after signing
         assert_eq!(doughnut.signature_version, 0);
@@ -187,7 +193,8 @@ mod test {
         let issuer = keypair.public.to_bytes().to_vec();
         let holder = vec![0x15; 32];
         let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
-        let invalid_signature_bytes = keypair.sign(&[0u8]).to_bytes().to_vec();
+        let invalid_payload_stub = [0u8];
+        let invalid_signature_bytes = keypair.sign(&invalid_payload_stub).to_bytes().to_vec();
         let encoded_with_invalid_signature: Vec<u8> = [payload, invalid_signature_bytes].concat();
         let mut doughnut: DoughnutV0 = Decode::decode(&mut &encoded_with_invalid_signature[..])
             .expect("It is a valid doughnut");
@@ -197,10 +204,10 @@ mod test {
         assert_eq!(doughnut.verify(), Err(VerifyError::Invalid));
 
         // Sign a Doughnut and return newly signed signature
-        let signature = doughnut.sign_ed25519(secret_key).expect("it signed ok");
+        let signature: Vec<u8> = doughnut.sign_ed25519(secret_key).expect("it signed ok");
 
         // Assume signature is assigned to a Doughnut after signing
-        assert_eq!(doughnut.signature, signature);
+        assert_eq!(doughnut.signature, H512::from_slice(signature.as_slice()));
 
         // Assume signature_version is assigned to a Doughnut after signing
         assert_eq!(doughnut.signature_version, 1);
@@ -220,13 +227,14 @@ mod test {
         let issuer = keypair.public.to_bytes().to_vec();
         let holder = vec![0x15; 32];
         let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
-        let invalid_signature_bytes = keypair.sign(context.bytes(&[0u8])).to_bytes().to_vec();
-        let encoded_with_invalid_signature: Vec<u8> = [payload, invalid_signature_bytes].concat();
-        let mut doughnut: DoughnutV0 = Decode::decode(&mut &encoded_with_invalid_signature[..])
-            .expect("It is a valid doughnut");
+        let valid_signature_bytes = keypair.sign(context.bytes(&payload)).to_bytes().to_vec();
+        let encoded_with_valid_signature: Vec<u8> = [payload, valid_signature_bytes].concat();
+        let mut doughnut: DoughnutV0 =
+            Decode::decode(&mut &encoded_with_valid_signature[..]).expect("It is a valid doughnut");
 
         let secret_key = "secret_key supposes to be keypair.secret.to_ed25519_bytes()".as_bytes();
 
+        // doughnut.sign_sr25519(&secret_key).expect("It is a valid doughnut");
         assert_eq!(
             doughnut.sign_sr25519(&secret_key),
             Err(SigningError::InvalidSr25519SecretKey)
@@ -243,8 +251,8 @@ mod test {
         let issuer = keypair.public.to_bytes().to_vec();
         let holder = vec![0x15; 32];
         let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
-        let invalid_signature_bytes = keypair.sign(&[0u8]).to_bytes().to_vec();
-        let encoded_with_invalid_signature: Vec<u8> = [payload, invalid_signature_bytes].concat();
+        let valid_signature_bytes = keypair.sign(&payload).to_bytes().to_vec();
+        let encoded_with_invalid_signature: Vec<u8> = [payload, valid_signature_bytes].concat();
         let mut doughnut: DoughnutV0 = Decode::decode(&mut &encoded_with_invalid_signature[..])
             .expect("It is a valid doughnut");
 

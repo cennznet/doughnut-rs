@@ -3,7 +3,7 @@
 //! Provide JS-Rust API bindings to create and inspect Doughnuts
 
 use doughnut_rs::{
-    traits::{DoughnutApi, DoughnutVerify},
+    traits::{DoughnutApi, DoughnutVerify, Signing},
     v0::DoughnutV0,
     Doughnut,
 };
@@ -103,6 +103,26 @@ impl JsHandle {
     pub fn signature(&self) -> Vec<u8> {
         if let Doughnut::V0(doughnut) = &self.0 {
             return doughnut.signature().to_vec();
+        }
+        panic!("unsupported doughnut version");
+    }
+
+    /// Sign and return sr25519 signature
+    #[wasm_bindgen(method, js_class = "Doughnut", js_name = signSr25519)]
+    pub fn sign_sr25519(&mut self, secret_key: &[u8]) -> Vec<u8> {
+        if let Doughnut::V0(mut doughnut) = self.0.clone() {
+            let signature = doughnut.sign_sr25519(secret_key).unwrap().to_vec();
+            return signature;
+        }
+        panic!("unsupported doughnut version");
+    }
+
+    /// Sign and return ed25519 signature
+    #[wasm_bindgen(method, js_class = "Doughnut", js_name = signEd25519)]
+    pub fn sign_ed25519(&mut self, secret_key: &[u8]) -> Vec<u8> {
+        if let Doughnut::V0(mut doughnut) = self.0.clone() {
+            let signature = doughnut.sign_ed25519(secret_key).unwrap().to_vec();
+            return signature;
         }
         panic!("unsupported doughnut version");
     }
