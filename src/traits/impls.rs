@@ -58,6 +58,7 @@ impl Signing for DoughnutV0 {
             .map(|signed_signature| H512::from_slice(&signed_signature))
             .map(|signature| {
                 self.signature = signature;
+                self.signature_version = 1 as u8;
                 signature
             })
     }
@@ -67,6 +68,7 @@ impl Signing for DoughnutV0 {
             .map(|signed_signature| H512::from_slice(&signed_signature))
             .map(|signature| {
                 self.signature = signature;
+                self.signature_version = 0 as u8;
                 signature
             })
     }
@@ -163,12 +165,15 @@ mod test {
         assert_eq!(doughnut.verify(), Err(VerifyError::Invalid));
 
         // Sign a Doughnut and return newly signed signature
-        let signed_result = doughnut.sign_sr25519(&secret_key).expect("it signed ok");
+        let signature = doughnut.sign_sr25519(&secret_key).expect("it signed ok");
 
-        // Signature is assigned to Doughnut
-        assert_eq!(doughnut.signature, signed_result);
+        // Assume signature is assigned to a Doughnut after signing
+        assert_eq!(doughnut.signature, signature);
 
-        // Signed signature is verified ok
+        // Assume signature_version is assigned to a Doughnut after signing
+        assert_eq!(doughnut.signature_version, 0);
+
+        // Assume signed signature is verified ok
         assert_eq!(doughnut.verify(), Ok(()));
     }
 
@@ -192,12 +197,15 @@ mod test {
         assert_eq!(doughnut.verify(), Err(VerifyError::Invalid));
 
         // Sign a Doughnut and return newly signed signature
-        let signed_result = doughnut.sign_ed25519(secret_key).expect("it signed ok");
+        let signature = doughnut.sign_ed25519(secret_key).expect("it signed ok");
 
-        // Signature is assigned to Doughnut
-        assert_eq!(doughnut.signature, signed_result);
+        // Assume signature is assigned to a Doughnut after signing
+        assert_eq!(doughnut.signature, signature);
 
-        // Signed signature is verified ok
+        // Assume signature_version is assigned to a Doughnut after signing
+        assert_eq!(doughnut.signature_version, 1);
+
+        // Assume signed signature is verified ok
         assert_eq!(doughnut.verify(), Ok(()));
     }
 
