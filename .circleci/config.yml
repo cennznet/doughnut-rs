@@ -64,8 +64,6 @@ jobs:
           command: |
             echo "//registry.npmjs.org/:_authToken=${NPM_KEY}" > ~/.npmrc
             cd js
-            npm unpublish @plugnet/doughnut-wasm@0.0.1-dev.0
-            npm unpublish @plugnet/doughnut-wasm@0.0.1
             npm publish --access public --tag next
   clippy:
     docker:
