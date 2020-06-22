@@ -1,20 +1,27 @@
 // Copyright 2019-2020 Centrality Investments Limited
 
 //! Doughnut trait impls
+use primitive_types::H512;
+
 use crate::{
     alloc::vec::Vec,
-    error::{ValidationError, VerifyError},
-    traits::{DoughnutApi, DoughnutVerify},
+    error::{SigningError, ValidationError, VerifyError},
+    traits::{DoughnutApi, DoughnutVerify, Signing},
 };
 
 #[cfg(feature = "std")]
-use crate::{doughnut::Doughnut, signature::verify_signature, v0::DoughnutV0};
+use crate::{
+    doughnut::Doughnut,
+    signature::{sign_ed25519, sign_sr25519, verify_signature},
+    v0::DoughnutV0,
+};
 
 // Dummy implementation for unit type
 impl DoughnutApi for () {
     type PublicKey = [u8; 32];
     type Timestamp = u32;
     type Signature = ();
+
     fn holder(&self) -> Self::PublicKey {
         Default::default()
     }
@@ -30,7 +37,9 @@ impl DoughnutApi for () {
     fn payload(&self) -> Vec<u8> {
         Vec::<u8>::default()
     }
-    fn signature(&self) -> Self::Signature {}
+    fn signature(&self) -> Self::Signature {
+        Default::default()
+    }
     fn signature_version(&self) -> u8 {
         255
     }
@@ -39,6 +48,29 @@ impl DoughnutApi for () {
     }
     fn validate<Q, R>(&self, _who: Q, _now: R) -> Result<(), ValidationError> {
         Ok(())
+    }
+}
+
+#[cfg(feature = "std")]
+impl Signing for DoughnutV0 {
+    fn sign_ed25519(&mut self, secret_key: &[u8]) -> Result<H512, SigningError> {
+        sign_ed25519(&self.issuer(), secret_key, &self.payload())
+            .map(|signed_signature| H512::from_slice(&signed_signature))
+            .map(|signature| {
+                self.signature = signature;
+                self.signature_version = 1 as u8;
+                signature
+            })
+    }
+
+    fn sign_sr25519(&mut self, secret_key: &[u8]) -> Result<H512, SigningError> {
+        sign_sr25519(&self.issuer(), secret_key, &self.payload())
+            .map(|signed_signature| H512::from_slice(&signed_signature))
+            .map(|signature| {
+                self.signature = signature;
+                self.signature_version = 0 as u8;
+                signature
+            })
     }
 }
 
@@ -79,14 +111,14 @@ mod test {
     use codec::Decode;
     // The ed25519 and schnorrkel libs use different implementations of `OsRng`
     // two different libraries are used: `rand` and `rand_core` as a workaround
-    use ed25519_dalek::Keypair as edKeypair;
+    use ed25519_dalek::Keypair as Ed25519Keypair;
     use rand::prelude::*;
     use rand_core::OsRng;
     use schnorrkel::{signing_context, Keypair as srKeypair};
 
-    fn generate_ed25519_keypair() -> edKeypair {
+    fn generate_ed25519_keypair() -> Ed25519Keypair {
         let mut csprng = OsRng {};
-        edKeypair::generate(&mut csprng)
+        Ed25519Keypair::generate(&mut csprng)
     }
 
     fn generate_sr25519_keypair() -> srKeypair {
@@ -113,7 +145,7 @@ mod test {
     }
 
     #[test]
-    fn it_verifies_an_sr25519_signed_doughnut_v0() {
+    fn can_sign_and_verify_sr25519_signature() {
         let keypair = generate_sr25519_keypair();
         let context = signing_context(CONTEXT_ID);
 
@@ -122,18 +154,106 @@ mod test {
         let header: Vec<u8> = vec![0, 0, 3];
         let issuer = keypair.public.to_bytes().to_vec();
         let holder = vec![0x15; 32];
-
         let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
-        let signature = keypair.sign(context.bytes(&payload));
+        let invalid_signature_bytes = keypair.sign(context.bytes(&[0u8])).to_bytes().to_vec();
+        let encoded_with_invalid_signature: Vec<u8> = [payload, invalid_signature_bytes].concat();
+        let mut doughnut: DoughnutV0 = Decode::decode(&mut &encoded_with_invalid_signature[..])
+            .expect("It is a valid doughnut");
+        let secret_key = keypair.secret.to_ed25519_bytes();
 
-        let encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();
+        // Signnature cannot be verified before signing
+        assert_eq!(doughnut.verify(), Err(VerifyError::Invalid));
 
-        let doughnut = DoughnutV0::decode(&mut &encoded[..]).expect("It is a valid doughnut");
+        // Sign a Doughnut and return newly signed signature
+        let signature = doughnut.sign_sr25519(&secret_key).expect("it signed ok");
+
+        // Assume signature is assigned to a Doughnut after signing
+        assert_eq!(doughnut.signature, signature);
+
+        // Assume signature_version is assigned to a Doughnut after signing
+        assert_eq!(doughnut.signature_version, 0);
+
+        // Assume signed signature is verified ok
         assert_eq!(doughnut.verify(), Ok(()));
+    }
 
-        // enclosed doughnut
-        let doughnut = DoughnutV0::decode(&mut &encoded[..]).expect("It is a valid doughnut");
+    #[test]
+    fn can_sign_and_verify_ed25519_signature() {
+        let keypair = generate_ed25519_keypair();
+
+        // Signature version = 1 (b3)
+        // has not before (b0) and 2 domains (b1..7)
+        let header: Vec<u8> = vec![0, 8, 3];
+        let issuer = keypair.public.to_bytes().to_vec();
+        let holder = vec![0x15; 32];
+        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+        let invalid_signature_bytes = keypair.sign(&[0u8]).to_bytes().to_vec();
+        let encoded_with_invalid_signature: Vec<u8> = [payload, invalid_signature_bytes].concat();
+        let mut doughnut: DoughnutV0 = Decode::decode(&mut &encoded_with_invalid_signature[..])
+            .expect("It is a valid doughnut");
+        let secret_key = keypair.secret.as_bytes();
+
+        // Signnature cannot be verified before signing
+        assert_eq!(doughnut.verify(), Err(VerifyError::Invalid));
+
+        // Sign a Doughnut and return newly signed signature
+        let signature = doughnut.sign_ed25519(secret_key).expect("it signed ok");
+
+        // Assume signature is assigned to a Doughnut after signing
+        assert_eq!(doughnut.signature, signature);
+
+        // Assume signature_version is assigned to a Doughnut after signing
+        assert_eq!(doughnut.signature_version, 1);
+
+        // Assume signed signature is verified ok
         assert_eq!(doughnut.verify(), Ok(()));
+    }
+
+    #[test]
+    fn throw_error_when_sign_sr25519_signature_with_invalid_secret_key() {
+        let keypair = generate_sr25519_keypair();
+        let context = signing_context(CONTEXT_ID);
+
+        // Signature version = 0
+        // has not before (b0) and 2 domains (b1..7)
+        let header: Vec<u8> = vec![0, 0, 3];
+        let issuer = keypair.public.to_bytes().to_vec();
+        let holder = vec![0x15; 32];
+        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+        let invalid_signature_bytes = keypair.sign(context.bytes(&[0u8])).to_bytes().to_vec();
+        let encoded_with_invalid_signature: Vec<u8> = [payload, invalid_signature_bytes].concat();
+        let mut doughnut: DoughnutV0 = Decode::decode(&mut &encoded_with_invalid_signature[..])
+            .expect("It is a valid doughnut");
+
+        let secret_key = "secret_key supposes to be keypair.secret.to_ed25519_bytes()".as_bytes();
+
+        assert_eq!(
+            doughnut.sign_sr25519(&secret_key),
+            Err(SigningError::InvalidSr25519SecretKey)
+        );
+    }
+
+    #[test]
+    fn throw_error_when_sign_ed25519_signature_with_invalid_secret_key() {
+        let keypair = generate_ed25519_keypair();
+
+        // Signature version = 1
+        // has not before (b0) and 2 domains (b1..7)
+        let header: Vec<u8> = vec![0, 0, 3];
+        let issuer = keypair.public.to_bytes().to_vec();
+        let holder = vec![0x15; 32];
+        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+        let invalid_signature_bytes = keypair.sign(&[0u8]).to_bytes().to_vec();
+        let encoded_with_invalid_signature: Vec<u8> = [payload, invalid_signature_bytes].concat();
+        let mut doughnut: DoughnutV0 = Decode::decode(&mut &encoded_with_invalid_signature[..])
+            .expect("It is a valid doughnut");
+
+        let secret_key = "secret_key supposes to be keypair.secret.as_bytes()".as_bytes();
+
+        assert_eq!(
+            doughnut.sign_ed25519(&secret_key),
+            Err(SigningError::InvalidEd25519Key)
+        );
     }
 
     #[test]
@@ -155,25 +275,6 @@ mod test {
 
         let doughnut = DoughnutV0::decode(&mut &encoded[..]).expect("It is a valid doughnut");
         assert_eq!(doughnut.verify(), Err(VerifyError::Invalid));
-    }
-
-    #[test]
-    fn it_verifies_an_ed25519_signed_doughnut_v0() {
-        let keypair = generate_ed25519_keypair();
-
-        // Signature version = 1 (b3)
-        // has not before (b0) and 2 domains (b1..7)
-        let header: Vec<u8> = vec![0, 8, 3];
-        let issuer = keypair.public.to_bytes().to_vec();
-        let holder = vec![0x15; 32];
-
-        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
-        let signature = keypair.sign(&payload);
-
-        let encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();
-
-        let doughnut = DoughnutV0::decode(&mut &encoded[..]).expect("It is a valid doughnut");
-        assert_eq!(doughnut.verify(), Ok(()));
     }
 
     #[test]
