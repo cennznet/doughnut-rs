@@ -5,10 +5,14 @@ commands:
       - run:
           name: Js install + Build
           command: |
-            # install npm + yarn + wasm-pack
-            sudo apt install npm
+            # install
+            # node
+            curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+            # yarn
             curl -o- -L https://yarnpkg.com/install.sh | bash
             export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
+            # wasm-pack
             curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
             # buidl
             cd js && yarn build
@@ -59,9 +63,6 @@ jobs:
           command: |
             echo "//registry.npmjs.org/:_authToken=${NPM_KEY}" > ~/.npmrc
             cd js
-            # node vs npm versions are funny
-            npm uninstall -g npm
-            npm pack
             npm publish --access public --tag next
   clippy:
     docker:
