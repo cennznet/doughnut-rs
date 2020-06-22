@@ -10,5 +10,6 @@ wasm-pack build \
 
 # Remove wasm-pack generated files
 # They are unintentionally excluding required files when `npm pack` is run
-rm -rf $2/{package.json,README.md,.gitignore,LICENSE}
+cd $2
+rm package.json README.md .gitignore LICENSE
 
