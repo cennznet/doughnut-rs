@@ -62,8 +62,7 @@ jobs:
             # node vs npm versions are funny
             npm uninstall -g npm
             # Yank old package versions
-            npm unpublish @plugnet/doughnut-wasm@0.0.1-dev.0
-            npm unpublish @plugnet/doughnut-wasm@0.0.1-dev.1
+            npm unpublish @plugnet/doughnut-wasm@0.0.1-dev.2
             npm unpublish @plugnet/doughnut-wasm@0.0.1
   clippy:
     docker:
