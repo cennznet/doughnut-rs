@@ -1,4 +1,5 @@
-# compile the rust codebase
+#!/bin/bash
+set -ex
 echo "building js pkg for $1 out to: $2"
 wasm-pack build \
     --target $1 \
