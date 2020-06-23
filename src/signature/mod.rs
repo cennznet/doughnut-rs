@@ -11,7 +11,7 @@ use schnorrkel::{
     Signature as Sr25519Signature,
 };
 
-pub const CONTEXT_ID: &[u8] = b"substrate";
+pub const CONTEXT_ID: &[u8] = b"doughnut";
 
 /// Doughnut signature version
 enum SignatureVersion {
