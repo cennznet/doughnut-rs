@@ -1,7 +1,12 @@
 root = true
-[*]
+[*.{js}]
 indent_style=space
+[*.{rs}]
+indent_style=tab
+[*.{js}]
 indent_size=2
+
+indent_size=1
 tab_width=2
 end_of_line=lf
 charset=utf-8

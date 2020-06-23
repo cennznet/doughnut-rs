@@ -58,6 +58,20 @@ impl JsHandle {
         panic!("unsupported doughnut version");
     }
 
+    /// Sign and return ed25519 signature
+    // #[wasm_bindgen(method, js_class = "Doughnut", js_name = signEd25519)]
+    #[allow(non_snake_case)]
+    #[wasm_bindgen(catch, method)]
+    pub fn signEd25519(&mut self, secret_key: &[u8]) {
+        if let Doughnut::V0(ref mut doughnut) = &mut self.0 {
+            doughnut.sign_ed25519(secret_key);
+            // let ref mut d = JsHandle(Doughnut::V0(doughnut));
+            // d
+            // return JsHandle(d);
+        }
+        panic!("unsupported doughnut version");
+    }
+
     /// Return the doughnut issuer
     pub fn issuer(&self) -> Vec<u8> {
         if let Doughnut::V0(doughnut) = &self.0 {
@@ -103,26 +117,6 @@ impl JsHandle {
     pub fn signature(&self) -> Vec<u8> {
         if let Doughnut::V0(doughnut) = &self.0 {
             return doughnut.signature().to_vec();
-        }
-        panic!("unsupported doughnut version");
-    }
-
-    /// Sign and return sr25519 signature
-    // #[wasm_bindgen(method, js_class = "Doughnut", js_name = signSr25519)]
-    pub fn sign_sr25519(&mut self, secret_key: &[u8]) -> Vec<u8> {
-        if let Doughnut::V0(mut doughnut) = self.0.clone() {
-            let signature = doughnut.sign_sr25519(secret_key).unwrap().to_vec();
-            return signature;
-        }
-        panic!("unsupported doughnut version");
-    }
-
-    /// Sign and return ed25519 signature
-    // #[wasm_bindgen(method, js_class = "Doughnut", js_name = signEd25519)]
-    pub fn sign_ed25519(&mut self, secret_key: &[u8]) -> Vec<u8> {
-        if let Doughnut::V0(mut doughnut) = self.0.clone() {
-            let signature = doughnut.sign_ed25519(secret_key).unwrap().to_vec();
-            return signature;
         }
         panic!("unsupported doughnut version");
     }

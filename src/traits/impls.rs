@@ -54,7 +54,7 @@ impl DoughnutApi for () {
 #[cfg(feature = "std")]
 impl Signing for DoughnutV0 {
     fn sign_ed25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
-        sign_ed25519(&self.issuer(), secret_key, &self.payload())
+        let signature: Result<Vec<u8>, SigningError> = sign_ed25519(&self.issuer(), secret_key, &self.payload())
             .map(|signed_signature| H512::from_slice(&signed_signature))
             .map(|signature| {
                 self.signature = signature; // Store signature as type:H512
@@ -62,10 +62,12 @@ impl Signing for DoughnutV0 {
                 signature
             })
             .map(|signature| H512::to_fixed_bytes(signature).to_vec()) // Export signature as type:Vec<u8>
+            ;
+        signature
     }
 
     fn sign_sr25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
-        sign_sr25519(&self.issuer(), secret_key, &self.payload())
+        let signature: Result<Vec<u8>, SigningError> = sign_sr25519(&self.issuer(), secret_key, &self.payload())
             .map(|signed_signature| H512::from_slice(&signed_signature))
             .map(|signature| {
                 self.signature = signature; // Store signature as type:H512
@@ -73,6 +75,8 @@ impl Signing for DoughnutV0 {
                 signature
             })
             .map(|signature| H512::to_fixed_bytes(signature).to_vec()) // Export signature as type:Vec<u8>
+            ;
+        signature
     }
 }
 
@@ -193,7 +197,7 @@ mod test {
         let issuer = keypair.public.to_bytes().to_vec();
         let holder = vec![0x15; 32];
         let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
-        let invalid_payload_stub = [0u8];
+        let invalid_payload_stub = [0_u8; 64];
         let invalid_signature_bytes = keypair.sign(&invalid_payload_stub).to_bytes().to_vec();
         let encoded_with_invalid_signature: Vec<u8> = [payload, invalid_signature_bytes].concat();
         let mut doughnut: DoughnutV0 = Decode::decode(&mut &encoded_with_invalid_signature[..])
@@ -234,7 +238,6 @@ mod test {
 
         let secret_key = "secret_key supposes to be keypair.secret.to_ed25519_bytes()".as_bytes();
 
-        // doughnut.sign_sr25519(&secret_key).expect("It is a valid doughnut");
         assert_eq!(
             doughnut.sign_sr25519(&secret_key),
             Err(SigningError::InvalidSr25519SecretKey)
