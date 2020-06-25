@@ -58,16 +58,14 @@ impl JsHandle {
         panic!("unsupported doughnut version");
     }
 
-    /// Sign and return ed25519 signature
-    // #[wasm_bindgen(method, js_class = "Doughnut", js_name = signEd25519)]
     #[allow(non_snake_case)]
-    #[wasm_bindgen(catch, method)]
-    pub fn signEd25519(&mut self, secret_key: &[u8]) {
+    /// Sign and return ed25519 signature
+    pub fn signEd25519(&mut self, secret_key: &[u8]) -> Result<(), JsValue> {
         if let Doughnut::V0(ref mut doughnut) = &mut self.0 {
-            doughnut.sign_ed25519(secret_key);
-            // let ref mut d = JsHandle(Doughnut::V0(doughnut));
-            // d
-            // return JsHandle(d);
+            doughnut.sign_ed25519(secret_key)
+                .map(|_| ())
+                // throws: 'undefined' in JS on error
+                .map_err(|_| JsValue::undefined())
         }
         panic!("unsupported doughnut version");
     }
