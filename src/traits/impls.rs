@@ -161,7 +161,7 @@ mod test {
         let issuer = keypair.public.to_bytes().to_vec();
         let holder = vec![0x15; 32];
         let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
-        let invalid_payload_stub = [0u8];
+        let invalid_payload_stub = [0_u8; 64];
         let invalid_signature_bytes = keypair
             .sign(context.bytes(&invalid_payload_stub))
             .to_bytes()
