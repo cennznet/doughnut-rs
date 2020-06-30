@@ -7,8 +7,10 @@ use ed25519_dalek::{
     Keypair as Ed25519Keypair, PublicKey as Ed25519PublicKey, Signature as Ed25519Signature,
 };
 use schnorrkel::{
-    signing_context, PublicKey as Sr25519PublicKey, SecretKey as Sr25519SecretKey,
-    Signature as Sr25519Signature,
+    signing_context, ExpansionMode as Sr25519ExpansionMode, MiniSecretKey as Sr25519MiniSecretKey,
+    PublicKey as Sr25519PublicKey, SecretKey as Sr25519SecretKey, Signature as Sr25519Signature,
+    KEYPAIR_LENGTH as SR25519_KEYPAIR_LENGTH, SECRET_KEY_LENGTH as SR25519_SECRET_KEY_LENGTH,
+    SIGNATURE_LENGTH as SR25519_SIGNATURE_LENGTH,
 };
 
 pub const CONTEXT_ID: &[u8] = b"doughnut";
@@ -44,20 +46,55 @@ pub fn sign_ed25519(
 }
 
 /// Sign an sr25519 signature
+// pub fn sign_sr25519(
+//     public_key: &[u8],
+//     secret_key: &[u8],
+//     payload: &[u8],
+// ) -> Result<Vec<u8>, SigningError> {
+//     let secret_key = Sr25519SecretKey::from_ed25519_bytes(secret_key)
+//         .map_err(|_| SigningError::InvalidSr25519SecretKey)?;
+//     let public_key = Sr25519PublicKey::from_bytes(public_key)
+//         .map_err(|_| SigningError::InvalidSr25519PublicKey)?;
+
+//     Ok(secret_key
+//         .sign_simple(CONTEXT_ID, payload, &public_key)
+//         .to_bytes()
+//         .to_vec())
+// }
+
+// pub fn create_keypair_from_publickey(public_key: &[u8]) -> Vec<u8> {
+// 	Sr25519MiniSecretKey::from_bytes(public_key)
+// 		.unwrap()
+// 		.expand_to_keypair(Sr25519ExpansionMode::Ed25519)
+// 		.to_half_ed25519_bytes()
+// 		.to_vec()
+// }
+
 pub fn sign_sr25519(
     public_key: &[u8],
     secret_key: &[u8],
     payload: &[u8],
 ) -> Result<Vec<u8>, SigningError> {
-    let secret_key = Sr25519SecretKey::from_ed25519_bytes(secret_key)
-        .map_err(|_| SigningError::InvalidSr25519SecretKey)?;
-    let public_key = Sr25519PublicKey::from_bytes(public_key)
-        .map_err(|_| SigningError::InvalidSr25519PublicKey)?;
+    // let keypair = Sr25519MiniSecretKey::from_bytes(&public_key)
+    // 	.unwrap()
+    // 	.expand_to_keypair(Sr25519ExpansionMode::Ed25519)
+    // 	.to_half_ed25519_bytes()
+    //     .to_vec();
 
-    Ok(secret_key
-        .sign_simple(CONTEXT_ID, payload, &public_key)
+    // let secret_key = &keypair[0..SR25519_SECRET_KEY_LENGTH];
+    // let public_key = &keypair[SR25519_SECRET_KEY_LENGTH..SR25519_KEYPAIR_LENGTH];
+
+    let signature: Vec<u8> = Sr25519SecretKey::from_ed25519_bytes(&secret_key)
+        .unwrap()
+        .sign_simple(
+            CONTEXT_ID,
+            payload,
+            &Sr25519PublicKey::from_bytes(&public_key).unwrap(),
+        )
         .to_bytes()
-        .to_vec())
+        .to_vec();
+
+    Ok(signature)
 }
 
 /// Verify the signature for a `DoughnutApi` impl type

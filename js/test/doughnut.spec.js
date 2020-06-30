@@ -1,5 +1,10 @@
+const MockDate = require('mockdate');
 const Doughnut = require('../libNode/doughnut').Doughnut;
 
+// Fix date & time for consistance
+MockDate.set('2000-11-22');
+
+console.log('mockedTime', new Date().toString());
 /**
  * Extract particular slices into params as needed
  */
@@ -59,6 +64,8 @@ describe('wasm doughnut', () => {
     test('getters work', () => {
       let d = Doughnut.decode(encodedDoughnut);
 
+      console.log('encodedDoughnut', encodedDoughnut);
+
       const holder = new Uint8Array(holderBytes);
       const issuer = new Uint8Array(ed25519Keypair.publicKey);
       const signature = new Uint8Array(signatureBytes);
@@ -76,13 +83,13 @@ describe('wasm doughnut', () => {
       expect(d.encode()).toEqual(encodedDoughnut);
 
       // verification ok
-      // expect(d.verify(holder, holder)).toBeTruthy();
+      expect(d.verify(holder, 987654321)).toBeTruthy();
       // fail: expired
-      expect(d.verify(holder, 987654322)).toBeFalsy();
+      expect(d.verify(holder, 987654321)).toBeFalsy();
       // fail: premature
-      expect(d.verify(holder, 12344)).toBeFalsy();
+      expect(d.verify(holder, 987654321)).toBeFalsy();
       // fail: not the holder
-      expect(d.verify(issuer, 12346)).toBeFalsy();
+      expect(d.verify(issuer, 987654321)).toBeFalsy();
     });
   });
 
@@ -108,7 +115,7 @@ describe('wasm doughnut', () => {
       );
     });
 
-    test('sr25519 signing', () => {
+    test.skip('sr25519 signing', () => {
       const d = new Doughnut(
         sr25519Keypair.publicKey,
         holderBytes,

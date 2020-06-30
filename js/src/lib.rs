@@ -71,6 +71,19 @@ impl JsHandle {
         panic!("unsupported doughnut version");
     }
 
+    #[allow(non_snake_case)]
+    /// Sign and return ed25519 signature
+    pub fn signSr25519(&mut self, secret_key: &[u8]) -> Result<(), JsValue> {
+        if let Doughnut::V0(ref mut doughnut) = &mut self.0 {
+            return doughnut
+                .sign_sr25519(secret_key)
+                .map(|_| ())
+                // throws: 'undefined' in JS on error
+                .map_err(|_| JsValue::undefined());
+        }
+        panic!("unsupported doughnut version");
+    }
+
     /// Return the doughnut issuer
     pub fn issuer(&self) -> Vec<u8> {
         if let Doughnut::V0(doughnut) = &self.0 {
