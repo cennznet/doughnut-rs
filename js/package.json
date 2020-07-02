@@ -6,6 +6,7 @@
   "browser": "libBrowser/doughnut.js",
   "dependencies": {},
   "devDependencies": {
+    "@polkadot/keyring": "^2.16.1",
     "jest": "^26.0.1"
   },
   "files": [
