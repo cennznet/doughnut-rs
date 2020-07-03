@@ -2,12 +2,12 @@
 
 //! Provide JS-Rust API bindings to create and inspect Doughnuts
 
+use codec::{Decode, Encode};
 use doughnut_rs::{
     traits::{DoughnutApi, DoughnutVerify, Signing},
     v0::DoughnutV0,
     Doughnut,
 };
-use parity_scale_codec::{Decode, Encode};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]

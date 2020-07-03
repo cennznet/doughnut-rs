@@ -1,6 +1,6 @@
 [package]
 name = "js"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Centrality Developers <developers@centrality.ai>"]
 edition = "2018"
 description = "JS/Wasm bindings for the rust Doughnut codec"
@@ -11,14 +11,15 @@ repository = "https://github.com/cennznet/doughnut-rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-doughnut_rs = { path = "../" }
-wasm-bindgen = "0.2.63"
-clear_on_drop = { version = "0.2.3", features = ["no_cc"] }
-parity-scale-codec = { version = "^1.3.0", features = ["derive"] }
+doughnut_rs = { path = "../", features = ["wasm"] }
+wasm-bindgen = "0.2.64"
+clear_on_drop = { version = "0.2.4", features = ["no_cc"] }
+codec = { package = "parity-scale-codec", version = "1.3.1", features = ["derive"] }
 
 [profile.release]
 # disable loop vectorization for smaller wasm
-opt-level = "z"
+opt-level = "s"
 # disable parallel compilation
 codegen-units = 1
 lto = true
+
