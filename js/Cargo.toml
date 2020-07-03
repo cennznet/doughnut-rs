@@ -13,6 +13,7 @@ crate-type = ["cdylib"]
 [dependencies]
 doughnut_rs = { path = "../" }
 wasm-bindgen = "0.2.63"
+console_error_panic_hook = "0.1.6"
 clear_on_drop = { version = "0.2.3", features = ["no_cc"] }
 parity-scale-codec = { version = "^1.3.0", features = ["derive"] }
 

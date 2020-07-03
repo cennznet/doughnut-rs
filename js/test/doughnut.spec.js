@@ -1,13 +1,9 @@
 const Doughnut = require('../libNode/doughnut').Doughnut;
+// const testingPairs = require('@polkadot/keyring/testingPairs');
+// const keyring = testingPairs({ type: 'sr25519' });
+const { waitReady } = require('@polkadot/wasm-crypto');
 const { Keyring } = require('@polkadot/keyring');
-
-
-const keyring = new Keyring({ type: 'sr25519' });
-
-
-console.log('keyring.alice.publicKey', keyring.alice.publicKey);
-console.log('keyring', keyring);
-
+const { hexToU8a } = require('@polkadot/util');
 /**
  * Extract particular slices into params as needed
  */
@@ -34,12 +30,8 @@ const ed25519Keypair = {
 };
 
 const sr25519Keypair = {
-  publicKey: [
-    218, 34, 94, 244, 140, 155, 254, 140, 97, 227, 158, 4, 69, 75, 198, 210, 38, 69, 50, 58, 196, 218, 12, 145, 58, 42, 154, 225, 227, 134, 17, 115
-  ],
-  secretKey: [
-    128, 44, 191, 250, 79, 102, 78, 92, 203, 152, 149, 213, 121, 67, 51, 144, 225, 199, 36, 71, 6, 250, 239, 137, 140, 141, 39, 60, 98, 69, 232, 86, 75, 146, 151, 132, 120, 221, 240, 22, 36, 22, 64, 31, 154, 208, 27, 68, 236, 254, 55, 76, 74, 143, 57, 211, 13, 53, 128, 124, 95, 251, 4, 189
-  ],
+  publicKey: [ 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125 ],
+  secretKey: [ 152, 49, 157, 79, 248, 169, 80, 140, 75, 176, 207, 11, 90, 120, 215, 96, 160, 178, 8, 44, 2, 119, 94, 110, 130, 55, 8, 22, 254, 223, 255, 72, 146, 90, 34, 93, 151, 170, 0, 104, 45, 106, 89, 185, 91, 24, 120, 12, 16, 215, 3, 35, 54, 232, 143, 52, 66, 180, 35, 97, 244, 166, 96, 17, ],
 };
 
 const signatureBytes = [
@@ -63,6 +55,10 @@ const encodedDoughnut = new Uint8Array(
 );
 
 describe('wasm doughnut', () => {
+  beforeEach(async () => {
+    await waitReady();
+  });
+
   describe('Decoded instance', () => {
     test('getters work', () => {
       let d = Doughnut.decode(encodedDoughnut);
@@ -116,13 +112,40 @@ describe('wasm doughnut', () => {
       );
     });
 
-    test.skip('sr25519 signing', () => {
+    test('sr25519 signing', () => {
       const d = new Doughnut(
         sr25519Keypair.publicKey,
         holderBytes,
         expiry,
         notBefore
       );
+
+      const keyring = new Keyring({ type: 'sr25519' });
+      const alice = keyring.addFromUri('//Alice', { name: 'Alice' });
+
+      // publicKey: hexToU8a('0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d'),
+      //   secretKey: hexToU8a('0x98319d4ff8a9508c4bb0cf0b5a78d760a0b2082c02775e6e82370816fedfff48925a225d97aa00682d6a59b95b18780c10d7032336e88f3442b42361f4a66011'),
+
+      // keyring.alice.publicKey Uint8Array(32)[
+      //   212, 53, 147, 199, 21, 253, 211, 28,
+      //   97, 20, 26, 189, 4, 169, 159, 214,
+      //   130, 44, 133, 88, 133, 76, 205, 227,
+      //   154, 86, 132, 231, 165, 109, 162, 125
+      // ]
+
+      // hexToU8a secretkey Uint8Array(64)[
+      //   152, 49, 157, 79, 248, 169, 80, 140, 75, 176, 207,
+      //   11, 90, 120, 215, 96, 160, 178, 8, 44, 2, 119,
+      //   94, 110, 130, 55, 8, 22, 254, 223, 255, 72, 146,
+      //   90, 34, 93, 151, 170, 0, 104, 45, 106, 89, 185,
+      //   91, 24, 120, 12, 16, 215, 3, 35, 54, 232, 143,
+      //   52, 66, 180, 35, 97, 244, 166, 96, 17
+      // ]
+
+      console.log('keyring.alice.publicKey', alice.publicKey);
+      console.log('hexToU8a publickey', hexToU8a('0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d'));
+      console.log('hexToU8a secretkey', hexToU8a('0x98319d4ff8a9508c4bb0cf0b5a78d760a0b2082c02775e6e82370816fedfff48925a225d97aa00682d6a59b95b18780c10d7032336e88f3442b42361f4a66011'));
+      console.log('keyring', alice);
 
       expect(d.signature()).toEqual(
         new Uint8Array(defaultSignatureBeforeSigning)

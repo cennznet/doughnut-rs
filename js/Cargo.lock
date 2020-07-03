@@ -104,6 +104,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "console_error_panic_hook"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8d976903543e0c48546a91908f21588a680a8c8f984df9a5d69feccb2b2a211"
+dependencies = [
+ "cfg-if",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "crunchy"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -236,6 +246,7 @@ name = "js"
 version = "0.0.1"
 dependencies = [
  "clear_on_drop",
+ "console_error_panic_hook",
  "doughnut_rs",
  "parity-scale-codec",
  "wasm-bindgen",

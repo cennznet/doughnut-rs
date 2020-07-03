@@ -1,6 +1,7 @@
 // Copyright 2019-2020 Centrality Investments Limited
 
 //! Provide JS-Rust API bindings to create and inspect Doughnuts
+extern crate console_error_panic_hook;
 
 use doughnut_rs::{
     traits::{DoughnutApi, DoughnutVerify, Signing},
@@ -57,6 +58,22 @@ impl JsHandle {
         }
         panic!("unsupported doughnut version");
     }
+
+    #[allow(non_snake_case)]
+    /// Sign and return ed25519 signature
+    pub fn signSr25519(&mut self, secret_key: &[u8]) -> Result<(), JsValue> {
+        console_error_panic_hook::set_once();
+
+        if let Doughnut::V0(ref mut doughnut) = &mut self.0 {
+            return doughnut
+                .sign_sr25519(secret_key)
+                .map(|_| ())
+                // throws: 'undefined' in JS on error
+                .map_err(|_| JsValue::undefined());
+        }
+        panic!("unsupported doughnut version");
+    }
+
 
     #[allow(non_snake_case)]
     /// Sign and return ed25519 signature
