@@ -54,7 +54,7 @@ impl DoughnutApi for () {
 #[cfg(feature = "std")]
 impl Signing for DoughnutV0 {
     fn sign_ed25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
-        let signature: Result<Vec<u8>, SigningError> = sign_ed25519(&self.issuer(), secret_key, &self.payload())
+        sign_ed25519(&self.issuer(), secret_key, &self.payload())
             .map(|signed_signature| H512::from_slice(&signed_signature))
             .map(|signature| {
                 self.signature = signature; // Store signature as type:H512
@@ -62,12 +62,10 @@ impl Signing for DoughnutV0 {
                 signature
             })
             .map(|signature| H512::to_fixed_bytes(signature).to_vec()) // Export signature as type:Vec<u8>
-            ;
-        signature
     }
 
     fn sign_sr25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
-        let signature: Result<Vec<u8>, SigningError> = sign_sr25519(&self.issuer(), secret_key, &self.payload())
+        sign_sr25519(&self.issuer(), secret_key, &self.payload())
             .map(|signed_signature| H512::from_slice(&signed_signature))
             .map(|signature| {
                 self.signature = signature; // Store signature as type:H512
@@ -75,8 +73,6 @@ impl Signing for DoughnutV0 {
                 signature
             })
             .map(|signature| H512::to_fixed_bytes(signature).to_vec()) // Export signature as type:Vec<u8>
-            ;
-        signature
     }
 }
 
