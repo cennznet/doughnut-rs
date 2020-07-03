@@ -9,7 +9,6 @@ use crate::{
     traits::{DoughnutApi, DoughnutVerify, Signing},
 };
 
-#[cfg(feature = "std")]
 use crate::{
     doughnut::Doughnut,
     signature::{sign_ed25519, sign_sr25519, verify_signature},
@@ -51,7 +50,6 @@ impl DoughnutApi for () {
     }
 }
 
-#[cfg(feature = "std")]
 impl Signing for DoughnutV0 {
     fn sign_ed25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
         sign_ed25519(&self.issuer(), secret_key, &self.payload())
@@ -82,7 +80,6 @@ impl DoughnutVerify for () {
     }
 }
 
-#[cfg(feature = "std")]
 impl DoughnutVerify for DoughnutV0 {
     fn verify(&self) -> Result<(), VerifyError> {
         verify_signature(
@@ -94,7 +91,6 @@ impl DoughnutVerify for DoughnutV0 {
     }
 }
 
-#[cfg(feature = "std")]
 #[allow(unreachable_patterns)]
 impl DoughnutVerify for Doughnut {
     fn verify(&self) -> Result<(), VerifyError> {

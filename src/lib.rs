@@ -11,17 +11,10 @@ extern crate alloc;
 #[macro_use]
 extern crate std as alloc;
 
-// for test only
-#[cfg(test)]
-extern crate rand;
-#[cfg(test)]
-extern crate rand_core;
-
 mod doughnut;
 pub use doughnut::Doughnut;
 
 pub mod error;
-#[cfg(feature = "std")]
 mod signature;
 mod test;
 pub mod traits;

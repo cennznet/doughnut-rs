@@ -113,6 +113,8 @@ dependencies = [
  "ed25519-dalek",
  "parity-scale-codec",
  "primitive-types",
+ "rand",
+ "rand_core",
  "schnorrkel",
 ]
 
