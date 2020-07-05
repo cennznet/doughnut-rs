@@ -7,9 +7,10 @@ const { hexToU8a } = require('@polkadot/util');
 /**
  * Extract particular slices into params as needed
  */
-const composeDoughnutBytes = ({ issuer, holder, signature }) => [
-  // version and domain count
-  0, 0, 3,
+const composeDoughnutBytes = ({ versions, issuer, holder, signature }) => [
+  // payload version + signature version
+  ...versions,
+  3,
   ...issuer,
   ...holder,
   177, 104, 222, 58, 57, 48, 0, 0, 68, 111, 109, 97, 105, 110, 32, 49, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 68, 111, 109, 97, 105, 110, 32, 50, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
@@ -44,15 +45,7 @@ const notBefore = 12345;
 
 const defaultSignatureBeforeSigning = [
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-]
-
-const encodedDoughnut = new Uint8Array(
-  composeDoughnutBytes({
-    holder: holderBytes,
-    issuer: ed25519Keypair.publicKey,
-    signature: signatureBytes,
-  })
-);
+];
 
 describe('wasm doughnut', () => {
   beforeEach(async () => {
@@ -60,11 +53,20 @@ describe('wasm doughnut', () => {
   });
 
   describe('Decoded instance', () => {
-    test('getters work', () => {
-      let d = Doughnut.decode(encodedDoughnut);
+    test('sr25519 encoding and decoding work', () => {
+      const sr25519Bytes = composeDoughnutBytes({
+        versions: [0, 0],
+        holder: holderBytes,
+        issuer: sr25519Keypair.publicKey,
+        signature: signatureBytes,
+      });
+
+      const sr25519Doughnut = new Uint8Array(sr25519Bytes);
+
+      const d = Doughnut.decode(sr25519Doughnut);
 
       const holder = new Uint8Array(holderBytes);
-      const issuer = new Uint8Array(ed25519Keypair.publicKey);
+      const issuer = new Uint8Array(sr25519Keypair.publicKey);
       const signature = new Uint8Array(signatureBytes);
 
       // Fields are correct
@@ -77,7 +79,45 @@ describe('wasm doughnut', () => {
       expect(d.payloadVersion()).toEqual(0);
 
       // encodes the same
-      expect(d.encode()).toEqual(encodedDoughnut);
+      expect(d.encode()).toEqual(sr25519Doughnut);
+
+      // verification ok
+      // expect(d.verify(holder, holder)).toBeTruthy();
+      // fail: expired
+      expect(d.verify(holder, 987654322)).toBeFalsy();
+      // fail: premature
+      expect(d.verify(holder, 12344)).toBeFalsy();
+      // fail: not the holder
+      expect(d.verify(issuer, 12346)).toBeFalsy();
+    });
+
+    test('ed25519 encoding and decoding work', () => {
+      const ed25519Bytes = composeDoughnutBytes({
+        versions: [0, 8],
+        holder: holderBytes,
+        issuer: ed25519Keypair.publicKey,
+        signature: signatureBytes,
+      });
+
+      const ed25519Doughnut = new Uint8Array(ed25519Bytes);
+
+      const d = Doughnut.decode(ed25519Doughnut);
+
+      const holder = new Uint8Array(holderBytes);
+      const issuer = new Uint8Array(ed25519Keypair.publicKey);
+      const signature = new Uint8Array(signatureBytes);
+
+      // Fields are correct
+      expect(d.holder()).toEqual(holder);
+      expect(d.issuer()).toEqual(issuer);
+      expect(d.expiry()).toEqual(expiry);
+      expect(d.notBefore()).toEqual(notBefore);
+      expect(d.signatureVersion()).toEqual(1);
+      expect(d.signature()).toEqual(signature);
+      expect(d.payloadVersion()).toEqual(0);
+
+      // encodes the same
+      expect(d.encode()).toEqual(ed25519Doughnut);
 
       // verification ok
       // expect(d.verify(holder, holder)).toBeTruthy();
@@ -142,10 +182,10 @@ describe('wasm doughnut', () => {
       //   52, 66, 180, 35, 97, 244, 166, 96, 17
       // ]
 
-      console.log('keyring.alice.publicKey', alice.publicKey);
-      console.log('hexToU8a publickey', hexToU8a('0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d'));
-      console.log('hexToU8a secretkey', hexToU8a('0x98319d4ff8a9508c4bb0cf0b5a78d760a0b2082c02775e6e82370816fedfff48925a225d97aa00682d6a59b95b18780c10d7032336e88f3442b42361f4a66011'));
-      console.log('keyring', alice);
+      // console.log('keyring.alice.publicKey', alice.publicKey);
+      // console.log('hexToU8a publickey', hexToU8a('0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d'));
+      // console.log('hexToU8a secretkey', hexToU8a('0x98319d4ff8a9508c4bb0cf0b5a78d760a0b2082c02775e6e82370816fedfff48925a225d97aa00682d6a59b95b18780c10d7032336e88f3442b42361f4a66011'));
+      // console.log('keyring', alice);
 
       expect(d.signature()).toEqual(
         new Uint8Array(defaultSignatureBeforeSigning)
