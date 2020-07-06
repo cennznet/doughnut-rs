@@ -18,7 +18,7 @@ codec = { package = "parity-scale-codec", version = "1.3.1", features = ["derive
 
 [profile.release]
 # disable loop vectorization for smaller wasm
-opt-level = "s"
+opt-level = "z"
 # disable parallel compilation
 codegen-units = 1
 lto = true
