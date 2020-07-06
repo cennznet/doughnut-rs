@@ -1,14 +1,19 @@
 // Copyright 2019-2020 Centrality Investments Limited
 
 //! Doughnut trait impls
+
+#[cfg(feature = "std")]
 use primitive_types::H512;
+#[cfg(feature = "std")]
+use crate::{error::SigningError, traits::Signing};
 
 use crate::{
     alloc::vec::Vec,
-    error::{SigningError, ValidationError, VerifyError},
-    traits::{DoughnutApi, DoughnutVerify, Signing},
+    error::{ValidationError, VerifyError},
+    traits::{DoughnutApi, DoughnutVerify},
 };
 
+#[cfg(feature = "std")]
 use crate::{
     doughnut::Doughnut,
     signature::{sign_ed25519, sign_sr25519, verify_signature},
@@ -50,6 +55,7 @@ impl DoughnutApi for () {
     }
 }
 
+#[cfg(feature = "std")]
 impl Signing for DoughnutV0 {
     fn sign_ed25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
         sign_ed25519(&self.issuer(), secret_key, &self.payload())
@@ -80,6 +86,7 @@ impl DoughnutVerify for () {
     }
 }
 
+#[cfg(feature = "std")]
 impl DoughnutVerify for DoughnutV0 {
     fn verify(&self) -> Result<(), VerifyError> {
         verify_signature(
@@ -91,6 +98,7 @@ impl DoughnutVerify for DoughnutV0 {
     }
 }
 
+#[cfg(feature = "std")]
 #[allow(unreachable_patterns)]
 impl DoughnutVerify for Doughnut {
     fn verify(&self) -> Result<(), VerifyError> {
