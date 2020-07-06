@@ -3,9 +3,9 @@
 //! Doughnut trait impls
 
 #[cfg(feature = "std")]
-use primitive_types::H512;
-#[cfg(feature = "std")]
 use crate::{error::SigningError, traits::Signing};
+#[cfg(feature = "std")]
+use primitive_types::H512;
 
 use crate::{
     alloc::vec::Vec,
