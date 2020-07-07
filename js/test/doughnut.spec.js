@@ -51,13 +51,13 @@ const notBefore = 12345;
 
 const defaultSignatureBeforeSigning = Uint8Array.from({length: 64}, x => 0);
 
-            const encodedDoughnut = new Uint8Array(
-                composeDoughnut({
-                    holder,
-                    issuer: ed25519Keypair.publicKey,
-                    signature,
-                })
-            );
+const encodedDoughnut = new Uint8Array(
+    composeDoughnut({
+        holder,
+        issuer: ed25519Keypair.publicKey,
+        signature,
+    })
+);
 
 describe('wasm doughnut', () => {
     describe('Decoded instance', () => {
