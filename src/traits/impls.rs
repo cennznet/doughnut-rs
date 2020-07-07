@@ -16,7 +16,7 @@ use crate::{
 #[cfg(feature = "std")]
 use crate::{
     doughnut::Doughnut,
-    signature::{sign_ed25519, sign_sr25519, verify_signature},
+    signature::{sign_ed25519, sign_sr25519, verify_signature, SignatureVersion},
     v0::DoughnutV0,
 };
 
@@ -58,22 +58,22 @@ impl DoughnutApi for () {
 #[cfg(feature = "std")]
 impl Signing for DoughnutV0 {
     fn sign_ed25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
+        self.signature_version = SignatureVersion::Ed25519 as u8;
         sign_ed25519(&self.issuer(), secret_key, &self.payload())
             .map(|signed_signature| H512::from_slice(&signed_signature))
             .map(|signature| {
                 self.signature = signature; // Store signature as type:H512
-                self.signature_version = 1 as u8;
                 signature
             })
             .map(|signature| H512::to_fixed_bytes(signature).to_vec()) // Export signature as type:Vec<u8>
     }
 
     fn sign_sr25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
+        self.signature_version = SignatureVersion::Sr25519 as u8;
         sign_sr25519(&self.issuer(), secret_key, &self.payload())
             .map(|signed_signature| H512::from_slice(&signed_signature))
             .map(|signature| {
                 self.signature = signature; // Store signature as type:H512
-                self.signature_version = 0 as u8;
                 signature
             })
             .map(|signature| H512::to_fixed_bytes(signature).to_vec()) // Export signature as type:Vec<u8>
@@ -217,6 +217,48 @@ mod test {
         assert_eq!(doughnut.signature_version, 1);
 
         // Assume signed signature is verified ok
+        assert_eq!(doughnut.verify(), Ok(()));
+    }
+
+    #[test]
+    fn ed25519_signature_verifies() {
+        let keypair = generate_ed25519_keypair();
+        let issuer = keypair.public.to_bytes();
+        let holder = [0x15; 32];
+        let domains = vec![("test".to_string(), vec![0u8])];
+        let mut doughnut = DoughnutV0 {
+            issuer,
+            holder,
+            domains,
+            ..Default::default()
+        };
+        doughnut.sign_ed25519(&keypair.secret.to_bytes()).unwrap();
+        assert_eq!(
+            doughnut.signature_version(),
+            SignatureVersion::Ed25519 as u8
+        );
+        assert_eq!(doughnut.verify(), Ok(()));
+    }
+
+    #[test]
+    fn sr25519_signature_verifies() {
+        let keypair = generate_sr25519_keypair();
+        let issuer = keypair.public.to_bytes();
+        let holder = [0x15; 32];
+        let domains = vec![("test".to_string(), vec![0u8])];
+        let mut doughnut = DoughnutV0 {
+            issuer,
+            holder,
+            domains,
+            ..Default::default()
+        };
+        doughnut
+            .sign_sr25519(&keypair.secret.to_ed25519_bytes())
+            .unwrap();
+        assert_eq!(
+            doughnut.signature_version(),
+            SignatureVersion::Sr25519 as u8
+        );
         assert_eq!(doughnut.verify(), Ok(()));
     }
 
