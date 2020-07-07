@@ -20,7 +20,10 @@ rand_core = { version = "0.5.1", features = ["alloc"] }
 [features]
 default = ["std"]
 std = [
-  "ed25519-dalek/std",
-  "schnorrkel/std"]
-wasm = ["ed25519-dalek",
-        "schnorrkel/wasm-bindgen"]
+    "ed25519-dalek/std",
+    "schnorrkel/std"
+]
+wasm = [
+    "ed25519-dalek",
+    "schnorrkel/wasm-bindgen"
+]
