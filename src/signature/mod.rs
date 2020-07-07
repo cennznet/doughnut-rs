@@ -14,7 +14,8 @@ use schnorrkel::{
 pub const CONTEXT_ID: &[u8] = b"doughnut";
 
 /// Doughnut signature version
-enum SignatureVersion {
+#[allow(clippy::module_name_repetitions)]
+pub enum SignatureVersion {
     Sr25519 = 0,
     Ed25519 = 1,
 }

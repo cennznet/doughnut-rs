@@ -2,12 +2,12 @@
 
 //! Provide JS-Rust API bindings to create and inspect Doughnuts
 
+use codec::{Decode, Encode};
 use doughnut_rs::{
-    traits::{DoughnutApi, DoughnutVerify},
+    traits::{DoughnutApi, DoughnutVerify, Signing},
     v0::DoughnutV0,
     Doughnut,
 };
-use parity_scale_codec::{Decode, Encode};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -54,6 +54,32 @@ impl JsHandle {
         if let Doughnut::V0(mut doughnut) = self.0.clone() {
             doughnut.domains.push((key.to_string(), value.to_vec()));
             return JsHandle(Doughnut::V0(doughnut));
+        }
+        panic!("unsupported doughnut version");
+    }
+
+    #[allow(non_snake_case)]
+    /// Sign and return ed25519 signature
+    pub fn signSr25519(&mut self, secret_key: &[u8]) -> Result<(), JsValue> {
+        if let Doughnut::V0(ref mut doughnut) = &mut self.0 {
+            return doughnut
+                .sign_sr25519(secret_key)
+                .map(|_| ())
+                // throws: 'undefined' in JS on error
+                .map_err(|_| JsValue::undefined());
+        }
+        panic!("unsupported doughnut version");
+    }
+
+    #[allow(non_snake_case)]
+    /// Sign and return ed25519 signature
+    pub fn signEd25519(&mut self, secret_key: &[u8]) -> Result<(), JsValue> {
+        if let Doughnut::V0(ref mut doughnut) = &mut self.0 {
+            return doughnut
+                .sign_ed25519(secret_key)
+                .map(|_| ())
+                // throws: 'undefined' in JS on error
+                .map_err(|_| JsValue::undefined());
         }
         panic!("unsupported doughnut version");
     }

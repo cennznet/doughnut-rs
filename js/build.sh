@@ -8,6 +8,18 @@ wasm-pack build \
     --out-dir $2 \
     --release
 
+# Add 'crypto' polyfill to js libs
+echo "
+// Polyfill to enable signing in some JS environments
+// See: https://stackoverflow.com/questions/52612122/how-to-use-jest-to-test-functions-using-crypto-or-window-mscrypto
+const crypto = require('crypto');
+Object.defineProperty(global.self, 'crypto', {
+  value: {
+    getRandomValues: arr => crypto.randomBytes(arr.length)
+  }
+});
+" >> $2/doughnut.js
+
 # Remove wasm-pack generated files
 # They are unintentionally excluding required files when `npm pack` is run
 cd $2
