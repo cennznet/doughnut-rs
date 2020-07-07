@@ -134,6 +134,8 @@ describe('wasm doughnut', () => {
             expect(d.signatureVersion()).toEqual(1);
 
             expect(d.signature()).toEqual(signature);
+
+            expect(d.verify(holder, 12346)).toEqual(true);
         });
     });
 });
