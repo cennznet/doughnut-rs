@@ -428,6 +428,42 @@ mod test {
     }
 
     #[test]
+    fn decode_from_u8_array() {
+        let issuer = vec![
+            150u8, 22, 44, 205, 2, 222, 76, 191, 190, 171, 49, 135, 116, 73, 75, 214, 129, 172,
+            123, 53, 115, 170, 24, 156, 51, 98, 166, 110, 214, 167, 219, 123,
+        ];
+        let holder = vec![
+            27u8, 137, 65, 29, 182, 25, 157, 61, 226, 13, 230, 14, 111, 6, 25, 186, 227, 117, 177,
+            244, 172, 147, 40, 119, 209, 78, 13, 109, 236, 119, 205, 202,
+        ];
+        let signature = vec![
+            90u8, 143, 31, 88, 7, 153, 88, 176, 209, 39, 71, 65, 16, 116, 95, 143, 125, 99, 21, 60,
+            109, 250, 196, 2, 107, 14, 164, 101, 110, 235, 151, 76, 136, 156, 88, 112, 164, 29, 68,
+            185, 16, 246, 206, 52, 94, 190, 226, 158, 201, 110, 81, 253, 184, 118, 189, 149, 226,
+            203, 63, 146, 23, 217, 177, 9,
+        ];
+
+        let mut encoded_doughnut = vec![0u8, 8, 3];
+        encoded_doughnut.append(&mut issuer.clone());
+        encoded_doughnut.append(&mut holder.clone());
+        encoded_doughnut.append(&mut vec![
+            177u8, 104, 222, 58, 57, 48, 0, 0, 68, 111, 109, 97, 105, 110, 32, 49, 0, 0, 0, 0, 0,
+            0, 0, 0, 10, 0, 68, 111, 109, 97, 105, 110, 32, 50, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 1,
+            2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+        ]);
+        encoded_doughnut.append(&mut signature.clone());
+
+        let decoded_doughnut = DoughnutV0::decode(&mut &encoded_doughnut[..]).unwrap();
+        assert_eq!(decoded_doughnut.signature_version(), 1);
+        assert_eq!(decoded_doughnut.not_before(), 12345);
+        assert_eq!(decoded_doughnut.expiry(), 987654321);
+        assert_eq!(Vec::from(&decoded_doughnut.holder() as &[u8]), holder);
+        assert_eq!(Vec::from(&decoded_doughnut.issuer() as &[u8]), issuer);
+        assert_eq!(Vec::from(&decoded_doughnut.signature() as &[u8]), signature);
+    }
+
+    #[test]
     fn no_domains_fails_encoding() {
         let doughnut = doughnut_builder!(domains: vec![],);
 

@@ -9,7 +9,7 @@ const composeDoughnut = ({issuer, holder, signature}) => {
     let signatureArr = Array.from(signature);
     return new Uint8Array([
         // version and domain count
-        0, 0, 3,
+        0, 8, 3,
         ...issuerArr,
         ...holderArr,
         177, 104, 222, 58, 57, 48, 0, 0, 68, 111, 109, 97, 105, 110, 32, 49, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 68, 111, 109,
@@ -51,13 +51,13 @@ const notBefore = 12345;
 
 const defaultSignatureBeforeSigning = Uint8Array.from({length: 64}, x => 0);
 
-const encodedDoughnut = new Uint8Array(
-    composeDoughnut({
-        holder,
-        issuer: ed25519Keypair.publicKey,
-        signature,
-    })
-);
+            const encodedDoughnut = new Uint8Array(
+                composeDoughnut({
+                    holder,
+                    issuer: ed25519Keypair.publicKey,
+                    signature,
+                })
+            );
 
 describe('wasm doughnut', () => {
     describe('Decoded instance', () => {
@@ -68,9 +68,9 @@ describe('wasm doughnut', () => {
             expect(d.issuer()).toEqual(ed25519Keypair.publicKey);
             expect(d.expiry()).toEqual(expiry);
             expect(d.notBefore()).toEqual(notBefore);
-            expect(d.signatureVersion()).toEqual(0);
-            expect(d.signature()).toEqual(signature);
             expect(d.payloadVersion()).toEqual(0);
+            expect(d.signatureVersion()).toEqual(1);
+            expect(d.signature()).toEqual(signature);
 
             // encodes the same
             expect(d.encode()).toEqual(encodedDoughnut);
@@ -90,7 +90,10 @@ describe('wasm doughnut', () => {
             expect(d.issuer()).toEqual(ed25519Keypair.publicKey);
             expect(d.expiry()).toEqual(expiry);
             expect(d.notBefore()).toEqual(notBefore);
-            expect(d.signatureVersion()).toEqual(0);
+
+            const defaultSignatureVersionBeforeSigning = 0;
+            expect(d.signatureVersion()).toEqual(defaultSignatureVersionBeforeSigning);
+
             expect(d.payloadVersion()).toEqual(0);
             expect(d.signature()).toEqual(defaultSignatureBeforeSigning);
         });
@@ -107,9 +110,9 @@ describe('wasm doughnut', () => {
 
             expect(d.signature()).toEqual(defaultSignatureBeforeSigning);
 
-            expect(d.signatureVersion()).toEqual(0);
-
             d.signSr25519(sr25519Keypair.secretKey);
+
+            expect(d.signatureVersion()).toEqual(0);
 
             expect(d.verify(holder, 12346)).toEqual(true);
         });
@@ -126,11 +129,9 @@ describe('wasm doughnut', () => {
 
             expect(d.signature()).toEqual(defaultSignatureBeforeSigning);
 
-            expect(d.signatureVersion()).toEqual(0);
-
             d.signEd25519(ed25519Keypair.secretKey);
 
-            const sign = d.signature();
+            expect(d.signatureVersion()).toEqual(1);
 
             expect(d.signature()).toEqual(signature);
         });
