@@ -45,12 +45,12 @@ impl DoughnutApi for () {
 #[cfg(feature = "crypto")]
 pub mod crypto {
     //! Crypto.verification and signing impls for Doughnut types
-    use super::*;
     use crate::{
+        alloc::vec::Vec,
         doughnut::Doughnut,
         error::{SigningError, VerifyError},
         signature::{sign_ed25519, sign_sr25519, verify_signature, SignatureVersion},
-        traits::Signing,
+        traits::{DoughnutApi, DoughnutVerify, Signing},
         v0::DoughnutV0,
     };
     use primitive_types::H512;
