@@ -39,23 +39,25 @@ jobs:
       - run:
           name: cargo fmt
           command: |
-            cargo fmt --version
-            cargo fmt -- --check
+            # use +nightly to enable license_template check
+            cargo +nightly fmt --version
+            cargo +nightly fmt -- --check
       - run:
           name: cargo test
           command: |
             cargo test
       - run:
-          name: "Check 'no std' build"
+          name: "Check 'no std' + crypto build"
           command: |
             cargo --version --verbose
             cargo check --no-default-features
+            cargo +nightly check --no-default-features --features=crypto
       # JS
       - build-js
       - test-js
   publish-js:
     docker:
-      - image: circleci/rust:1.43.1
+      - image: circleci/rust:1.44.1
     steps:
       - checkout
       - build-js
@@ -67,7 +69,7 @@ jobs:
             npm publish --access public --tag next
   clippy:
     docker:
-      - image: circleci/rust:1.43.1
+      - image: circleci/rust:1.44.1
     steps:
       - checkout
       - run:
