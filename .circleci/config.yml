@@ -28,7 +28,7 @@ commands:
 jobs:
   build:
     docker:
-      - image: circleci/rust:1.43.1
+      - image: circleci/rust:1.44.1
     steps:
       - checkout
       - run:
@@ -39,6 +39,8 @@ jobs:
       - run:
           name: cargo fmt
           command: |
+            rustup install nightly
+            rustup component add rustfmt --toolchain=nightly
             # use +nightly to enable license_template check
             cargo +nightly fmt --version
             cargo +nightly fmt -- --check
@@ -51,6 +53,7 @@ jobs:
           command: |
             cargo --version --verbose
             cargo check --no-default-features
+            cargo +nightly --version --verbose
             cargo +nightly check --no-default-features --features=crypto
       # JS
       - build-js
