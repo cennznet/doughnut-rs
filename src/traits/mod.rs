@@ -4,8 +4,10 @@
 //! Doughnut traits
 //!
 
-use crate::alloc::vec::Vec;
-use crate::error::{SigningError, ValidationError, VerifyError};
+use crate::{
+    alloc::vec::Vec,
+    error::{SigningError, ValidationError, VerifyError},
+};
 use core::convert::TryInto;
 
 mod impls;
@@ -66,6 +68,7 @@ pub trait DoughnutApi {
     }
 }
 
+/// Provide doughnut signing
 pub trait Signing {
     /// sign using Ed25519 method
     fn sign_ed25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError>;

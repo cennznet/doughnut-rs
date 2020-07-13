@@ -1,23 +1,10 @@
 // Copyright 2019-2020 Centrality Investments Limited
 
 //! Doughnut trait impls
-
-#[cfg(feature = "std")]
-use crate::{error::SigningError, traits::Signing};
-#[cfg(feature = "std")]
-use primitive_types::H512;
-
 use crate::{
     alloc::vec::Vec,
     error::{ValidationError, VerifyError},
     traits::{DoughnutApi, DoughnutVerify},
-};
-
-#[cfg(feature = "std")]
-use crate::{
-    doughnut::Doughnut,
-    signature::{sign_ed25519, sign_sr25519, verify_signature, SignatureVersion},
-    v0::DoughnutV0,
 };
 
 // Dummy implementation for unit type
@@ -55,28 +42,56 @@ impl DoughnutApi for () {
     }
 }
 
-#[cfg(feature = "std")]
-impl Signing for DoughnutV0 {
-    fn sign_ed25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
-        self.signature_version = SignatureVersion::Ed25519 as u8;
-        sign_ed25519(&self.issuer(), secret_key, &self.payload())
-            .map(|signed_signature| H512::from_slice(&signed_signature))
-            .map(|signature| {
-                self.signature = signature; // Store signature as type:H512
-                signature
-            })
-            .map(|signature| H512::to_fixed_bytes(signature).to_vec()) // Export signature as type:Vec<u8>
+#[cfg(feature = "crypto")]
+pub mod crypto {
+    //! Crypto.verification and signing impls for Doughnut types
+    use super::*;
+    use crate::{
+        doughnut::Doughnut,
+        error::{SigningError, VerifyError},
+        signature::{sign_ed25519, sign_sr25519, verify_signature, SignatureVersion},
+        traits::Signing,
+        v0::DoughnutV0,
+    };
+    use primitive_types::H512;
+
+    impl DoughnutVerify for DoughnutV0 {
+        fn verify(&self) -> Result<(), VerifyError> {
+            verify_signature(
+                &self.signature(),
+                self.signature_version(),
+                &self.issuer(),
+                &self.payload(),
+            )
+        }
     }
 
-    fn sign_sr25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
-        self.signature_version = SignatureVersion::Sr25519 as u8;
-        sign_sr25519(&self.issuer(), secret_key, &self.payload())
-            .map(|signed_signature| H512::from_slice(&signed_signature))
-            .map(|signature| {
-                self.signature = signature; // Store signature as type:H512
+    #[allow(unreachable_patterns)]
+    impl DoughnutVerify for Doughnut {
+        fn verify(&self) -> Result<(), VerifyError> {
+            match self {
+                Self::V0(v0) => v0.verify(),
+                _ => Err(VerifyError::UnsupportedVersion),
+            }
+        }
+    }
+
+    impl Signing for DoughnutV0 {
+        fn sign_ed25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
+            self.signature_version = SignatureVersion::Ed25519 as u8;
+            sign_ed25519(&self.issuer(), secret_key, &self.payload()).map(|signature| {
+                self.signature = H512::from_slice(&signature);
                 signature
             })
-            .map(|signature| H512::to_fixed_bytes(signature).to_vec()) // Export signature as type:Vec<u8>
+        }
+
+        fn sign_sr25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
+            self.signature_version = SignatureVersion::Sr25519 as u8;
+            sign_sr25519(&self.issuer(), secret_key, &self.payload()).map(|signature| {
+                self.signature = H512::from_slice(&signature);
+                signature
+            })
+        }
     }
 }
 
@@ -86,35 +101,17 @@ impl DoughnutVerify for () {
     }
 }
 
-#[cfg(feature = "std")]
-impl DoughnutVerify for DoughnutV0 {
-    fn verify(&self) -> Result<(), VerifyError> {
-        verify_signature(
-            &self.signature(),
-            self.signature_version(),
-            &self.issuer(),
-            &self.payload(),
-        )
-    }
-}
-
-#[cfg(feature = "std")]
-#[allow(unreachable_patterns)]
-impl DoughnutVerify for Doughnut {
-    fn verify(&self) -> Result<(), VerifyError> {
-        match self {
-            Self::V0(v0) => v0.verify(),
-            _ => Err(VerifyError::UnsupportedVersion),
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::signature::CONTEXT_ID;
-    use crate::traits::DoughnutVerify;
+    use crate::{
+        error::SigningError,
+        signature::{SignatureVersion, CONTEXT_ID},
+        traits::{DoughnutVerify, Signing},
+        v0::DoughnutV0,
+    };
     use codec::Decode;
+    use primitive_types::H512;
     // The ed25519 and schnorrkel libs use different implementations of `OsRng`
     // two different libraries are used: `rand` and `rand_core` as a workaround
     use ed25519_dalek::Keypair as Ed25519Keypair;

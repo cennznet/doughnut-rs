@@ -1,5 +1,6 @@
 // Copyright 2019-2020 Centrality Investments Limited
 
+use crate::alloc::vec::Vec;
 use crate::error::{SigningError, VerifyError};
 use core::convert::TryFrom;
 

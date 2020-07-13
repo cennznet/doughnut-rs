@@ -25,7 +25,7 @@ pub enum ValidationError {
 }
 
 /// A signature verification error
-#[cfg_attr(feature = "std", derive(PartialEq, Debug))]
+#[derive(PartialEq, Debug)]
 pub enum VerifyError {
     /// Unsupported signature version
     UnsupportedVersion,
@@ -38,7 +38,7 @@ pub enum VerifyError {
 }
 
 /// A signature signing error
-#[cfg_attr(feature = "std", derive(PartialEq, Debug))]
+#[derive(PartialEq, Debug)]
 pub enum SigningError {
     // Provided public/secret key is invalid ed25519 signing
     InvalidEd25519Key,
