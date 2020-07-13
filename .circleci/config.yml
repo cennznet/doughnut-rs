@@ -41,7 +41,7 @@ jobs:
           command: |
             # TODO: use +nightly to enable license_template check
             cargo fmt --version
-            cargo fmt --check
+            cargo fmt -- --check
       - run:
           name: cargo test
           command: |
