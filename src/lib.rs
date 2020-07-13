@@ -15,7 +15,7 @@ mod doughnut;
 pub use doughnut::Doughnut;
 
 pub mod error;
-#[cfg(feature = "std")]
+#[cfg(feature = "crypto")]
 mod signature;
 mod test;
 pub mod traits;

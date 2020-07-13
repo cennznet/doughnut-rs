@@ -236,8 +236,10 @@ impl Decode for DoughnutV0 {
 mod test {
     use super::*;
     use crate::error::ValidationError;
-    use std::ops::Add;
-    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    use std::{
+        ops::Add,
+        time::{Duration, SystemTime, UNIX_EPOCH},
+    };
 
     macro_rules! doughnut_builder {
         (
