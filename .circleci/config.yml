@@ -39,11 +39,9 @@ jobs:
       - run:
           name: cargo fmt
           command: |
-            rustup install nightly
-            rustup component add rustfmt --toolchain=nightly
-            # use +nightly to enable license_template check
-            cargo +nightly fmt --version
-            cargo +nightly fmt -- --check
+            # TODO: use +nightly to enable license_template check
+            cargo fmt --version
+            cargo fmt --check
       - run:
           name: cargo test
           command: |
@@ -51,8 +49,11 @@ jobs:
       - run:
           name: "Check 'no std' + crypto build"
           command: |
+            # check vanilla no std
             cargo --version --verbose
             cargo check --no-default-features
+            # check crypto + no std
+            rustup install nightly
             cargo +nightly --version --verbose
             cargo +nightly check --no-default-features --features=crypto
       # JS
