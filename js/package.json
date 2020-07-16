@@ -1,12 +1,15 @@
 {
   "name": "@plugnet/doughnut-wasm",
-  "version": "0.0.1-dev.0",
+  "version": "0.1.1",
   "description": "Wasm Doughnut codec",
   "main": "libNode/doughnut.js",
   "browser": "libBrowser/doughnut.js",
-  "dependencies": {},
+  "dependencies": {
+    "@polkadot/util-crypto": "^2.18.1",
+    "tweetnacl": "^1.0.3"
+  },
   "devDependencies": {
-    "jest": "^26.0.1"
+    "jest": "^26.1.0"
   },
   "files": [
     "libBrowser/*",
@@ -14,7 +17,7 @@
   ],
   "scripts": {
     "build": "rm -rf libNode libBrowser && sh build.sh browser libBrowser && sh build.sh nodejs libNode",
-    "test": "jest"
+    "test": "jest && node test/nodeImportWorks.js"
   },
   "repository": {
     "type": "git",
