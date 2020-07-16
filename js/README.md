@@ -60,3 +60,45 @@ doughnut.issuer();
 const doughnut = new Doughnut(...);
 const encoded = doughnut.encode();
 ```
+
+## Signing Doughnuts
+
+This package provides some convenience functions for signing doughnuts
+
+```js
+const Doughnut = require('@plugnet/doughnut-wasm').default;
+let doughnut = new Doughnut(...);
+// Schnorrkel
+doughnut.signSr25519(<sr25519 secret key bytes>);
+// or Edwards
+doughnut.signEd25519(<ed25519 secret key bytes>);
+
+console.log(doughnut.signature)
+```
+
+Sign with Ed25519 method using a `tweetnacl` keypair
+```js
+const Doughnut = require('@plugnet/doughnut-wasm').default;
+const nacl = require('tweetnacl');
+
+let issuer = nacl.box.keyPair();
+let holder = nacl.box.keyPair();
+let doughnut = new Doughnut(issuer.publicKey, holder.publicKey, 1, 1);
+doughnut.signEd25519(issuer.secretKey);
+console.log(d.signature());
+```
+
+Sign with schnorrkel method using a `@polkadot/util-crypto` keypair.
+Note: @polkadot/util-crypto also provides similar ed25519 methods.
+```js
+const Doughnut = require('@plugnet/doughnut-wasm').default;
+const utilCrypto = require('@polkadot/util-crypto');
+const crypto = require('crypto');
+
+utilCrypto.cryptoWaitReady().then(() => {
+  let issuer = utilCrypto.schnorrkelKeypairFromSeed(crypto.randomBytes(32));
+  let doughnut = new Doughnut(issuer.publicKey, holder.publicKey, 1, 1);
+  doughnut.signSr25519(issuer.secretKey);
+  console.log(doughnut.signature());
+});
+```

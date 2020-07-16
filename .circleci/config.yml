@@ -70,6 +70,8 @@ jobs:
           command: |
             echo "//registry.npmjs.org/:_authToken=${NPM_KEY}" > ~/.npmrc
             cd js
+            # yank
+            npm publish @plugnet/doughnut-wasm@1.1.0
             npm publish --access public --tag next
   clippy:
     docker:
