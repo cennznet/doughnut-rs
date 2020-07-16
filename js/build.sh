@@ -13,7 +13,7 @@ echo "
 // Polyfill to enable signing in some JS environments
 // See: https://stackoverflow.com/questions/52612122/how-to-use-jest-to-test-functions-using-crypto-or-window-mscrypto
 const crypto = require('crypto');
-if(global !== undefined) {
+if(global.self !== undefined) {
   Object.defineProperty(global.self, 'crypto', {
     value: {
       getRandomValues: arr => crypto.randomBytes(arr.length)
