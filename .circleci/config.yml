@@ -71,8 +71,8 @@ jobs:
             echo "//registry.npmjs.org/:_authToken=${NPM_KEY}" > ~/.npmrc
             cd js
             # yank broken versions
-            npm publish @plugnet/doughnut-wasm@0.0.1
-            npm publish @plugnet/doughnut-wasm@0.1.0
+            npm unpublish @plugnet/doughnut-wasm@0.0.1
+            npm unpublish @plugnet/doughnut-wasm@0.1.0
             npm publish --access public --tag next
   clippy:
     docker:
