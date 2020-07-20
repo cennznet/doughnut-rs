@@ -30,6 +30,7 @@ fn from_slice_32(bytes: &[u8]) -> [u8; 32] {
 
 /// A js handle for a rust versioned doughnut struct
 #[wasm_bindgen(js_name = Doughnut)]
+#[derive(Clone)]
 pub struct JsHandle(Doughnut);
 
 #[wasm_bindgen(js_class = Doughnut)]
@@ -51,35 +52,37 @@ impl JsHandle {
     #[allow(non_snake_case)]
     /// Add a permission domain to this `doughnut`
     pub fn addDomain(&mut self, key: &str, value: &[u8]) -> Self {
-        if let Doughnut::V0(mut doughnut) = self.0.clone() {
+        if let Doughnut::V0(ref mut doughnut) = &mut self.0 {
             doughnut.domains.push((key.to_string(), value.to_vec()));
-            return JsHandle(Doughnut::V0(doughnut));
+            return self.clone();
         }
         panic!("unsupported doughnut version");
     }
 
     #[allow(non_snake_case)]
     /// Sign and return ed25519 signature
-    pub fn signSr25519(&mut self, secret_key: &[u8]) -> Result<(), JsValue> {
+    pub fn signSr25519(&mut self, secret_key: &[u8]) -> Result<JsHandle, JsValue> {
         if let Doughnut::V0(ref mut doughnut) = &mut self.0 {
-            return doughnut
+            let _signature = doughnut
                 .sign_sr25519(secret_key)
                 .map(|_| ())
                 // throws: 'undefined' in JS on error
-                .map_err(|_| JsValue::undefined());
+                .map_err(|_| JsValue::undefined())?;
+            return Ok(self.clone());
         }
         panic!("unsupported doughnut version");
     }
 
     #[allow(non_snake_case)]
     /// Sign and return ed25519 signature
-    pub fn signEd25519(&mut self, secret_key: &[u8]) -> Result<(), JsValue> {
+    pub fn signEd25519(&mut self, secret_key: &[u8]) -> Result<JsHandle, JsValue> {
         if let Doughnut::V0(ref mut doughnut) = &mut self.0 {
-            return doughnut
+            let _signature = doughnut
                 .sign_ed25519(secret_key)
                 .map(|_| ())
                 // throws: 'undefined' in JS on error
-                .map_err(|_| JsValue::undefined());
+                .map_err(|_| JsValue::undefined())?;
+            return Ok(self.clone());
         }
         panic!("unsupported doughnut version");
     }
@@ -152,9 +155,13 @@ impl JsHandle {
     }
 
     /// Return the payload for domain, if it exists in the doughnut
-    pub fn domain(&self, domain: &str) -> Vec<u8> {
+    /// This will throw "undefined" in JS if the domain is not found
+    pub fn domain(&self, domain: &str) -> Result<Vec<u8>, JsValue> {
         if let Doughnut::V0(doughnut) = &self.0 {
-            return doughnut.get_domain(domain).unwrap().to_vec();
+            return doughnut
+                .get_domain(domain)
+                .map(|d| Ok(d.to_vec()))
+                .unwrap_or(Err(JsValue::undefined()));
         }
         panic!("unsupported doughnut version");
     }
