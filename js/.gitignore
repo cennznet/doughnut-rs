@@ -1,5 +1,7 @@
 # js build output
 *.tgz
+dist
 node_modules
-libNode
 libBrowser
+libNode
+libWeb
