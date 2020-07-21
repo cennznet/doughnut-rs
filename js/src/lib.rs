@@ -161,7 +161,7 @@ impl JsHandle {
             return doughnut
                 .get_domain(domain)
                 .map(|d| Ok(d.to_vec()))
-                .unwrap_or(Err(JsValue::undefined()));
+                .unwrap_or_else(|| Err(JsValue::undefined()))
         }
         panic!("unsupported doughnut version");
     }
