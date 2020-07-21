@@ -215,20 +215,16 @@ impl Decode for DoughnutV0 {
         let mut signature = [0_u8; 64];
         input.read(&mut signature)?;
 
-        if input.read_byte().is_ok() {
-            Err(codec::Error::from("Doughnut contains unexpected bytes"))
-        } else {
-            Ok(Self {
-                holder,
-                issuer,
-                expiry,
-                not_before,
-                signature_version,
-                payload_version,
-                domains,
-                signature: H512::from(signature),
-            })
-        }
+        Ok(Self {
+            holder,
+            issuer,
+            expiry,
+            not_before,
+            signature_version,
+            payload_version,
+            domains,
+            signature: H512::from(signature),
+        })
     }
 }
 
@@ -579,6 +575,8 @@ mod test {
         );
     }
 
+    // TODO: reconcile once https://github.com/cennznet/doughnut-rs/issues/67 is solved
+    #[ignore]
     #[test]
     fn decode_error_with_too_many_bytes() {
         let doughnut = doughnut_builder!();
