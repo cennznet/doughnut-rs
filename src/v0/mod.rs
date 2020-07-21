@@ -215,20 +215,16 @@ impl Decode for DoughnutV0 {
         let mut signature = [0_u8; 64];
         input.read(&mut signature)?;
 
-        if input.read_byte().is_ok() {
-            Err(codec::Error::from("Doughnut contains unexpected bytes"))
-        } else {
-            Ok(Self {
-                holder,
-                issuer,
-                expiry,
-                not_before,
-                signature_version,
-                payload_version,
-                domains,
-                signature: H512::from(signature),
-            })
-        }
+        Ok(Self {
+            holder,
+            issuer,
+            expiry,
+            not_before,
+            signature_version,
+            payload_version,
+            domains,
+            signature: H512::from(signature),
+        })
     }
 }
 
@@ -587,10 +583,11 @@ mod test {
 
         let result = DoughnutV0::decode(&mut &encoded[..]);
 
-        assert_eq!(
-            result,
-            Err(codec::Error::from("Doughnut contains unexpected bytes"))
-        );
+        // This used to be a decoding error.
+        // It may be desirable for some use cases to fail when encountering extraneous bytes
+        // as a security precaution.
+        // TODO: reconcile with https://github.com/cennznet/doughnut-rs/issues/67
+        assert!(result.is_ok());
     }
 
     #[test]
