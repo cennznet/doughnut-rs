@@ -42,6 +42,9 @@ const doughnut = {
   signature_version: d.signatureVersion(),
   payload_version: d.payloadVersion(),
 }
+// query permission domain bytes
+// It will throw 'undefined' if the domain does not exist
+let testDomain = d.domain("test");
 ```
 
 ## Doughnut Encoding and Decoding

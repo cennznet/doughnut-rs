@@ -59,6 +59,10 @@ const encodedDoughnut = new Uint8Array(
     })
 );
 
+const srSignatureVersion = 0;
+const edSignatureVersion = 1;
+const defaultSignatureVersion = srSignatureVersion;
+
 describe('wasm doughnut', () => {
     describe('Decoded instance', () => {
         test('getters work', () => {
@@ -78,25 +82,44 @@ describe('wasm doughnut', () => {
     });
 
     describe('Class instance', () => {
-        test('getters work', () => {
+        test('getters + chained API', () => {
+           // doughnut is instantiated via chained method calls
             const d = new Doughnut(
                 ed25519Keypair.publicKey,
                 holder,
                 expiry,
                 notBefore
-            );
+            )
+            .addDomain("test", new Uint8Array([1,2,3,4,5]))
+            .signEd25519(ed25519Keypair.secretKey);
+
+            expect(d.encode().length).toBeGreaterThan(0);
 
             expect(d.holder()).toEqual(holder);
             expect(d.issuer()).toEqual(ed25519Keypair.publicKey);
             expect(d.expiry()).toEqual(expiry);
             expect(d.notBefore()).toEqual(notBefore);
 
-            const defaultSignatureVersionBeforeSigning = 0;
-            expect(d.signatureVersion()).toEqual(defaultSignatureVersionBeforeSigning);
+            expect(d.signatureVersion()).toEqual(edSignatureVersion);
 
             expect(d.payloadVersion()).toEqual(0);
-            expect(d.signature()).toEqual(defaultSignatureBeforeSigning);
-        });
+            expect(d.domain("test")).toEqual(new Uint8Array([1,2,3,4,5]));
+        }),
+        test('addDomain operates on "this" object', () => {
+            // doughnut is instantiated and modified in discrete steps
+            const d = new Doughnut(
+                ed25519Keypair.publicKey,
+                holder,
+                expiry,
+                notBefore
+            );
+            expect(() => {
+              d.domain("test")}
+            ).toThrow(undefined);
+            d.addDomain("test", new Uint8Array([1,2,3,4,5]));
+            expect(d.domain("test")).toEqual(new Uint8Array([1,2,3,4,5]));
+        })
+
     });
 
     describe('Schnorrkel', () => {
@@ -107,13 +130,14 @@ describe('wasm doughnut', () => {
                 expiry,
                 notBefore
             );
-
+            expect(d.signatureVersion()).toEqual(defaultSignatureVersion);
             expect(d.signature()).toEqual(defaultSignatureBeforeSigning);
 
             d.signSr25519(sr25519Keypair.secretKey);
-
-            expect(d.signatureVersion()).toEqual(0);
-
+            
+            expect(d.signatureVersion()).toEqual(srSignatureVersion);
+            // schnorrkel signatures are random, so we don't assert the output
+            // only that it is verifiable
             expect(d.verify(holder, 12346)).toEqual(true);
         });
     });
@@ -126,15 +150,13 @@ describe('wasm doughnut', () => {
                 expiry,
                 notBefore
             );
-
+            expect(d.signatureVersion()).toEqual(defaultSignatureVersion);
             expect(d.signature()).toEqual(defaultSignatureBeforeSigning);
 
             d.signEd25519(ed25519Keypair.secretKey);
 
-            expect(d.signatureVersion()).toEqual(1);
-
+            expect(d.signatureVersion()).toEqual(edSignatureVersion);
             expect(d.signature()).toEqual(signature);
-
             expect(d.verify(holder, 12346)).toEqual(true);
         });
     });
