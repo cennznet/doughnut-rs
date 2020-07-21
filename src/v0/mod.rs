@@ -575,8 +575,6 @@ mod test {
         );
     }
 
-    // TODO: reconcile once https://github.com/cennznet/doughnut-rs/issues/67 is solved
-    #[ignore]
     #[test]
     fn decode_error_with_too_many_bytes() {
         let doughnut = doughnut_builder!();
@@ -585,10 +583,11 @@ mod test {
 
         let result = DoughnutV0::decode(&mut &encoded[..]);
 
-        assert_eq!(
-            result,
-            Err(codec::Error::from("Doughnut contains unexpected bytes"))
-        );
+        // This used to be a decoding error.
+        // It may be desirable for some use cases to fail when encountering extraneous bytes
+        // as a security precaution.
+        // TODO: reconcile with https://github.com/cennznet/doughnut-rs/issues/67
+        assert!(result.is_ok());
     }
 
     #[test]
