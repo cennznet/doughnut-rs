@@ -5,7 +5,7 @@ const WasmPackPlugin = require('@wasm-tool/wasm-pack-plugin');
 
 module.exports = {
   mode: 'development',
-  devtool: '#cheap-module-eval-source-map',
+  devtool: 'eval-cheap-module-source-map',
   entry: './index.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -24,9 +24,16 @@ module.exports = {
       },
       {
         test: /\.wasm$/,
-        use: ['wasm-loader']
+        type: "webassembly/async"
       }
     ],
+  },
+  optimization: {
+    chunkIds: "deterministic" // To keep filename consistent between different modes (for example building only)
+  },
+  experiments: {
+    asyncWebAssembly: true,
+    importAwait: true
   },
   plugins: [
     new HtmlWebpackPlugin({
