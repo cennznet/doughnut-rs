@@ -6,7 +6,7 @@ const WasmPackPlugin = require('@wasm-tool/wasm-pack-plugin');
 module.exports = {
   mode: 'development',
   devtool: '#cheap-module-eval-source-map',
-  entry: './libWeb/doughnut.js',
+  entry: './index.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'index.js',
@@ -34,7 +34,7 @@ module.exports = {
       template: 'index.template.html'
     }),
     new WasmPackPlugin({
-      crateDirectory: path.resolve(__dirname, ".")
+      crateDirectory: path.resolve(__dirname, "..")
     }),
     new webpack.ProvidePlugin({
       TextDecoder: ['text-encoding', 'TextDecoder'],
