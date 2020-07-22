@@ -28,6 +28,11 @@ fn from_slice_32(bytes: &[u8]) -> [u8; 32] {
     array
 }
 
+#[wasm_bindgen]
+pub fn say_hello_from_rust() {
+    log("Hello from Webpack Rust World!");
+}
+
 /// A js handle for a rust versioned doughnut struct
 #[wasm_bindgen(js_name = Doughnut)]
 pub struct JsHandle(Doughnut);
