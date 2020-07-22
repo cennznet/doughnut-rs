@@ -36,9 +36,9 @@ module.exports = {
     new WasmPackPlugin({
       crateDirectory: path.resolve(__dirname, "..")
     }),
-    new webpack.ProvidePlugin({
-      TextDecoder: ['text-encoding', 'TextDecoder'],
-      TextEncoder: ['text-encoding', 'TextEncoder']
-    })
+    // new webpack.ProvidePlugin({
+    //   TextDecoder: ['text-encoding', 'TextDecoder'],
+    //   TextEncoder: ['text-encoding', 'TextEncoder']
+    // })
   ],
 };
