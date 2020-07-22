@@ -6,6 +6,7 @@
   "browser": "libBrowser/doughnut.js",
   "dependencies": {
     "@polkadot/util-crypto": "^2.18.1",
+    "text-encoding": "^0.7.0",
     "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
@@ -21,17 +22,12 @@
   },
   "files": [
     "libBrowser/*",
-    "libNode/*",
-    "libWeb/*"
+    "libNode/*"
   ],
   "scripts": {
-    "build:browser": "rm -rf libNode libBrowser && sh build.sh browser libBrowser",
-    "build:nodejs": "rm -rf libNode && sh build.sh nodejs libNode",
-    "build:web": "rm -rf libWeb && sh build.sh web libWeb",
-    "build": "yarn build:browser && yarn build:nodejs && yarn build:web",
-    "test": "jest && node test/nodeImportWorks.js",
-    "webpack": "webpack",
-    "start": "webpack-dev-server --inline --hot --colors --content-base=dist --host 0.0.0.0 --port 3453"
+    "build": "rm -rf libNode libBrowser && sh build.sh browser libBrowser && sh build.sh nodejs libNode",
+    "start": "webpack-dev-server --hot --content-base=dist --host 0.0.0.0 --port 8080",
+    "test": "jest && node test/nodeImportWorks.js"
   },
   "repository": {
     "type": "git",

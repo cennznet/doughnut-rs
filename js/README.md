@@ -102,3 +102,14 @@ utilCrypto.cryptoWaitReady().then(() => {
   console.log(doughnut.signature());
 });
 ```
+
+## Run in browser
+
+```bash
+# In js folder, run
+yarn start
+
+# Then visit localhost:8080
+
+# ps: pkg folder gonna be generated after yarn start, which contains files to be loaded in browser, for more details, check webpack.config.js
+```
