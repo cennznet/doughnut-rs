@@ -16,7 +16,7 @@ pub enum Doughnut {
 }
 
 impl Encode for Doughnut {
-    fn encode_to<W: Output>(&self, dest: &mut W) {
+    fn encode_to<W: Output + ?Sized>(&self, dest: &mut W) {
         match self {
             // encode transparently
             Doughnut::V0(inner) => inner.encode_to(dest),
