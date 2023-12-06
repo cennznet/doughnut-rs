@@ -1,5 +1,5 @@
 [package]
-name = "doughnut_rs"
+name = "doughnut-rs"
 version = "0.5.1"
 authors = ["Centrality Developers <developers@centrality.ai>"]
 edition = "2018"

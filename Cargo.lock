@@ -115,7 +115,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "doughnut_rs"
+name = "doughnut-rs"
 version = "0.5.1"
 dependencies = [
  "clear_on_drop",
