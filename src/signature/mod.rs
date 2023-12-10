@@ -19,6 +19,7 @@ pub const CONTEXT_ID: &[u8] = b"doughnut";
 pub enum SignatureVersion {
     Sr25519 = 0,
     Ed25519 = 1,
+    ECDSA = 2,
 }
 
 impl TryFrom<u8> for SignatureVersion {
@@ -27,6 +28,7 @@ impl TryFrom<u8> for SignatureVersion {
         match val {
             0 => Ok(Self::Sr25519),
             1 => Ok(Self::Ed25519),
+            2 => Ok(Self::ECDSA),
             _ => Err(VerifyError::UnsupportedVersion),
         }
     }
@@ -83,6 +85,7 @@ pub fn verify_signature(
     match version {
         SignatureVersion::Ed25519 => verify_ed25519_signature(signature_bytes, signer, payload),
         SignatureVersion::Sr25519 => verify_sr25519_signature(signature_bytes, signer, payload),
+        SignatureVersion::ECDSA => verify_ecdsa_signature(signature_bytes, signer, payload),
     }
 }
 
