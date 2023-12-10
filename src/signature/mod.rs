@@ -2,7 +2,9 @@
 
 use crate::alloc::vec::Vec;
 use crate::error::{SigningError, VerifyError};
+use codec::Encode;
 use core::convert::TryFrom;
+use std::convert::TryInto;
 
 use ed25519_dalek::{
     Keypair as Ed25519Keypair, PublicKey as Ed25519PublicKey, Signature as Ed25519Signature,
@@ -11,6 +13,8 @@ use schnorrkel::{
     signing_context, PublicKey as Sr25519PublicKey, SecretKey as Sr25519SecretKey,
     Signature as Sr25519Signature,
 };
+use sp_core::ecdsa::{Pair as ECDSAKeyPair, Public as ECDSAPublicKey, Signature as ECDSASignature};
+use sp_core::Pair as ECDSAKeyPairTrait;
 
 pub const CONTEXT_ID: &[u8] = b"doughnut";
 
@@ -147,8 +151,10 @@ mod test {
     use rand_core::OsRng;
 
     use ed25519_dalek::{Keypair as Ed25519Keypair, SIGNATURE_LENGTH as ED25519_SIGNATURE_LENGTH};
-
+    use libsecp256k1::SecretKey as ECDSASecretKey;
     use schnorrkel::{Keypair as Sr25519Keypair, SIGNATURE_LENGTH as SR25519_SIGNATURE_LENGTH};
+    use sp_core::{ecdsa::Pair as ECDSAKeyPair, ByteArray};
+    const ECDSA_SIGNATURE_LENGTH: usize = 65;
 
     fn generate_ed25519_keypair() -> Ed25519Keypair {
         let mut csprng = OsRng {};
@@ -158,6 +164,14 @@ mod test {
     fn generate_sr25519_keypair() -> Sr25519Keypair {
         let mut csprng: ThreadRng = thread_rng();
         Sr25519Keypair::generate_with(&mut csprng)
+    }
+
+    fn generate_ecdsa_keypair() -> (ECDSAKeyPair, ECDSASecretKey) {
+        let (pair, seed) = ECDSAKeyPair::generate();
+        (
+            pair,
+            ECDSASecretKey::parse(&seed.into()).expect("can not error here"),
+        )
     }
 
     #[test]
@@ -186,6 +200,40 @@ mod test {
             .expect("Signed signature can be verified");
 
         assert!(signature.len() == SR25519_SIGNATURE_LENGTH);
+    }
+
+    #[test]
+    fn can_sign_ecdsa() {
+        let (_, secret_key) = generate_ecdsa_keypair();
+        let payload = "this is a payload".as_bytes();
+        let signature = sign_ecdsa(secret_key.serialize().as_slice(), payload).unwrap();
+
+        assert_eq!(signature.len(), ECDSA_SIGNATURE_LENGTH);
+    }
+
+    #[test]
+    fn test_ecdsa_signature_verifies() {
+        let (keypair, secret_key) = generate_ecdsa_keypair();
+        let public_key = keypair.public();
+        let payload = "this is a payload".as_bytes();
+        let signature = sign_ecdsa(secret_key.serialize().as_slice(), payload).unwrap();
+
+        verify_ecdsa_signature(&signature, &public_key.as_slice(), payload)
+            .expect("Signed signature can be verified");
+    }
+
+    #[test]
+    fn test_ecdsa_signature_verification_failed() {
+        let (keypair, secret_key) = generate_ecdsa_keypair();
+        let public_key = keypair.public();
+        let payload = "To a deep sea diver who is swimming with a raincoat".as_bytes();
+        let signed_payload = "To a deep sea diver who is swimming without a raincoat".as_bytes();
+        let signature = sign_ecdsa(secret_key.serialize().as_slice(), signed_payload).unwrap();
+
+        assert_eq!(
+            verify_ecdsa_signature(&signature, &public_key.as_slice(), payload,),
+            Err(VerifyError::Invalid)
+        );
     }
 
     #[test]
