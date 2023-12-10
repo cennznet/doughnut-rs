@@ -41,7 +41,11 @@ pub struct DoughnutV0 {
 impl DoughnutV0 {
     /// Encodes the doughnut into an byte array and writes the result into a given memory
     /// if `encode_signature` is false, the final signature bytes are not included in the result
-    fn encode_to_with_signature_optional<T: Output + ?Sized>(&self, dest: &mut T, encode_signature: bool) {
+    fn encode_to_with_signature_optional<T: Output + ?Sized>(
+        &self,
+        dest: &mut T,
+        encode_signature: bool,
+    ) {
         // Defensive early return when there are no domains
         if self.domains.is_empty() || self.domains.len() > MAX_DOMAINS {
             return;
@@ -466,7 +470,7 @@ mod test {
         let doughnut = doughnut_builder!(domains: vec![],);
 
         let encoded = doughnut.encode();
-        assert_eq!(encoded, []);
+        assert_eq!(encoded, Vec::<u8>::new());
     }
 
     #[test]
@@ -479,7 +483,7 @@ mod test {
         let doughnut = doughnut_builder!(domains: domains,);
 
         let encoded = doughnut.encode();
-        assert_eq!(encoded, []);
+        assert_eq!(encoded, Vec::<u8>::new());
     }
 
     #[test]
