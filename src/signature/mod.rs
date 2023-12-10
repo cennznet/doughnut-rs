@@ -62,6 +62,15 @@ pub fn sign_sr25519(
         .to_vec())
 }
 
+/// Sign an ecdsa signature
+pub fn sign_ecdsa(secret_key: &[u8], payload: &[u8]) -> Result<Vec<u8>, SigningError> {
+    let key_pair = ECDSAKeyPair::from_seed_slice(secret_key)
+        .map_err(|_| SigningError::InvalidECDSASecretKey)?;
+    // Note - we hash the payload no matter the length.
+    let signature = key_pair.sign(payload);
+    Ok(signature.encode())
+}
+
 /// Verify the signature for a `DoughnutApi` impl type
 #[allow(clippy::module_name_repetitions)]
 pub fn verify_signature(
