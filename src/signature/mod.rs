@@ -116,6 +116,25 @@ fn verify_sr25519_signature(
         .map_err(|_| VerifyError::Invalid)
 }
 
+/// Verify an ecdsa signature
+fn verify_ecdsa_signature(
+    signature_bytes: &[u8],
+    signer: &[u8],
+    payload: &[u8],
+) -> Result<(), VerifyError> {
+    let signature: ECDSASignature = signature_bytes
+        .try_into()
+        .map_err(|_| VerifyError::BadSignatureFormat)?;
+    let public_key: ECDSAPublicKey = signer
+        .try_into()
+        .map_err(|_| VerifyError::BadPublicKeyFormat)?;
+
+    match signature.recover(payload) {
+        Some(actual) if actual == public_key => Ok(()),
+        _ => Err(VerifyError::Invalid),
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
