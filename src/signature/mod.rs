@@ -340,6 +340,17 @@ mod test {
     }
 
     #[test]
+    fn test_verifies_ecdsa_version() {
+        let (keypair, secret_key) = generate_ecdsa_keypair();
+        let public_key = keypair.public();
+        let payload = "this is a payload".as_bytes();
+        let signature = sign_ecdsa(secret_key.serialize().as_slice(), payload).unwrap();
+
+        verify_signature(&signature, 2, &public_key.as_slice(), payload)
+            .expect("Signed signature can be verified");
+    }
+
+    #[test]
     fn test_error_on_wrong_version() {
         let keypair = generate_sr25519_keypair();
         let payload = "When I get to you";
