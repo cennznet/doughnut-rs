@@ -7,6 +7,9 @@ use crate::{
     traits::{DoughnutApi, DoughnutVerify},
 };
 
+#[cfg(feature = "std")]
+use ed25519_dalek::Signer;
+
 // Dummy implementation for unit type
 impl DoughnutApi for () {
     type PublicKey = [u8; 32];

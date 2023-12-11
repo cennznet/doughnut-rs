@@ -3,18 +3,22 @@
 use crate::alloc::vec::Vec;
 use crate::error::{SigningError, VerifyError};
 use codec::Encode;
-use core::convert::TryFrom;
-use std::convert::TryInto;
+use core::convert::{TryFrom, TryInto};
 
 use ed25519_dalek::{
     Keypair as Ed25519Keypair, PublicKey as Ed25519PublicKey, Signature as Ed25519Signature,
+    Signer, Verifier,
 };
 use schnorrkel::{
     signing_context, PublicKey as Sr25519PublicKey, SecretKey as Sr25519SecretKey,
     Signature as Sr25519Signature,
 };
-use sp_core::ecdsa::{Pair as ECDSAKeyPair, Public as ECDSAPublicKey, Signature as ECDSASignature};
+
+#[cfg(feature = "std")]
+use sp_core::ecdsa::{Pair as ECDSAKeyPair};
+#[cfg(feature = "std")]
 use sp_core::Pair as ECDSAKeyPairTrait;
+use sp_io::hashing::blake2_256;
 
 pub const CONTEXT_ID: &[u8] = b"doughnut";
 
@@ -69,10 +73,11 @@ pub fn sign_sr25519(
 }
 
 /// Sign an ecdsa signature
+#[cfg(feature = "std")]
 pub fn sign_ecdsa(secret_key: &[u8], payload: &[u8]) -> Result<Vec<u8>, SigningError> {
     let key_pair = ECDSAKeyPair::from_seed_slice(secret_key)
         .map_err(|_| SigningError::InvalidECDSASecretKey)?;
-    // Note - we hash the payload no matter the length.
+    // Note - we hash the payload no matter the length inside the sign() function
     let signature = key_pair.sign(payload);
     Ok(signature.encode())
 }
@@ -129,15 +134,19 @@ fn verify_ecdsa_signature(
     signer: &[u8],
     payload: &[u8],
 ) -> Result<(), VerifyError> {
-    let signature: ECDSASignature = signature_bytes
+    let payload_hashed = &blake2_256(payload)[..];
+    let signature: [u8; 65] = signature_bytes
         .try_into()
         .map_err(|_| VerifyError::BadSignatureFormat)?;
-    let public_key: ECDSAPublicKey = signer
+    let message: [u8; 32] = payload_hashed
+        .try_into()
+        .map_err(|_| VerifyError::BadPayloadFormat)?;
+    let public_key: [u8; 33] = signer
         .try_into()
         .map_err(|_| VerifyError::BadPublicKeyFormat)?;
 
-    match signature.recover(payload) {
-        Some(actual) if actual == public_key => Ok(()),
+    match sp_io::crypto::secp256k1_ecdsa_recover(&signature, &message) {
+        Ok(pubkey) if pubkey[..32] == public_key[1..] => Ok(()),
         _ => Err(VerifyError::Invalid),
     }
 }

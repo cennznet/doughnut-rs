@@ -13,6 +13,7 @@ primitive-types = { version = "0.7.2", default-features = false }
 schnorrkel = { version = "0.9.1", features = ["preaudit_deprecated", "u64_backend"], default-features = false, optional = true }
 ed25519-dalek = { version = "1.0.0-pre.3", default-features = false, features = ["u64_backend", "alloc"], optional = true }
 sp-core = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.30", optional = true }
+sp-io = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.30", optional = true }
 
 # including this to fix C build issues in consumer crates
 # 'No available targets are compatible with this triple.'
@@ -30,16 +31,19 @@ std = [
     "ed25519-dalek/std",
     "schnorrkel/std",
     "sp-core/std",
+    "sp-io/std",
 ]
  # enable cryptographic signing and verification features in 'no std'
 crypto = [
     "ed25519-dalek",
     "schnorrkel",
     "sp-core",
+    "sp-io",
 ]
 # enable compilation for wasm-bindgen
 wasm = [
     "ed25519-dalek",
     "schnorrkel/wasm-bindgen",
     "sp-core",
+    "sp-io",
 ]

@@ -33,6 +33,8 @@ pub enum VerifyError {
     BadSignatureFormat,
     /// PublicKey format is invalid
     BadPublicKeyFormat,
+    /// Message payload format is invalid
+    BadPayloadFormat,
     /// The signature does not verify the payload from signer
     Invalid,
 }
