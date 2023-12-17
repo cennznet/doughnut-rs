@@ -57,6 +57,7 @@ pub mod crypto {
         v0::DoughnutV0,
     };
     use primitive_types::H512;
+    use crate::signature::sign_ecdsa;
 
     impl DoughnutVerify for DoughnutV0 {
         fn verify(&self) -> Result<(), VerifyError> {
@@ -92,6 +93,14 @@ pub mod crypto {
             self.signature_version = SignatureVersion::Sr25519 as u8;
             sign_sr25519(&self.issuer(), secret_key, &self.payload()).map(|signature| {
                 self.signature = H512::from_slice(&signature);
+                signature
+            })
+        }
+
+        fn sign_ecdsa(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
+            self.signature_version = SignatureVersion::ECDSA as u8;
+            sign_ecdsa(secret_key, &self.payload()).map(|signature| {
+                self.signature = H512::from_slice(&signature[1..]);
                 signature
             })
         }

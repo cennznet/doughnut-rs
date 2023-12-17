@@ -73,7 +73,6 @@ pub fn sign_sr25519(
 }
 
 /// Sign an ecdsa signature
-#[cfg(feature = "std")]
 pub fn sign_ecdsa(secret_key: &[u8], payload: &[u8]) -> Result<Vec<u8>, SigningError> {
     let key_pair = ECDSAKeyPair::from_seed_slice(secret_key)
         .map_err(|_| SigningError::InvalidECDSASecretKey)?;
