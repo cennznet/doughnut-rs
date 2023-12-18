@@ -4,7 +4,6 @@ use crate::alloc::vec::Vec;
 use crate::error::{SigningError, VerifyError};
 use codec::Encode;
 use core::convert::{TryFrom, TryInto};
-
 use ed25519_dalek::{
     Keypair as Ed25519Keypair, PublicKey as Ed25519PublicKey, Signature as Ed25519Signature,
     Signer, Verifier,
@@ -13,11 +12,8 @@ use schnorrkel::{
     signing_context, PublicKey as Sr25519PublicKey, SecretKey as Sr25519SecretKey,
     Signature as Sr25519Signature,
 };
-
 #[cfg(feature = "std")]
-use sp_core::ecdsa::{Pair as ECDSAKeyPair};
-#[cfg(feature = "std")]
-use sp_core::Pair as ECDSAKeyPairTrait;
+use sp_core::{ecdsa::Pair as ECDSAKeyPair, Pair};
 use sp_io::hashing::blake2_256;
 
 pub const CONTEXT_ID: &[u8] = b"doughnut";
@@ -158,11 +154,10 @@ mod test {
     // two different libraries are used: `rand` and `rand_core` as a workaround
     use rand::prelude::*;
     use rand_core::OsRng;
-
     use ed25519_dalek::{Keypair as Ed25519Keypair, SIGNATURE_LENGTH as ED25519_SIGNATURE_LENGTH};
     use libsecp256k1::SecretKey as ECDSASecretKey;
     use schnorrkel::{Keypair as Sr25519Keypair, SIGNATURE_LENGTH as SR25519_SIGNATURE_LENGTH};
-    use sp_core::{ecdsa::Pair as ECDSAKeyPair, ByteArray};
+    use sp_core::ByteArray;
     const ECDSA_SIGNATURE_LENGTH: usize = 65;
 
     fn generate_ed25519_keypair() -> Ed25519Keypair {
