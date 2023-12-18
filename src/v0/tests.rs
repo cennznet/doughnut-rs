@@ -1,10 +1,8 @@
 // Copyright 2019-2020 Centrality Investments Limited
 
-#![cfg(test)]
-
+use super::*;
 use crate::doughnut::Doughnut;
 use crate::traits::{DoughnutApi, DoughnutVerify};
-use crate::v0::DoughnutV0;
 use alloc::vec::Vec;
 use codec::{Decode, Encode};
 use core::convert::TryFrom;

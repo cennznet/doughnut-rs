@@ -18,6 +18,9 @@ use crate::{alloc::{
 }, error::{VerifyError, SigningError}, signature::{verify_signature, SignatureVersion, sign_ed25519, sign_sr25519}, traits::Signing};
 use crate::traits::{DoughnutApi, DoughnutVerify};
 
+#[cfg(test)]
+mod tests;
+
 const NOT_BEFORE_MASK: u8 = 0b0000_0001;
 const SIGNATURE_MASK: u8 = 0b0001_1111;
 const SIGNATURE_OFFSET: usize = 11;

@@ -20,6 +20,3 @@ pub mod signature;
 pub mod traits;
 pub mod v0;
 pub mod v1;
-
-#[cfg(test)]
-mod test;
