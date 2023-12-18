@@ -12,10 +12,10 @@ use codec::{Decode, Encode, Input, Output};
 use core::convert::TryFrom;
 use primitive_types::H512;
 
-use crate::alloc::{
+use crate::{alloc::{
     string::{String, ToString},
     vec::Vec,
-};
+}, traits::{DoughnutVerify, Signing}, error::{VerifyError, SigningError}, signature::verify_signature};
 use crate::traits::DoughnutApi;
 
 const NOT_BEFORE_MASK: u8 = 0b0000_0001;
@@ -109,51 +109,6 @@ impl Encode for DoughnutV1 {
 
 impl codec::EncodeLike for DoughnutV1 {}
 
-impl DoughnutApi for DoughnutV1 {
-    type PublicKey = [u8; 33];
-    type Timestamp = u32;
-    type Signature = [u8; 65];
-    /// Return the doughnut holder account ID
-    fn holder(&self) -> Self::PublicKey {
-        self.holder
-    }
-    /// Return the doughnut issuer account ID
-    fn issuer(&self) -> Self::PublicKey {
-        self.issuer
-    }
-    /// Return the doughnut expiry timestamp
-    fn expiry(&self) -> Self::Timestamp {
-        self.expiry
-    }
-    /// Return the doughnut 'not before' timestamp
-    fn not_before(&self) -> Self::Timestamp {
-        self.not_before
-    }
-    /// Return the doughnut payload bytes
-    fn payload(&self) -> Vec<u8> {
-        let mut r = Vec::with_capacity(self.size_hint());
-        self.encode_to_with_signature_optional(&mut r, false);
-        r
-    }
-    /// Return the doughnut signature bytes
-    fn signature(&self) -> Self::Signature {
-        self.signature.into()
-    }
-    /// Return the doughnut signature version
-    fn signature_version(&self) -> u8 {
-        self.signature_version
-    }
-    /// Return the payload by `domain` key, if it exists in this doughnut
-    fn get_domain(&self, domain: &str) -> Option<&[u8]> {
-        for (key, payload) in &self.domains {
-            if key == domain {
-                return Some(&payload);
-            }
-        }
-        None
-    }
-}
-
 impl Decode for DoughnutV1 {
     fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
         let version_data = u16::from_le_bytes([input.read_byte()?, input.read_byte()?]);
@@ -228,6 +183,84 @@ impl Decode for DoughnutV1 {
             payload_version,
             domains,
             signature: signature,
+        })
+    }
+}
+
+impl DoughnutApi for DoughnutV1 {
+    type PublicKey = [u8; 33];
+    type Timestamp = u32;
+    type Signature = [u8; 65];
+    /// Return the doughnut holder account ID
+    fn holder(&self) -> Self::PublicKey {
+        self.holder
+    }
+    /// Return the doughnut issuer account ID
+    fn issuer(&self) -> Self::PublicKey {
+        self.issuer
+    }
+    /// Return the doughnut expiry timestamp
+    fn expiry(&self) -> Self::Timestamp {
+        self.expiry
+    }
+    /// Return the doughnut 'not before' timestamp
+    fn not_before(&self) -> Self::Timestamp {
+        self.not_before
+    }
+    /// Return the doughnut payload bytes
+    fn payload(&self) -> Vec<u8> {
+        let mut r = Vec::with_capacity(self.size_hint());
+        self.encode_to_with_signature_optional(&mut r, false);
+        r
+    }
+    /// Return the doughnut signature bytes
+    fn signature(&self) -> Self::Signature {
+        self.signature.into()
+    }
+    /// Return the doughnut signature version
+    fn signature_version(&self) -> u8 {
+        self.signature_version
+    }
+    /// Return the payload by `domain` key, if it exists in this doughnut
+    fn get_domain(&self, domain: &str) -> Option<&[u8]> {
+        for (key, payload) in &self.domains {
+            if key == domain {
+                return Some(&payload);
+            }
+        }
+        None
+    }
+}
+
+impl DoughnutVerify for DoughnutV1 {
+    fn verify(&self) -> Result<(), VerifyError> {
+        verify_signature(
+            &self.signature(),
+            self.signature_version(),
+            &self.issuer(),
+            &self.payload(),
+        )
+    }
+}
+
+impl Signing for DoughnutV1 {
+    fn sign_ed25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
+        Err(SigningError::NotSupported)
+    }
+
+    fn sign_sr25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
+        Err(SigningError::NotSupported)
+    }
+
+    #[cfg(feature = "std")]
+    fn sign_ecdsa(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
+        use crate::signature::{SignatureVersion, sign_ecdsa};
+        use std::convert::TryInto;
+
+        self.signature_version = SignatureVersion::ECDSA as u8;
+        sign_ecdsa(secret_key, &self.payload()).map(|signature| {
+            self.signature = signature.clone().try_into().expect("signature must be 65 byte long");
+            signature
         })
     }
 }

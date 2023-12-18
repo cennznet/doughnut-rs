@@ -10,7 +10,8 @@ use crate::{
 };
 use core::convert::TryInto;
 
-mod impls;
+#[cfg(test)]
+mod tests;
 
 /// A version agnostic API trait to expose a doughnut's underlying data.
 /// It requires that associated types implement certain conversion traits in order
@@ -85,4 +86,45 @@ pub trait Signing {
 pub trait DoughnutVerify {
     /// Verify the doughnut signature, return whether it is valid or not
     fn verify(&self) -> Result<(), VerifyError>;
+}
+
+// Dummy implementation for unit type
+impl DoughnutApi for () {
+    type PublicKey = [u8; 32];
+    type Timestamp = u32;
+    type Signature = ();
+
+    fn holder(&self) -> Self::PublicKey {
+        Default::default()
+    }
+    fn issuer(&self) -> Self::PublicKey {
+        Default::default()
+    }
+    fn expiry(&self) -> Self::Timestamp {
+        0
+    }
+    fn not_before(&self) -> Self::Timestamp {
+        0
+    }
+    fn payload(&self) -> Vec<u8> {
+        Vec::<u8>::default()
+    }
+    fn signature(&self) -> Self::Signature {
+        Default::default()
+    }
+    fn signature_version(&self) -> u8 {
+        255
+    }
+    fn get_domain(&self, _domain: &str) -> Option<&[u8]> {
+        None
+    }
+    fn validate<Q, R>(&self, _who: Q, _now: R) -> Result<(), ValidationError> {
+        Ok(())
+    }
+}
+
+impl DoughnutVerify for () {
+    fn verify(&self) -> Result<(), VerifyError> {
+        Ok(())
+    }
 }
