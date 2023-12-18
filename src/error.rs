@@ -50,4 +50,6 @@ pub enum SigningError {
     InvalidSr25519SecretKey,
     // Provided secret key is invalid for ECDSA signing
     InvalidECDSASecretKey,
+    // Not supported
+    NotSupported,
 }

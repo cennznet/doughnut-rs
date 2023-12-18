@@ -20,3 +20,4 @@ pub mod signature;
 mod test;
 pub mod traits;
 pub mod v0;
+pub mod v1;

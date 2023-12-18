@@ -7,12 +7,14 @@
 use crate::v0::DoughnutV0;
 use codec::{Decode, Encode, Error, Input, Output};
 use core::convert::TryFrom;
+use crate::v1::DoughnutV1;
 
 /// A versioned doughnut wrapper.
 /// Its codec implementation is transparent, proxying to the real, inner doughnut version.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Doughnut {
     V0(DoughnutV0),
+    V1(DoughnutV1),
 }
 
 impl Encode for Doughnut {
@@ -20,6 +22,7 @@ impl Encode for Doughnut {
         match self {
             // encode transparently
             Doughnut::V0(inner) => inner.encode_to(dest),
+            Doughnut::V1(inner) => inner.encode_to(dest),
         }
     }
 }
@@ -28,7 +31,8 @@ impl Decode for Doughnut {
     fn decode<I: Input>(input: &mut I) -> Result<Self, Error> {
         // TODO: check the first byte without consuming and proxy to the correct decoder version
         // for now try decode a version 0 no matter what, as that is the only type that exists.
-        Ok(Doughnut::V0(DoughnutV0::decode(input)?))
+        // TODO: fix decode according to the version
+        Ok(Doughnut::V1(DoughnutV1::decode(input)?))
     }
 }
 
@@ -40,6 +44,17 @@ impl TryFrom<Doughnut> for DoughnutV0 {
             return Ok(inner);
         }
         Err(Error::from("Doughnut version is not 0"))
+    }
+}
+
+#[allow(irrefutable_let_patterns)]
+impl TryFrom<Doughnut> for DoughnutV1 {
+    type Error = Error;
+    fn try_from(v: Doughnut) -> Result<Self, Self::Error> {
+        if let Doughnut::V1(inner) = v {
+            return Ok(inner);
+        }
+        Err(Error::from("Doughnut version is not 1"))
     }
 }
 
