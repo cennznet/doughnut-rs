@@ -54,12 +54,26 @@ pub mod crypto {
         error::{SigningError, VerifyError},
         signature::{sign_ed25519, sign_sr25519, verify_signature, SignatureVersion},
         traits::{DoughnutApi, DoughnutVerify, Signing},
-        v0::DoughnutV0,
+        v0::DoughnutV0, v1::DoughnutV1,
     };
     use primitive_types::H512;
+    #[cfg(feature = "std")]
     use crate::signature::sign_ecdsa;
+    #[cfg(feature = "std")]
+    use std::convert::TryInto;
 
     impl DoughnutVerify for DoughnutV0 {
+        fn verify(&self) -> Result<(), VerifyError> {
+            verify_signature(
+                &self.signature(),
+                self.signature_version(),
+                &self.issuer(),
+                &self.payload(),
+            )
+        }
+    }
+
+    impl DoughnutVerify for DoughnutV1 {
         fn verify(&self) -> Result<(), VerifyError> {
             verify_signature(
                 &self.signature(),
@@ -75,6 +89,7 @@ pub mod crypto {
         fn verify(&self) -> Result<(), VerifyError> {
             match self {
                 Self::V0(v0) => v0.verify(),
+                Self::V1(v1) => v1.verify(),
                 _ => Err(VerifyError::UnsupportedVersion),
             }
         }
@@ -97,10 +112,26 @@ pub mod crypto {
             })
         }
 
+        #[cfg(feature = "std")]
+        fn sign_ecdsa(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
+            Err(SigningError::NotSupported)
+        }
+    }
+
+    impl Signing for DoughnutV1 {
+        fn sign_ed25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
+            Err(SigningError::NotSupported)
+        }
+
+        fn sign_sr25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
+            Err(SigningError::NotSupported)
+        }
+
+        #[cfg(feature = "std")]
         fn sign_ecdsa(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
             self.signature_version = SignatureVersion::ECDSA as u8;
             sign_ecdsa(secret_key, &self.payload()).map(|signature| {
-                self.signature = H512::from_slice(&signature[1..]);
+                self.signature = signature.clone().try_into().expect("signature must be 65 byte long");
                 signature
             })
         }
