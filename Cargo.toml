@@ -1,16 +1,16 @@
 [package]
 name = "doughnut-rs"
-version = "0.5.1"
-authors = ["Centrality Developers <developers@centrality.ai>"]
-edition = "2018"
+version = "0.1.0"
+authors = ["The Root Network Team"]
+edition = "2021"
 description = "The official rust doughnut codec"
 license = "UNLICENSED"
-repository = "https://github.com/cennznet/doughnut-rs"
+repository = "https://github.com/futureversecom/trn-doughnut-rs"
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
-primitive-types = { version = "0.7.2", default-features = false }
-schnorrkel = { version = "0.9.1", features = ["preaudit_deprecated", "u64_backend"], default-features = false, optional = true }
+codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = ["derive"] }
+primitive-types = { version = "0.12.2", default-features = false }
+schnorrkel = { version = "0.11.4", default-features = false, optional = true }
 ed25519-dalek = { version = "1.0.0-pre.3", default-features = false, features = ["u64_backend", "alloc"], optional = true }
 libsecp256k1 = { version = "0.7", default-features = false, features = [ "hmac", "static-context" ] }
 sp-io = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.30" }
@@ -20,7 +20,7 @@ sp-io = { git = "https://github.com/paritytech/substrate", default-features = fa
 clear_on_drop = { version = "0.2.3", features = ["no_cc"] }
 
 [dev-dependencies]
-rand = { version = "0.7.3", features = ["wasm-bindgen"] }
+rand = { version = "0.8.5" }
 rand_core = { version = "0.5.1", features = ["alloc"] }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
 
@@ -36,8 +36,4 @@ std = [
 crypto = [
     "ed25519-dalek",
     "schnorrkel",
-]
-# enable compilation for wasm-bindgen
-wasm = [
-    "schnorrkel/wasm-bindgen",
 ]
