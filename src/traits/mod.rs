@@ -6,7 +6,7 @@
 
 use crate::{
     alloc::vec::Vec,
-    error::{SigningError, ValidationError, VerifyError},
+    error::{SigningError, ValidationError, VerifyError}, signature::SignatureVersion,
 };
 use core::convert::TryInto;
 
@@ -23,6 +23,7 @@ pub trait DoughnutApi {
     type Timestamp: PartialOrd + TryInto<u32>;
     /// The signature type
     type Signature;
+
     /// Return the doughnut holder
     fn holder(&self) -> Self::PublicKey;
     /// Return the doughnut issuer
@@ -67,6 +68,21 @@ pub trait DoughnutApi {
         }
         Ok(())
     }
+
+    // fn verify(&self) -> Result<(), VerifyError> {
+    //     let version: SignatureVersion = self.signature_version().try_into().map_err(|_| VerifyError::Invalid)?;
+    //     match version {
+    //         SignatureVersion::Ed25519 => verify_ed25519_signature(signature_bytes, signer, payload),
+    //         SignatureVersion::Sr25519 => verify_sr25519_signature(signature_bytes, signer, payload),
+    //         SignatureVersion::ECDSA => verify_ecdsa_signature(signature_bytes, signer, payload),
+    //     }
+    //     verify_signature(
+    //         self.signature_version(),
+    //         &self.signature(),
+    //         &self.issuer(),
+    //         &self.payload(),
+    //     )
+    // }
 }
 
 /// Provide doughnut signing
