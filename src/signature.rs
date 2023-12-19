@@ -39,12 +39,12 @@ pub fn sign_ed25519(
     public_key: &[u8],
     secret_key: &[u8],
     payload: &[u8],
-) -> Result<Vec<u8>, SigningError> {
+) -> Result<[u8; 64], SigningError> {
     let pair_bytes: Vec<u8> = [secret_key.to_vec(), public_key.to_vec()].concat();
     let keypair =
         Ed25519Keypair::from_bytes(&pair_bytes).map_err(|_| SigningError::InvalidEd25519Key)?;
 
-    Ok(keypair.sign(payload).to_bytes().to_vec())
+    Ok(keypair.sign(payload).to_bytes())
 }
 
 /// Sign an sr25519 signature
@@ -52,7 +52,7 @@ pub fn sign_sr25519(
     public_key: &[u8],
     secret_key: &[u8],
     payload: &[u8],
-) -> Result<Vec<u8>, SigningError> {
+) -> Result<[u8; 64], SigningError> {
     let secret_key = Sr25519SecretKey::from_ed25519_bytes(secret_key)
         .map_err(|_| SigningError::InvalidSr25519SecretKey)?;
     let public_key = Sr25519PublicKey::from_bytes(public_key)
@@ -60,12 +60,11 @@ pub fn sign_sr25519(
 
     Ok(secret_key
         .sign_simple(CONTEXT_ID, payload, &public_key)
-        .to_bytes()
-        .to_vec())
+        .to_bytes())
 }
 
 /// Sign an ecdsa signature
-pub fn sign_ecdsa(secret_key: &[u8], payload: &[u8]) -> Result<Vec<u8>, SigningError> {
+pub fn sign_ecdsa(secret_key: &[u8], payload: &[u8]) -> Result<[u8; 64], SigningError> {
     let payload_hashed = sp_io::hashing::blake2_256(payload);
 
     let secret_key = libsecp256k1::SecretKey::parse_slice(secret_key)
@@ -73,7 +72,7 @@ pub fn sign_ecdsa(secret_key: &[u8], payload: &[u8]) -> Result<Vec<u8>, SigningE
     let message = libsecp256k1::Message::parse_slice(&payload_hashed) 
         .map_err(|_| SigningError::InvalidPayload)?;
     let (signature, _) = libsecp256k1::sign(&message, &secret_key);
-    Ok(signature.serialize().to_vec())
+    Ok(signature.serialize())
 }
 
 /// Verify the signature for a `DoughnutApi` impl type

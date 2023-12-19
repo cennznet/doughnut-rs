@@ -72,13 +72,13 @@ pub trait DoughnutApi {
 /// Provide doughnut signing
 pub trait Signing {
     /// sign using Ed25519 method
-    fn sign_ed25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError>;
+    fn sign_ed25519(&mut self, secret_key: &[u8]) -> Result<[u8; 64], SigningError>;
 
     /// sign using Sr25519 method
-    fn sign_sr25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError>;
+    fn sign_sr25519(&mut self, secret_key: &[u8]) -> Result<[u8; 64], SigningError>;
 
     /// sign using ECDSA method
-    fn sign_ecdsa(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError>;
+    fn sign_ecdsa(&mut self, secret_key: &[u8]) -> Result<[u8; 64], SigningError>;
 }
 
 /// Provide doughnut signature checks

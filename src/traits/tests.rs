@@ -69,7 +69,7 @@ fn can_sign_and_verify_sr25519_signature() {
     assert_eq!(doughnut.verify(), Err(VerifyError::Invalid));
 
     // Sign a Doughnut and return newly signed signature
-    let signature: Vec<u8> = doughnut.sign_sr25519(&secret_key).expect("it signed ok");
+    let signature: [u8; 64] = doughnut.sign_sr25519(&secret_key).expect("it signed ok");
 
     // Assume signature is assigned to a Doughnut after signing
     assert_eq!(doughnut.signature, H512::from_slice(signature.as_slice()));
@@ -102,7 +102,7 @@ fn can_sign_and_verify_ed25519_signature() {
     assert_eq!(doughnut.verify(), Err(VerifyError::Invalid));
 
     // Sign a Doughnut and return newly signed signature
-    let signature: Vec<u8> = doughnut.sign_ed25519(secret_key).expect("it signed ok");
+    let signature: [u8; 64] = doughnut.sign_ed25519(secret_key).expect("it signed ok");
 
     // Assume signature is assigned to a Doughnut after signing
     assert_eq!(doughnut.signature, H512::from_slice(signature.as_slice()));
