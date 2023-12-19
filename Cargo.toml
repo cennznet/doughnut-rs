@@ -12,8 +12,8 @@ codec = { package = "parity-scale-codec", version = "3.0.0", default-features = 
 primitive-types = { version = "0.7.2", default-features = false }
 schnorrkel = { version = "0.9.1", features = ["preaudit_deprecated", "u64_backend"], default-features = false, optional = true }
 ed25519-dalek = { version = "1.0.0-pre.3", default-features = false, features = ["u64_backend", "alloc"], optional = true }
-sp-core = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.30", optional = true }
-sp-io = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.30", optional = true }
+libsecp256k1 = { version = "0.7", default-features = false, features = [ "hmac", "static-context" ] }
+sp-io = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.30" }
 
 # including this to fix C build issues in consumer crates
 # 'No available targets are compatible with this triple.'
@@ -22,7 +22,7 @@ clear_on_drop = { version = "0.2.3", features = ["no_cc"] }
 [dev-dependencies]
 rand = { version = "0.7.3", features = ["wasm-bindgen"] }
 rand_core = { version = "0.5.1", features = ["alloc"] }
-libsecp256k1 = { version = "0.7", default-features = false, features = [ "hmac" ]}
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
 
 [features]
 default = ["std"]
@@ -30,20 +30,14 @@ std = [
     "crypto",
     "ed25519-dalek/std",
     "schnorrkel/std",
-    "sp-core/std",
     "sp-io/std",
 ]
- # enable cryptographic signing and verification features in 'no std'
+# enable cryptographic signing and verification features in 'no std'
 crypto = [
     "ed25519-dalek",
     "schnorrkel",
-    "sp-core",
-    "sp-io",
 ]
 # enable compilation for wasm-bindgen
 wasm = [
-    "ed25519-dalek",
     "schnorrkel/wasm-bindgen",
-    "sp-core",
-    "sp-io",
 ]

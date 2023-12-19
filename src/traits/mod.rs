@@ -77,8 +77,7 @@ pub trait Signing {
     /// sign using Sr25519 method
     fn sign_sr25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError>;
 
-    /// sign using ecdsa
-    #[cfg(feature = "std")]
+    /// sign using ECDSA method
     fn sign_ecdsa(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError>;
 }
 

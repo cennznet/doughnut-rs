@@ -42,14 +42,16 @@ pub enum VerifyError {
 /// A signature signing error
 #[derive(PartialEq, Debug)]
 pub enum SigningError {
-    // Provided public/secret key is invalid ed25519 signing
+    /// Provided public/secret key is invalid ed25519 signing
     InvalidEd25519Key,
-    // Provided public key is invalid for sr25519 signing
+    /// Provided public key is invalid for sr25519 signing
     InvalidSr25519PublicKey,
-    // Provided secret key is invalid for sr25519 signing
+    /// Provided secret key is invalid for sr25519 signing
     InvalidSr25519SecretKey,
-    // Provided secret key is invalid for ECDSA signing
+    /// Provided secret key is invalid for ECDSA signing
     InvalidECDSASecretKey,
-    // Not supported
+    /// Provided payload is invalid
+    InvalidPayload,
+    /// Not supported
     NotSupported,
 }

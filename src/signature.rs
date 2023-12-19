@@ -2,7 +2,6 @@
 
 use crate::alloc::vec::Vec;
 use crate::error::{SigningError, VerifyError};
-use codec::Encode;
 use core::convert::{TryFrom, TryInto};
 use ed25519_dalek::{
     Keypair as Ed25519Keypair, PublicKey as Ed25519PublicKey, Signature as Ed25519Signature,
@@ -12,9 +11,6 @@ use schnorrkel::{
     signing_context, PublicKey as Sr25519PublicKey, SecretKey as Sr25519SecretKey,
     Signature as Sr25519Signature,
 };
-#[cfg(feature = "std")]
-use sp_core::{ecdsa::Pair as ECDSAKeyPair, Pair};
-use sp_io::hashing::blake2_256;
 
 pub const CONTEXT_ID: &[u8] = b"doughnut";
 
@@ -69,13 +65,15 @@ pub fn sign_sr25519(
 }
 
 /// Sign an ecdsa signature
-#[cfg(feature = "std")]
 pub fn sign_ecdsa(secret_key: &[u8], payload: &[u8]) -> Result<Vec<u8>, SigningError> {
-    let key_pair = ECDSAKeyPair::from_seed_slice(secret_key)
+    let payload_hashed = sp_io::hashing::blake2_256(payload);
+
+    let secret_key = libsecp256k1::SecretKey::parse_slice(secret_key)
         .map_err(|_| SigningError::InvalidECDSASecretKey)?;
-    // Note - we hash the payload no matter the length inside the sign() function
-    let signature = key_pair.sign(payload);
-    Ok(signature.encode())
+    let message = libsecp256k1::Message::parse_slice(&payload_hashed) 
+        .map_err(|_| SigningError::InvalidPayload)?;
+    let (signature, _) = libsecp256k1::sign(&message, &secret_key);
+    Ok(signature.serialize().to_vec())
 }
 
 /// Verify the signature for a `DoughnutApi` impl type
@@ -130,20 +128,20 @@ fn verify_ecdsa_signature(
     signer: &[u8],
     payload: &[u8],
 ) -> Result<(), VerifyError> {
-    let payload_hashed = &blake2_256(payload)[..];
-    let signature: [u8; 65] = signature_bytes
-        .try_into()
-        .map_err(|_| VerifyError::BadSignatureFormat)?;
-    let message: [u8; 32] = payload_hashed
-        .try_into()
-        .map_err(|_| VerifyError::BadPayloadFormat)?;
+    let payload_hashed = sp_io::hashing::blake2_256(payload);
     let public_key: [u8; 33] = signer
         .try_into()
         .map_err(|_| VerifyError::BadPublicKeyFormat)?;
 
-    match sp_io::crypto::secp256k1_ecdsa_recover(&signature, &message) {
-        Ok(pubkey) if pubkey[..32] == public_key[1..] => Ok(()),
-        _ => Err(VerifyError::Invalid),
+    let message = libsecp256k1::Message::parse(&payload_hashed);
+    let signature = libsecp256k1::Signature::parse_standard_slice(&signature_bytes[..64])
+        .map_err(|_| VerifyError::BadSignatureFormat)?;
+    let pub_key = libsecp256k1:: PublicKey::parse_compressed(&public_key)
+        .map_err(|_| VerifyError::BadPublicKeyFormat)?;
+
+    match libsecp256k1::verify(&message, &signature, &pub_key) {
+        true => Ok(()),
+        false => Err(VerifyError::Invalid),
     }
 }
 
@@ -157,8 +155,8 @@ mod test {
     use ed25519_dalek::{Keypair as Ed25519Keypair, SIGNATURE_LENGTH as ED25519_SIGNATURE_LENGTH};
     use libsecp256k1::SecretKey as ECDSASecretKey;
     use schnorrkel::{Keypair as Sr25519Keypair, SIGNATURE_LENGTH as SR25519_SIGNATURE_LENGTH};
-    use sp_core::ByteArray;
-    const ECDSA_SIGNATURE_LENGTH: usize = 65;
+    use sp_core::{ecdsa::Pair as ECDSAKeyPair, Pair};
+
 
     fn generate_ed25519_keypair() -> Ed25519Keypair {
         let mut csprng = OsRng {};
@@ -208,6 +206,8 @@ mod test {
 
     #[test]
     fn can_sign_ecdsa() {
+        const ECDSA_SIGNATURE_LENGTH: usize = 64;
+
         let (_, secret_key) = generate_ecdsa_keypair();
         let payload = "this is a payload".as_bytes();
         let signature = sign_ecdsa(secret_key.serialize().as_slice(), payload).unwrap();
@@ -222,7 +222,7 @@ mod test {
         let payload = "this is a payload".as_bytes();
         let signature = sign_ecdsa(secret_key.serialize().as_slice(), payload).unwrap();
 
-        verify_ecdsa_signature(&signature, &public_key.as_slice(), payload)
+        verify_ecdsa_signature(&signature, &public_key.as_ref(), payload)
             .expect("Signed signature can be verified");
     }
 
@@ -235,7 +235,7 @@ mod test {
         let signature = sign_ecdsa(secret_key.serialize().as_slice(), signed_payload).unwrap();
 
         assert_eq!(
-            verify_ecdsa_signature(&signature, &public_key.as_slice(), payload,),
+            verify_ecdsa_signature(&signature, &public_key.as_ref(), payload,),
             Err(VerifyError::Invalid)
         );
     }
@@ -350,7 +350,7 @@ mod test {
         let payload = "this is a payload".as_bytes();
         let signature = sign_ecdsa(secret_key.serialize().as_slice(), payload).unwrap();
 
-        verify_signature(&signature, 2, &public_key.as_slice(), payload)
+        verify_signature(&signature, 2, &public_key.as_ref(), payload)
             .expect("Signed signature can be verified");
     }
 

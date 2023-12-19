@@ -2,14 +2,9 @@
 
 #![warn(clippy::pedantic)]
 #![allow(clippy::must_use_candidate, clippy::missing_errors_doc)]
-#![cfg_attr(not(feature = "std"), no_std)]
 
-#[cfg(not(feature = "std"))]
-#[macro_use]
+#![cfg_attr(not(feature = "std"), no_std)]
 extern crate alloc;
-#[cfg(feature = "std")]
-#[macro_use]
-extern crate std as alloc;
 
 mod doughnut;
 pub use doughnut::Doughnut;

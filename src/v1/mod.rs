@@ -9,13 +9,11 @@
 #![allow(clippy::cast_possible_truncation)]
 
 use codec::{Decode, Encode, Input, Output};
-use core::convert::TryFrom;
-use primitive_types::H512;
-
+use core::convert::{TryFrom, TryInto};
 use crate::{alloc::{
     string::{String, ToString},
     vec::Vec,
-}, traits::{DoughnutVerify, Signing}, error::{VerifyError, SigningError}, signature::verify_signature};
+}, traits::{DoughnutVerify, Signing}, error::{VerifyError, SigningError}, signature::{sign_ecdsa, verify_signature}};
 use crate::traits::DoughnutApi;
 
 const NOT_BEFORE_MASK: u8 = 0b0000_0001;
@@ -166,7 +164,7 @@ impl Decode for DoughnutV1 {
         }
 
         for (key, payload_length) in q {
-            let mut payload = vec![0; payload_length as usize];
+            let mut payload = alloc::vec![0; payload_length as usize];
             input.read(&mut payload)?;
             domains.push((key, payload));
         }
@@ -252,12 +250,7 @@ impl Signing for DoughnutV1 {
         Err(SigningError::NotSupported)
     }
 
-    #[cfg(feature = "std")]
     fn sign_ecdsa(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
-        use crate::signature::{SignatureVersion, sign_ecdsa};
-        use std::convert::TryInto;
-
-        self.signature_version = SignatureVersion::ECDSA as u8;
         sign_ecdsa(secret_key, &self.payload()).map(|signature| {
             self.signature = signature.clone().try_into().expect("signature must be 65 byte long");
             signature

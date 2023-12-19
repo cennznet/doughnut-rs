@@ -169,7 +169,7 @@ impl Decode for DoughnutV0 {
         }
 
         for (key, payload_length) in q {
-            let mut payload = vec![0; payload_length as usize];
+            let mut payload = alloc::vec![0; payload_length as usize];
             input.read(&mut payload)?;
             domains.push((key, payload));
         }
@@ -263,7 +263,6 @@ impl Signing for DoughnutV0 {
         })
     }
 
-    #[cfg(feature = "std")]
     fn sign_ecdsa(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
         Err(SigningError::NotSupported)
     }
