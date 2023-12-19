@@ -36,8 +36,8 @@ impl TryFrom<u8> for SignatureVersion {
 
 /// Sign an ed25519 signature
 pub fn sign_ed25519(
-    public_key: &[u8],
-    secret_key: &[u8],
+    public_key: &[u8; 32],
+    secret_key: &[u8; 32],
     payload: &[u8],
 ) -> Result<[u8; 64], SigningError> {
     let pair_bytes: Vec<u8> = [secret_key.to_vec(), public_key.to_vec()].concat();
@@ -50,10 +50,10 @@ pub fn sign_ed25519(
 /// Sign an sr25519 signature
 pub fn sign_sr25519(
     public_key: &[u8],
-    secret_key: &[u8],
+    secret_key: &[u8; 64],
     payload: &[u8],
 ) -> Result<[u8; 64], SigningError> {
-    let secret_key = Sr25519SecretKey::from_ed25519_bytes(secret_key)
+    let secret_key = Sr25519SecretKey::from_ed25519_bytes(&secret_key[..])
         .map_err(|_| SigningError::InvalidSr25519SecretKey)?;
     let public_key = Sr25519PublicKey::from_bytes(public_key)
         .map_err(|_| SigningError::InvalidSr25519PublicKey)?;
@@ -64,7 +64,7 @@ pub fn sign_sr25519(
 }
 
 /// Sign an ecdsa signature
-pub fn sign_ecdsa(secret_key: &[u8], payload: &[u8]) -> Result<[u8; 64], SigningError> {
+pub fn sign_ecdsa(secret_key: &[u8; 32], payload: &[u8]) -> Result<[u8; 64], SigningError> {
     let payload_hashed = sp_io::hashing::blake2_256(payload);
 
     let secret_key = libsecp256k1::SecretKey::parse_slice(secret_key)
@@ -209,7 +209,7 @@ mod test {
 
         let (_, secret_key) = generate_ecdsa_keypair();
         let payload = "this is a payload".as_bytes();
-        let signature = sign_ecdsa(secret_key.serialize().as_slice(), payload).unwrap();
+        let signature = sign_ecdsa(&secret_key.serialize(), payload).unwrap();
 
         assert_eq!(signature.len(), ECDSA_SIGNATURE_LENGTH);
     }
@@ -219,7 +219,7 @@ mod test {
         let (keypair, secret_key) = generate_ecdsa_keypair();
         let public_key = keypair.public();
         let payload = "this is a payload".as_bytes();
-        let signature = sign_ecdsa(secret_key.serialize().as_slice(), payload).unwrap();
+        let signature = sign_ecdsa(&secret_key.serialize(), payload).unwrap();
 
         verify_ecdsa_signature(&signature, &public_key.as_ref(), payload)
             .expect("Signed signature can be verified");
@@ -231,7 +231,7 @@ mod test {
         let public_key = keypair.public();
         let payload = "To a deep sea diver who is swimming with a raincoat".as_bytes();
         let signed_payload = "To a deep sea diver who is swimming without a raincoat".as_bytes();
-        let signature = sign_ecdsa(secret_key.serialize().as_slice(), signed_payload).unwrap();
+        let signature = sign_ecdsa(&secret_key.serialize(), signed_payload).unwrap();
 
         assert_eq!(
             verify_ecdsa_signature(&signature, &public_key.as_ref(), payload,),
@@ -347,7 +347,7 @@ mod test {
         let (keypair, secret_key) = generate_ecdsa_keypair();
         let public_key = keypair.public();
         let payload = "this is a payload".as_bytes();
-        let signature = sign_ecdsa(secret_key.serialize().as_slice(), payload).unwrap();
+        let signature = sign_ecdsa(&secret_key.serialize() , payload).unwrap();
 
         verify_signature(2, &signature, &public_key.as_ref(), payload)
             .expect("Signed signature can be verified");

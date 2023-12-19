@@ -244,7 +244,7 @@ impl DoughnutVerify for DoughnutV0 {
 }
 
 impl Signing for DoughnutV0 {
-    fn sign_ed25519(&mut self, secret_key: &[u8]) -> Result<[u8; 64], SigningError> {
+    fn sign_ed25519(&mut self, secret_key: &[u8; 32]) -> Result<[u8; 64], SigningError> {
         self.signature_version = SignatureVersion::Ed25519 as u8;
         sign_ed25519(&self.issuer(), secret_key, &self.payload()).map(|signature| {
             self.signature = H512::from_slice(&signature);
@@ -252,7 +252,7 @@ impl Signing for DoughnutV0 {
         })
     }
 
-    fn sign_sr25519(&mut self, secret_key: &[u8]) -> Result<[u8; 64], SigningError> {
+    fn sign_sr25519(&mut self, secret_key: &[u8; 64]) -> Result<[u8; 64], SigningError> {
         self.signature_version = SignatureVersion::Sr25519 as u8;
         sign_sr25519(&self.issuer(), secret_key, &self.payload()).map(|signature| {
             self.signature = H512::from_slice(&signature);
@@ -260,7 +260,7 @@ impl Signing for DoughnutV0 {
         })
     }
 
-    fn sign_ecdsa(&mut self, secret_key: &[u8]) -> Result<[u8; 64], SigningError> {
+    fn sign_ecdsa(&mut self, secret_key: &[u8; 32]) -> Result<[u8; 64], SigningError> {
         Err(SigningError::NotSupported)
     }
 }
