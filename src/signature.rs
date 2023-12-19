@@ -79,12 +79,12 @@ pub fn sign_ecdsa(secret_key: &[u8], payload: &[u8]) -> Result<Vec<u8>, SigningE
 /// Verify the signature for a `DoughnutApi` impl type
 #[allow(clippy::module_name_repetitions)]
 pub fn verify_signature(
+    signature_version: u8,
     signature_bytes: &[u8],
-    version_byte: u8,
     signer: &[u8],
     payload: &[u8],
 ) -> Result<(), VerifyError> {
-    let version = SignatureVersion::try_from(version_byte)?;
+    let version = SignatureVersion::try_from(signature_version)?;
     match version {
         SignatureVersion::Ed25519 => verify_ed25519_signature(signature_bytes, signer, payload),
         SignatureVersion::Sr25519 => verify_sr25519_signature(signature_bytes, signer, payload),
@@ -319,8 +319,8 @@ mod test {
         let keypair = generate_ed25519_keypair();
         let payload = "When I get to you";
         verify_signature(
-            &keypair.sign(&payload.as_bytes()).to_bytes(),
             1,
+            &keypair.sign(&payload.as_bytes()).to_bytes(),
             &keypair.public.to_bytes(),
             payload.as_bytes(),
         )
@@ -335,8 +335,8 @@ mod test {
         let signature = keypair.sign(context.bytes(payload.as_bytes()));
 
         verify_signature(
-            &signature.to_bytes(),
             0,
+            &signature.to_bytes(),
             &keypair.public.to_bytes(),
             payload.as_bytes(),
         )
@@ -350,7 +350,7 @@ mod test {
         let payload = "this is a payload".as_bytes();
         let signature = sign_ecdsa(secret_key.serialize().as_slice(), payload).unwrap();
 
-        verify_signature(&signature, 2, &public_key.as_ref(), payload)
+        verify_signature(2, &signature, &public_key.as_ref(), payload)
             .expect("Signed signature can be verified");
     }
 
@@ -363,8 +363,8 @@ mod test {
 
         assert_eq!(
             verify_signature(
-                &signature.to_bytes(),
                 1,
+                &signature.to_bytes(),
                 &keypair.public.to_bytes(),
                 payload.as_bytes()
             ),
@@ -381,8 +381,8 @@ mod test {
 
         assert_eq!(
             verify_signature(
-                &signature.to_bytes(),
                 0x1f,
+                &signature.to_bytes(),
                 &keypair.public.to_bytes(),
                 payload.as_bytes()
             ),

@@ -5,7 +5,7 @@ use crate::{
     error::SigningError,
     signature::{SignatureVersion, CONTEXT_ID},
     traits::{DoughnutVerify, Signing},
-    v0::DoughnutV0,
+    doughnut::DoughnutV0,
 };
 use codec::Decode;
 use primitive_types::H512;

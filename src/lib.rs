@@ -6,12 +6,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 extern crate alloc;
 
-mod doughnut;
-pub use doughnut::Doughnut;
-
+pub mod doughnut;
 pub mod error;
 #[cfg(feature = "crypto")]
 pub mod signature;
 pub mod traits;
-pub mod v0;
-pub mod v1;

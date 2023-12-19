@@ -33,7 +33,7 @@ pub struct DoughnutV1 {
     pub not_before: u32,
     pub payload_version: u16,
     pub signature_version: u8,
-    pub signature: [u8; 65],
+    pub signature: [u8; 64],
 }
 
 impl DoughnutV1 {
@@ -169,7 +169,7 @@ impl Decode for DoughnutV1 {
             domains.push((key, payload));
         }
 
-        let mut signature = [0_u8; 65];
+        let mut signature = [0_u8; 64];
         input.read(&mut signature)?;
 
         Ok(Self {
@@ -180,7 +180,7 @@ impl Decode for DoughnutV1 {
             signature_version,
             payload_version,
             domains,
-            signature: signature,
+            signature,
         })
     }
 }
@@ -188,7 +188,7 @@ impl Decode for DoughnutV1 {
 impl DoughnutApi for DoughnutV1 {
     type PublicKey = [u8; 33];
     type Timestamp = u32;
-    type Signature = [u8; 65];
+    type Signature = [u8; 64];
     /// Return the doughnut holder account ID
     fn holder(&self) -> Self::PublicKey {
         self.holder
@@ -213,7 +213,7 @@ impl DoughnutApi for DoughnutV1 {
     }
     /// Return the doughnut signature bytes
     fn signature(&self) -> Self::Signature {
-        self.signature.into()
+        self.signature
     }
     /// Return the doughnut signature version
     fn signature_version(&self) -> u8 {
@@ -233,8 +233,8 @@ impl DoughnutApi for DoughnutV1 {
 impl DoughnutVerify for DoughnutV1 {
     fn verify(&self) -> Result<(), VerifyError> {
         verify_signature(
-            &self.signature(),
             self.signature_version(),
+            &self.signature(),
             &self.issuer(),
             &self.payload(),
         )

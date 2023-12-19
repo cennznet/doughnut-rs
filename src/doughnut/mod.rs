@@ -4,10 +4,17 @@
 //! A versioned doughnut wrapper.
 //!
 
-use crate::v0::DoughnutV0;
 use codec::{Decode, Encode, Error, Input, Output};
 use core::convert::TryFrom;
-use crate::v1::DoughnutV1;
+
+mod v0;
+mod v1;
+
+pub use v0::DoughnutV0;
+pub use v1::DoughnutV1;
+
+#[cfg(test)]
+mod tests;
 
 /// A versioned doughnut wrapper.
 /// Its codec implementation is transparent, proxying to the real, inner doughnut version.
@@ -61,7 +68,7 @@ impl TryFrom<Doughnut> for DoughnutV1 {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::v0::DoughnutV0;
+    use crate::doughnut::v0::DoughnutV0;
     use primitive_types::H512;
 
     #[test]
