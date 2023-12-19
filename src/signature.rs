@@ -92,7 +92,7 @@ pub fn verify_signature(
 }
 
 /// Verify an ed25519 signature
-fn verify_ed25519_signature(
+pub fn verify_ed25519_signature(
     signature_bytes: &[u8],
     signer: &[u8],
     payload: &[u8],
@@ -107,7 +107,7 @@ fn verify_ed25519_signature(
 }
 
 /// Verify an sr25519 signature
-fn verify_sr25519_signature(
+pub fn verify_sr25519_signature(
     signature_bytes: &[u8],
     signer: &[u8],
     payload: &[u8],
@@ -122,7 +122,7 @@ fn verify_sr25519_signature(
 }
 
 /// Verify an ecdsa signature
-fn verify_ecdsa_signature(
+pub fn verify_ecdsa_signature(
     signature_bytes: &[u8],
     signer: &[u8],
     payload: &[u8],
