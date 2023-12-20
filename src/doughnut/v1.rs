@@ -27,7 +27,7 @@ const MAX_DOMAINS: usize = 128;
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DoughnutV1 {
     pub issuer: [u8; 33],
-    pub sender: [u8; 33],
+    pub holder: [u8; 33],
     pub domains: Vec<(String, Vec<u8>)>,
     pub expiry: u32,
     pub not_before: u32,
@@ -65,7 +65,7 @@ impl DoughnutV1 {
         }
         dest.push_byte(domain_count_and_not_before_byte);
         dest.write(&self.issuer);
-        dest.write(&self.sender);
+        dest.write(&self.holder);
 
         for b in &self.expiry.to_le_bytes() {
             dest.push_byte(*b);
@@ -123,8 +123,8 @@ impl Decode for DoughnutV1 {
         let mut issuer: [u8; 33] = [0_u8;33];
         let _ = input.read(&mut issuer);
 
-        let mut sender: [u8; 33] = [0_u8;33];
-        let _ = input.read(&mut sender);
+        let mut holder: [u8; 33] = [0_u8;33];
+        let _ = input.read(&mut holder);
 
         let expiry = u32::from_le_bytes([
             input.read_byte()?,
@@ -173,7 +173,7 @@ impl Decode for DoughnutV1 {
         input.read(&mut signature)?;
 
         Ok(Self {
-            sender,
+            holder,
             issuer,
             expiry,
             not_before,
@@ -189,9 +189,9 @@ impl DoughnutApi for DoughnutV1 {
     type PublicKey = [u8; 33];
     type Timestamp = u32;
     type Signature = [u8; 64];
-    /// Return the doughnut sender account ID
-    fn sender(&self) -> Self::PublicKey {
-        self.sender
+    /// Return the doughnut holder account ID
+    fn holder(&self) -> Self::PublicKey {
+        self.holder
     }
     /// Return the doughnut issuer account ID
     fn issuer(&self) -> Self::PublicKey {
@@ -270,7 +270,7 @@ mod test {
     macro_rules! doughnut_builder {
         (
             issuer:$issuer:expr,
-            sender:$sender:expr,
+            holder:$holder:expr,
             domains:$domains:expr,
             expiry:$expiry:expr,
             not_before:$not_before:expr,
@@ -280,7 +280,7 @@ mod test {
         ) => {
             DoughnutV1 {
                 issuer: $issuer,
-                sender: $sender,
+                holder: $holder,
                 domains: $domains,
                 expiry: $expiry,
                 not_before: $not_before,
@@ -290,13 +290,13 @@ mod test {
             }
         };
         (
-            sender: $sender:expr,
+            holder: $holder:expr,
             expiry:$expiry:expr,
             not_before:$not_before:expr,
         ) => {
             doughnut_builder!(
                 issuer:[0_u8; 33],
-                sender:$sender,
+                holder:$holder,
                 domains:vec![("cennznet".to_string(), vec![0])],
                 expiry: $expiry,
                 not_before: $not_before,
@@ -311,7 +311,7 @@ mod test {
         ) => {
             doughnut_builder!(
                 issuer:[0_u8; 33],
-                sender:[1_u8; 33],
+                holder:[1_u8; 33],
                 domains:vec![("cennznet".to_string(), vec![0])],
                 expiry: 0,
                 not_before: 0,
@@ -325,7 +325,7 @@ mod test {
         ) => {
             doughnut_builder!(
                 issuer: [0_u8; 33],
-                sender: [1_u8; 33],
+                holder: [1_u8; 33],
                 domains: $domains,
                 expiry: 0,
                 not_before: 0,
@@ -334,14 +334,14 @@ mod test {
                 signature: [0xa5; 64],
             )
         };
-        (sender: $sender:expr,) => {
+        (holder: $holder:expr,) => {
             doughnut_builder!(
-                sender: $sender,
+                holder: $holder,
                 expiry: 0,
                 not_before: 0,
             )
         };
-        () => { doughnut_builder!(sender: [1_u8; 33],) };
+        () => { doughnut_builder!(holder: [1_u8; 33],) };
     }
 
     // Make a unix timestamp `when` seconds from the invocation
@@ -355,69 +355,69 @@ mod test {
 
     #[test]
     fn it_is_a_valid_usage() {
-        let sender = [1_u8; 33];
+        let holder = [1_u8; 33];
         let doughnut = doughnut_builder!(
-            sender: sender,
+            holder: holder,
             expiry: make_unix_timestamp(10),
             not_before: 0,
         );
 
-        assert!(doughnut.validate(sender, make_unix_timestamp(0)).is_ok())
+        assert!(doughnut.validate(holder, make_unix_timestamp(0)).is_ok())
     }
 
     #[test]
     fn usage_after_expiry_is_invalid() {
-        let sender = [1_u8; 33];
+        let holder = [1_u8; 33];
         let doughnut = doughnut_builder!(
-            sender: sender,
+            holder: holder,
             expiry: 0,
             not_before: 0,
         );
 
         assert_eq!(
-            doughnut.validate(sender, make_unix_timestamp(5)),
+            doughnut.validate(holder, make_unix_timestamp(5)),
             Err(ValidationError::Expired)
         )
     }
 
     #[test]
-    fn usage_by_non_sender_is_invalid() {
-        let sender = [1_u8; 33];
-        let doughnut = doughnut_builder!(sender: sender,);
+    fn usage_by_non_holder_is_invalid() {
+        let holder = [1_u8; 33];
+        let doughnut = doughnut_builder!(holder: holder,);
 
-        let not_the_sender = [2_u8; 33];
+        let not_the_holder = [2_u8; 33];
         assert_eq!(
-            doughnut.validate(not_the_sender, make_unix_timestamp(0)),
-            Err(ValidationError::senderIdentityMismatched)
+            doughnut.validate(not_the_holder, make_unix_timestamp(0)),
+            Err(ValidationError::HolderIdentityMismatched)
         )
     }
 
     #[test]
     fn usage_preceding_not_before_is_invalid() {
-        let sender = [1_u8; 33];
+        let holder = [1_u8; 33];
         let doughnut = doughnut_builder!(
-            sender: sender,
+            holder: holder,
             expiry: make_unix_timestamp(12),
             not_before: make_unix_timestamp(10),
         );
 
         assert_eq!(
-            doughnut.validate(sender, make_unix_timestamp(0)),
+            doughnut.validate(holder, make_unix_timestamp(0)),
             Err(ValidationError::Premature)
         )
     }
 
     #[test]
     fn validate_with_timestamp_overflow_fails() {
-        let sender = [1_u8; 33];
+        let holder = [1_u8; 33];
         let doughnut = doughnut_builder!(
-            sender: sender,
+            holder: holder,
             expiry: 0,
             not_before: 0,
         );
 
         assert_eq!(
-            doughnut.validate(sender, u64::max_value()),
+            doughnut.validate(holder, u64::max_value()),
             Err(ValidationError::Conversion)
         )
     }
@@ -464,7 +464,7 @@ mod test {
     //         150u8, 22, 44, 205, 2, 222, 76, 191, 190, 171, 49, 135, 116, 73, 75, 214, 129, 172,
     //         123, 53, 115, 170, 24, 156, 51, 98, 166, 110, 214, 167, 219, 123,
     //     ];
-    //     let sender = vec![
+    //     let holder = vec![
     //         27u8, 137, 65, 29, 182, 25, 157, 61, 226, 13, 230, 14, 111, 6, 25, 186, 227, 117, 177,
     //         244, 172, 147, 40, 119, 209, 78, 13, 109, 236, 119, 205, 202,
     //     ];
@@ -477,7 +477,7 @@ mod test {
 
     //     let mut encoded_doughnut = vec![0u8, 8, 3];
     //     encoded_doughnut.append(&mut issuer.clone());
-    //     encoded_doughnut.append(&mut sender.clone());
+    //     encoded_doughnut.append(&mut holder.clone());
     //     encoded_doughnut.append(&mut vec![
     //         177u8, 104, 222, 58, 57, 48, 0, 0, 68, 111, 109, 97, 105, 110, 32, 49, 0, 0, 0, 0, 0,
     //         0, 0, 0, 10, 0, 68, 111, 109, 97, 105, 110, 32, 50, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 1,
@@ -489,7 +489,7 @@ mod test {
     //     assert_eq!(decoded_doughnut.signature_version(), 1);
     //     assert_eq!(decoded_doughnut.not_before(), 12345);
     //     assert_eq!(decoded_doughnut.expiry(), 987654321);
-    //     assert_eq!(Vec::from(&decoded_doughnut.sender() as &[u8]), sender);
+    //     assert_eq!(Vec::from(&decoded_doughnut.holder() as &[u8]), holder);
     //     assert_eq!(Vec::from(&decoded_doughnut.issuer() as &[u8]), issuer);
     //     assert_eq!(Vec::from(&decoded_doughnut.signature() as &[u8]), signature);
     // }
@@ -568,7 +568,7 @@ mod test {
         ];
         let doughnut = doughnut_builder! (
             issuer: [0x55_u8; 33],
-            sender: [0x88_u8; 33],
+            holder: [0x88_u8; 33],
             domains: domains,
             expiry: 0x1234,
             not_before: 0x5678,

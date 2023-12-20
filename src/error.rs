@@ -14,8 +14,8 @@ pub enum CodecError<'a> {
 /// Error type for validation failures
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum ValidationError {
-    /// Public key attempting to use a doughnut does not match the issued sender
-    SenderIdentityMismatched,
+    /// Public key attempting to use a doughnut does not match the issued holder
+    HolderIdentityMismatched,
     /// The doughnut has expired against the current timestamp
     Expired,
     /// Doughnut use precedes it's 'not before' timestamp, thus it has not matured yet.
