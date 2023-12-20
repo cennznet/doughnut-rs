@@ -53,8 +53,8 @@ fn can_sign_and_verify_sr25519_signature() {
     // has not before (b0) and 2 domains (b1..7)
     let header: Vec<u8> = vec![0, 0, 3];
     let issuer = keypair.public.to_bytes().to_vec();
-    let holder = vec![0x15; 32];
-    let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+    let sender = vec![0x15; 32];
+    let payload: Vec<u8> = [header, issuer, sender, test_domain_data()].concat();
     let invalid_payload_stub = [0_u8; 64];
     let invalid_signature_bytes = keypair
         .sign(context.bytes(&invalid_payload_stub))
@@ -89,8 +89,8 @@ fn can_sign_and_verify_ed25519_signature() {
     // has not before (b0) and 2 domains (b1..7)
     let header: Vec<u8> = vec![0, 8, 3];
     let issuer = keypair.public.to_bytes().to_vec();
-    let holder = vec![0x15; 32];
-    let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+    let sender = vec![0x15; 32];
+    let payload: Vec<u8> = [header, issuer, sender, test_domain_data()].concat();
     let invalid_payload_stub = [0_u8; 64];
     let invalid_signature_bytes = keypair.sign(&invalid_payload_stub).to_bytes().to_vec();
     let encoded_with_invalid_signature: Vec<u8> = [payload, invalid_signature_bytes].concat();
@@ -118,11 +118,11 @@ fn can_sign_and_verify_ed25519_signature() {
 fn ed25519_signature_verifies() {
     let keypair = generate_ed25519_keypair();
     let issuer = keypair.public.to_bytes();
-    let holder = [0x15; 32];
+    let sender = [0x15; 32];
     let domains = vec![("test".to_string(), vec![0u8])];
     let mut doughnut = DoughnutV0 {
         issuer,
-        holder,
+        sender,
         domains,
         ..Default::default()
     };
@@ -138,11 +138,11 @@ fn ed25519_signature_verifies() {
 fn sr25519_signature_verifies() {
     let keypair = generate_sr25519_keypair();
     let issuer = keypair.public.to_bytes();
-    let holder = [0x15; 32];
+    let sender = [0x15; 32];
     let domains = vec![("test".to_string(), vec![0u8])];
     let mut doughnut = DoughnutV0 {
         issuer,
-        holder,
+        sender,
         domains,
         ..Default::default()
     };
@@ -166,9 +166,9 @@ fn sr25519_signed_doughnut_v0_has_invalid_signature() {
     // has not before (b0) and 2 domains (b1..7)
     let header: Vec<u8> = vec![0, 0, 3];
     let issuer = keypair.public.to_bytes().to_vec();
-    let holder = vec![0x15; 32];
+    let sender = vec![0x15; 32];
 
-    let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+    let payload: Vec<u8> = [header, issuer, sender, test_domain_data()].concat();
     let invalid_signature = keypair_invalid.sign(context.bytes(&payload));
 
     let encoded: Vec<u8> = [payload, invalid_signature.to_bytes().to_vec()].concat();
@@ -185,9 +185,9 @@ fn ed25519_signed_doughnut_v0_has_invalid_signature() {
     // has not before (b0) and 2 domains (b1..7)
     let header: Vec<u8> = vec![0, 8, 3];
     let issuer = keypair.public.to_bytes().to_vec();
-    let holder = vec![0x15; 32];
+    let sender = vec![0x15; 32];
 
-    let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+    let payload: Vec<u8> = [header, issuer, sender, test_domain_data()].concat();
     let signature = keypair.sign(&payload);
 
     let mut encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();

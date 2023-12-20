@@ -11,7 +11,7 @@ use core::convert::TryFrom;
 fn it_works_v0() {
     let payload: Vec<u8> = vec![
         // version and domain count
-        2, 24, 2, // holder and issuer
+        2, 24, 2, // sender and issuer
         22, 126, 150, 15, 176, 190, 210, 156, 179, 149, 142, 84, 153, 4, 203, 61, 62, 185, 76, 45,
         162, 220, 254, 188, 163, 187, 63, 39, 186, 113, 126, 12, 60, 121, 179, 67, 105, 121, 244,
         39, 137, 174, 55, 85, 167, 73, 111, 50, 249, 10, 145, 141, 125, 105, 138, 38, 93, 144, 45,
@@ -42,7 +42,7 @@ fn it_works_v0() {
         ]
     );
     assert_eq!(
-        d.holder().as_ref(),
+        d.sender().as_ref(),
         [
             60, 121, 179, 67, 105, 121, 244, 39, 137, 174, 55, 85, 167, 73, 111, 50, 249, 10, 145,
             141, 125, 105, 138, 38, 93, 144, 45, 224, 70, 206, 246, 116
@@ -58,7 +58,7 @@ fn it_works_v0() {
 fn v0_encode_two_domains() {
     let payload: Vec<u8> = vec![
         // version and domain count
-        0, 0, 2, // holder and issuer
+        0, 0, 2, // sender and issuer
         22, 126, 150, 15, 176, 190, 210, 156, 179, 149, 142, 84, 153, 4, 203, 61, 62, 185, 76, 45,
         162, 220, 254, 188, 163, 187, 63, 39, 186, 113, 126, 12, 60, 121, 179, 67, 105, 121, 244,
         39, 137, 174, 55, 85, 167, 73, 111, 50, 249, 10, 145, 141, 125, 105, 138, 38, 93, 144, 45,
@@ -85,7 +85,7 @@ fn v0_encode_two_domains() {
 fn v0_encode_one_domain() {
     let payload: Vec<u8> = vec![
         // version and domain count
-        0, 0, 0, // holder and issuer
+        0, 0, 0, // sender and issuer
         22, 126, 150, 15, 176, 190, 210, 156, 179, 149, 142, 84, 153, 4, 203, 61, 62, 185, 76, 45,
         162, 220, 254, 188, 163, 187, 63, 39, 186, 113, 126, 12, 60, 121, 179, 67, 105, 121, 244,
         39, 137, 174, 55, 85, 167, 73, 111, 50, 249, 10, 145, 141, 125, 105, 138, 38, 93, 144, 45,
@@ -109,7 +109,7 @@ fn v0_encode_one_domain() {
 fn v0_ed25519_decode_and_verify() {
     let payload: Vec<u8> = vec![
         // version and domain count
-        0, 8, 0, // holder and issuer
+        0, 8, 0, // sender and issuer
         22, 126, 150, 15, 176, 190, 210, 156, 179, 149, 142, 84, 153, 4, 203, 61, 62, 185, 76, 45,
         162, 220, 254, 188, 163, 187, 63, 39, 186, 113, 126, 12, 60, 121, 179, 67, 105, 121, 244,
         39, 137, 174, 55, 85, 167, 73, 111, 50, 249, 10, 145, 141, 125, 105, 138, 38, 93, 144, 45,
@@ -137,7 +137,7 @@ fn versioned_enum_v0_sr25519_verification() {
         0x0c, // issuer
         0x74, 0x37, 0x1a, 0xe3, 0x4a, 0xdd, 0xed, 0xd9, 0xa2, 0x46, 0x39, 0x0a, 0x45, 0x8b, 0x28,
         0x3b, 0x1b, 0x89, 0x41, 0x1d, 0xb6, 0x19, 0x9d, 0x3d, 0xe2, 0x0d, 0xe6, 0x0e, 0x6f, 0x06,
-        0x19, 0xba, // holder
+        0x19, 0xba, // sender
         0xe3, 0x75, 0xb1, 0xf4, 0xac, 0x93, 0x28, 0x77, 0xd1, 0x4e, 0x0d, 0x6d, 0xec, 0x77, 0xcd,
         0xca, 0xb1, 0x68, 0xde, // Expiry
         0x3a, 0x39, 0x30, 0x00, // Not Before
@@ -161,7 +161,7 @@ fn versioned_enum_v0_sr25519_verification() {
     assert_eq!(d.not_before, 12345);
 
     assert_eq!(
-        d.holder,
+        d.sender,
         [
             0x1b, 0x89, 0x41, 0x1d, 0xb6, 0x19, 0x9d, 0x3d, 0xe2, 0x0d, 0xe6, 0x0e, 0x6f, 0x06,
             0x19, 0xba, 0xe3, 0x75, 0xb1, 0xf4, 0xac, 0x93, 0x28, 0x77, 0xd1, 0x4e, 0x0d, 0x6d,
@@ -217,7 +217,7 @@ fn versioned_enum_v0_ed25519_verification() {
     assert_eq!(d.not_before, 12345);
 
     assert_eq!(
-        d.holder,
+        d.sender,
         [
             0x1b, 0x89, 0x41, 0x1d, 0xb6, 0x19, 0x9d, 0x3d, 0xe2, 0x0d, 0xe6, 0x0e, 0x6f, 0x06,
             0x19, 0xba, 0xe3, 0x75, 0xb1, 0xf4, 0xac, 0x93, 0x28, 0x77, 0xd1, 0x4e, 0x0d, 0x6d,

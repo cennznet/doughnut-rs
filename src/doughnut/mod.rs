@@ -76,7 +76,7 @@ mod test {
         let domains = vec![("something".to_string(), vec![0, 1, 2, 3, 4])];
         let doughnut_v0 = DoughnutV0 {
             issuer: [1_u8; 32],
-            holder: [2_u8; 32],
+            sender: [2_u8; 32],
             domains,
             expiry: 0,
             not_before: 0,
@@ -96,7 +96,7 @@ mod test {
         let domains = vec![("something".to_string(), vec![0, 1, 2, 3, 4])];
         let doughnut_v0 = DoughnutV0 {
             issuer: [1_u8; 32],
-            holder: [2_u8; 32],
+            sender: [2_u8; 32],
             domains,
             expiry: 0,
             not_before: 0,

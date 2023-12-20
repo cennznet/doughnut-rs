@@ -17,15 +17,15 @@ mod tests;
 /// It requires that associated types implement certain conversion traits in order
 /// to provide a default validation implementation.
 pub trait DoughnutApi {
-    /// The holder and issuer public key type
+    /// The sender and issuer public key type
     type PublicKey: PartialEq + AsRef<[u8]>;
     /// The expiry timestamp type
     type Timestamp: PartialOrd + TryInto<u32>;
     /// The signature type
     type Signature;
 
-    /// Return the doughnut holder
-    fn holder(&self) -> Self::PublicKey;
+    /// Return the doughnut sender
+    fn sender(&self) -> Self::PublicKey;
     /// Return the doughnut issuer
     fn issuer(&self) -> Self::PublicKey;
     /// Return the doughnut expiry timestamp
@@ -46,8 +46,8 @@ pub trait DoughnutApi {
         Q: AsRef<[u8]>,
         R: TryInto<u32>,
     {
-        if who.as_ref() != self.holder().as_ref() {
-            return Err(ValidationError::HolderIdentityMismatched);
+        if who.as_ref() != self.sender().as_ref() {
+            return Err(ValidationError::SenderIdentityMismatched);
         }
         let now_ = now.try_into().map_err(|_| ValidationError::Conversion)?;
         if now_
@@ -109,7 +109,7 @@ impl DoughnutApi for () {
     type Timestamp = u32;
     type Signature = ();
 
-    fn holder(&self) -> Self::PublicKey {
+    fn sender(&self) -> Self::PublicKey {
         Default::default()
     }
     fn issuer(&self) -> Self::PublicKey {
