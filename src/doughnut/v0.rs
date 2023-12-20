@@ -393,7 +393,7 @@ mod test {
         let not_the_sender = [2_u8; 32];
         assert_eq!(
             doughnut.validate(not_the_sender, make_unix_timestamp(0)),
-            Err(ValidationError::senderIdentityMismatched)
+            Err(ValidationError::SenderIdentityMismatched)
         )
     }
     #[test]
