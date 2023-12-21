@@ -11,7 +11,7 @@ repository = "https://github.com/futureversecom/trn-doughnut-rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-doughnut-rs = { path = "../", default-features = false, features = ["crypto"] }
+doughnut-rs = { path = "../", default-features = false, features = ["crypto", "wasm32"] }
 wasm-bindgen = "0.2.89"
 clear_on_drop = { version = "0.2.5", features = ["no_cc"] }
 codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = ["derive"] }

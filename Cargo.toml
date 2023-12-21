@@ -13,14 +13,7 @@ primitive-types = { version = "0.12.2", default-features = false }
 schnorrkel = { version = "0.11.4", default-features = false, optional = true }
 ed25519-dalek = { version = "1.0.0-pre.3", default-features = false, features = ["u64_backend", "alloc"], optional = true }
 libsecp256k1 = { version = "0.7", default-features = false, features = [ "hmac", "static-context" ] }
-
-# conditionally compile if target is NOT WASM
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30", default-features = false }
-
-# conditionally compile if target is WASM
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30", default-features = false, features = [ "disable_panic_handler", "disable_oom", "disable_allocator" ] }
 
 # including this to fix C build issues in consumer crates
 # 'No available targets are compatible with this triple.'
@@ -43,4 +36,10 @@ std = [
 crypto = [
     "ed25519-dalek",
     "schnorrkel",
+]
+# wasm build
+wasm32 = [
+    "sp-io/disable_panic_handler",
+    "sp-io/disable_oom",
+    "sp-io/disable_allocator",
 ]
