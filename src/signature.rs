@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Centrality Investments Limited
+// Copyright 2022-2023 Futureverse Corporation Limited
 
 use crate::alloc::vec::Vec;
 use crate::error::{SigningError, VerifyError};

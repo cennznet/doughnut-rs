@@ -1,12 +1,18 @@
-// Copyright 2019-2020 Centrality Investments Limited
+// Copyright 2022-2023 Futureverse Corporation Limited
 
 //! Provide JS-Rust API bindings to create and inspect Doughnuts
+
+#![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
+
+use alloc::vec::Vec;
+use alloc::format;
+use alloc::string::ToString;
 
 use codec::{Decode, Encode};
 use doughnut_rs::{
     traits::{DoughnutApi, DoughnutVerify, Signing},
-    v0::DoughnutV0,
-    Doughnut,
+    doughnut::{Doughnut, DoughnutV0},
 };
 use wasm_bindgen::prelude::*;
 
@@ -62,9 +68,12 @@ impl JsHandle {
     #[allow(non_snake_case)]
     /// Sign and return ed25519 signature
     pub fn signSr25519(&mut self, secret_key: &[u8]) -> Result<JsHandle, JsValue> {
+        let secret_key: [u8; 64] = secret_key
+            .try_into()
+            .map_err(|_| JsValue::from_str("invalid secret key"))?;
         if let Doughnut::V0(ref mut doughnut) = &mut self.0 {
             let _signature = doughnut
-                .sign_sr25519(secret_key)
+                .sign_sr25519(&secret_key)
                 .map(|_| ())
                 // throws: 'undefined' in JS on error
                 .map_err(|_| JsValue::undefined())?;
@@ -76,9 +85,12 @@ impl JsHandle {
     #[allow(non_snake_case)]
     /// Sign and return ed25519 signature
     pub fn signEd25519(&mut self, secret_key: &[u8]) -> Result<JsHandle, JsValue> {
+        let secret_key: [u8; 32] = secret_key
+            .try_into()
+            .map_err(|_| JsValue::from_str("invalid secret key"))?;
         if let Doughnut::V0(ref mut doughnut) = &mut self.0 {
             let _signature = doughnut
-                .sign_ed25519(secret_key)
+                .sign_ed25519(&secret_key)
                 .map(|_| ())
                 // throws: 'undefined' in JS on error
                 .map_err(|_| JsValue::undefined())?;

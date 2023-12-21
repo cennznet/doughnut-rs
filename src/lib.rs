@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Centrality Investments Limited
+// Copyright 2022-2023 Futureverse Corporation Limited
 
 #![warn(clippy::pedantic)]
 #![allow(clippy::must_use_candidate, clippy::missing_errors_doc)]
