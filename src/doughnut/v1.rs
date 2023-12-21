@@ -8,13 +8,18 @@
 
 #![allow(clippy::cast_possible_truncation)]
 
+use crate::traits::DoughnutApi;
+use crate::{
+    alloc::{
+        string::{String, ToString},
+        vec::Vec,
+    },
+    error::{SigningError, VerifyError},
+    signature::{sign_ecdsa, verify_signature},
+    traits::{DoughnutVerify, Signing},
+};
 use codec::{Decode, Encode, Input, Output};
 use core::convert::{TryFrom, TryInto};
-use crate::{alloc::{
-    string::{String, ToString},
-    vec::Vec,
-}, traits::{DoughnutVerify, Signing}, error::{VerifyError, SigningError}, signature::{sign_ecdsa, verify_signature}};
-use crate::traits::DoughnutApi;
 
 const NOT_BEFORE_MASK: u8 = 0b0000_0001;
 const SIGNATURE_MASK: u8 = 0b0001_1111;
@@ -120,10 +125,10 @@ impl Decode for DoughnutV1 {
         let has_not_before =
             (domain_count_and_not_before_byte & NOT_BEFORE_MASK) == NOT_BEFORE_MASK;
 
-        let mut issuer: [u8; 33] = [0_u8;33];
+        let mut issuer: [u8; 33] = [0_u8; 33];
         let _ = input.read(&mut issuer);
 
-        let mut holder: [u8; 33] = [0_u8;33];
+        let mut holder: [u8; 33] = [0_u8; 33];
         let _ = input.read(&mut holder);
 
         let expiry = u32::from_le_bytes([

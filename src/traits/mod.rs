@@ -6,7 +6,8 @@
 
 use crate::{
     alloc::vec::Vec,
-    error::{SigningError, ValidationError, VerifyError}, signature::SignatureVersion,
+    error::{SigningError, ValidationError, VerifyError},
+    signature::SignatureVersion,
 };
 use core::convert::TryInto;
 

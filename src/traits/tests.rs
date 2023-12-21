@@ -2,10 +2,10 @@
 
 use super::*;
 use crate::{
+    doughnut::DoughnutV0,
     error::SigningError,
     signature::{SignatureVersion, CONTEXT_ID},
     traits::{DoughnutVerify, Signing},
-    doughnut::DoughnutV0,
 };
 use codec::Decode;
 use primitive_types::H512;
@@ -61,8 +61,8 @@ fn can_sign_and_verify_sr25519_signature() {
         .to_bytes()
         .to_vec();
     let encoded_with_invalid_signature: Vec<u8> = [payload, invalid_signature_bytes].concat();
-    let mut doughnut: DoughnutV0 = Decode::decode(&mut &encoded_with_invalid_signature[..])
-        .expect("It is a valid doughnut");
+    let mut doughnut: DoughnutV0 =
+        Decode::decode(&mut &encoded_with_invalid_signature[..]).expect("It is a valid doughnut");
     let secret_key = keypair.secret.to_ed25519_bytes();
 
     // Signnature cannot be verified before signing
@@ -94,8 +94,8 @@ fn can_sign_and_verify_ed25519_signature() {
     let invalid_payload_stub = [0_u8; 64];
     let invalid_signature_bytes = keypair.sign(&invalid_payload_stub).to_bytes().to_vec();
     let encoded_with_invalid_signature: Vec<u8> = [payload, invalid_signature_bytes].concat();
-    let mut doughnut: DoughnutV0 = Decode::decode(&mut &encoded_with_invalid_signature[..])
-        .expect("It is a valid doughnut");
+    let mut doughnut: DoughnutV0 =
+        Decode::decode(&mut &encoded_with_invalid_signature[..]).expect("It is a valid doughnut");
     let secret_key = keypair.secret.as_bytes();
 
     // Signnature cannot be verified before signing

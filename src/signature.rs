@@ -69,7 +69,7 @@ pub fn sign_ecdsa(secret_key: &[u8; 32], payload: &[u8]) -> Result<[u8; 64], Sig
 
     let secret_key = libsecp256k1::SecretKey::parse_slice(secret_key)
         .map_err(|_| SigningError::InvalidECDSASecretKey)?;
-    let message = libsecp256k1::Message::parse_slice(&payload_hashed) 
+    let message = libsecp256k1::Message::parse_slice(&payload_hashed)
         .map_err(|_| SigningError::InvalidPayload)?;
     let (signature, _) = libsecp256k1::sign(&message, &secret_key);
     Ok(signature.serialize())
@@ -135,7 +135,7 @@ pub fn verify_ecdsa_signature(
     let message = libsecp256k1::Message::parse(&payload_hashed);
     let signature = libsecp256k1::Signature::parse_standard_slice(&signature_bytes[..64])
         .map_err(|_| VerifyError::BadSignatureFormat)?;
-    let pub_key = libsecp256k1:: PublicKey::parse_compressed(&public_key)
+    let pub_key = libsecp256k1::PublicKey::parse_compressed(&public_key)
         .map_err(|_| VerifyError::BadPublicKeyFormat)?;
 
     match libsecp256k1::verify(&message, &signature, &pub_key) {
@@ -149,13 +149,12 @@ mod test {
     use super::*;
     // The ed25519 and schnorrkel libs use different implementations of `OsRng`
     // two different libraries are used: `rand` and `rand_core` as a workaround
-    use rand::prelude::*;
-    use rand_core::OsRng;
     use ed25519_dalek::{Keypair as Ed25519Keypair, SIGNATURE_LENGTH as ED25519_SIGNATURE_LENGTH};
     use libsecp256k1::SecretKey as ECDSASecretKey;
+    use rand::prelude::*;
+    use rand_core::OsRng;
     use schnorrkel::{Keypair as Sr25519Keypair, SIGNATURE_LENGTH as SR25519_SIGNATURE_LENGTH};
     use sp_core::{ecdsa::Pair as ECDSAKeyPair, Pair};
-
 
     fn generate_ed25519_keypair() -> Ed25519Keypair {
         let mut csprng = OsRng {};
@@ -347,7 +346,7 @@ mod test {
         let (keypair, secret_key) = generate_ecdsa_keypair();
         let public_key = keypair.public();
         let payload = "this is a payload".as_bytes();
-        let signature = sign_ecdsa(&secret_key.serialize() , payload).unwrap();
+        let signature = sign_ecdsa(&secret_key.serialize(), payload).unwrap();
 
         verify_signature(2, &signature, &public_key.as_ref(), payload)
             .expect("Signed signature can be verified");

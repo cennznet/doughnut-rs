@@ -12,11 +12,16 @@ use codec::{Decode, Encode, Input, Output};
 use core::convert::TryFrom;
 use primitive_types::H512;
 
-use crate::{alloc::{
-    string::{String, ToString},
-    vec::Vec,
-}, error::{VerifyError, SigningError}, signature::{verify_signature, SignatureVersion, sign_ed25519, sign_sr25519}, traits::Signing};
 use crate::traits::{DoughnutApi, DoughnutVerify};
+use crate::{
+    alloc::{
+        string::{String, ToString},
+        vec::Vec,
+    },
+    error::{SigningError, VerifyError},
+    signature::{sign_ed25519, sign_sr25519, verify_signature, SignatureVersion},
+    traits::Signing,
+};
 
 const NOT_BEFORE_MASK: u8 = 0b0000_0001;
 const SIGNATURE_MASK: u8 = 0b0001_1111;
