@@ -1,9 +1,9 @@
 #!/bin/bash
 set -ex
 echo "building js pkg for $1 out to: $2"
-wasm-pack build \
+rustup run nightly wasm-pack build \
     --target $1 \
-    --scope plugnet \
+    --scope trn \
     --out-name doughnut \
     --out-dir $2 \
     --release

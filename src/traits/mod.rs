@@ -24,7 +24,6 @@ pub trait DoughnutApi {
     type Timestamp: PartialOrd + TryInto<u32>;
     /// The signature type
     type Signature;
-
     /// Return the doughnut holder
     fn holder(&self) -> Self::PublicKey;
     /// Return the doughnut issuer
