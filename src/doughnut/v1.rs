@@ -208,7 +208,9 @@ impl DoughnutApi for DoughnutV1 {
         self.issuer
     }
     /// Return the doughnut fee payer
-    fn fee_payer(&self) -> u8 { self.fee_payer }
+    fn fee_payer(&self) -> u8 {
+        self.fee_payer
+    }
     /// Return the doughnut expiry timestamp
     fn expiry(&self) -> Self::Timestamp {
         self.expiry
@@ -283,6 +285,7 @@ mod test {
         (
             issuer:$issuer:expr,
             holder:$holder:expr,
+            fee_payer:$fee_payer:expr,
             domains:$domains:expr,
             expiry:$expiry:expr,
             not_before:$not_before:expr,
@@ -293,6 +296,7 @@ mod test {
             DoughnutV1 {
                 issuer: $issuer,
                 holder: $holder,
+                fee_payer: $fee_payer,
                 domains: $domains,
                 expiry: $expiry,
                 not_before: $not_before,
@@ -309,6 +313,25 @@ mod test {
             doughnut_builder!(
                 issuer:[0_u8; 33],
                 holder:$holder,
+                fee_payer: 0,
+                domains:vec![("cennznet".to_string(), vec![0])],
+                expiry: $expiry,
+                not_before: $not_before,
+                payload_version: 0,
+                signature_version: 0,
+                signature: [0xa5; 64],
+            )
+        };
+        (
+            holder: $holder:expr,
+            expiry:$expiry:expr,
+            not_before:$not_before:expr,
+            fee_payer:$fee_payer:expr,
+        ) => {
+            doughnut_builder!(
+                issuer:[0_u8; 33],
+                holder:$holder,
+                fee_payer: $fee_payer,
                 domains:vec![("cennznet".to_string(), vec![0])],
                 expiry: $expiry,
                 not_before: $not_before,
@@ -324,6 +347,7 @@ mod test {
             doughnut_builder!(
                 issuer:[0_u8; 33],
                 holder:[1_u8; 33],
+                fee_payer: 0,
                 domains:vec![("cennznet".to_string(), vec![0])],
                 expiry: 0,
                 not_before: 0,
@@ -338,6 +362,7 @@ mod test {
             doughnut_builder!(
                 issuer: [0_u8; 33],
                 holder: [1_u8; 33],
+                fee_payer: 0,
                 domains: $domains,
                 expiry: 0,
                 not_before: 0,
@@ -581,6 +606,7 @@ mod test {
         let doughnut = doughnut_builder! (
             issuer: [0x55_u8; 33],
             holder: [0x88_u8; 33],
+            fee_payer: 0x0,
             domains: domains,
             expiry: 0x1234,
             not_before: 0x5678,
@@ -661,4 +687,21 @@ mod test {
     //         Err(codec::Error::from("Not enough data to fill buffer"))
     //     );
     // }
+
+    #[test]
+    fn holder_as_fee_payer_encode_and_decode() {
+        let holder = [1_u8; 33];
+        let doughnut = doughnut_builder!(
+            holder: holder,
+            expiry: 0,
+            not_before: 0,
+            fee_payer: 1, // holder pays the fee
+        );
+
+        let parsed_doughnut = DoughnutV1::decode(&mut &doughnut.encode()[..]).unwrap();
+        assert_eq!(parsed_doughnut.holder, holder);
+        assert_eq!(parsed_doughnut.expiry, 0);
+        assert_eq!(parsed_doughnut.not_before, 0);
+        assert_eq!(parsed_doughnut.fee_payer, 1);
+    }
 }

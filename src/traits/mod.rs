@@ -117,7 +117,9 @@ impl DoughnutApi for () {
     fn issuer(&self) -> Self::PublicKey {
         Default::default()
     }
-    fn fee_payer(&self) -> u8 { 0 }
+    fn fee_payer(&self) -> u8 {
+        0
+    }
     fn expiry(&self) -> Self::Timestamp {
         0
     }

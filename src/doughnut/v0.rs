@@ -206,7 +206,7 @@ impl DoughnutApi for DoughnutV0 {
     }
     /// Return the doughnut fee payer
     fn fee_payer(&self) -> u8 {
-        Default::default() // for default 0, issuer pays the fee
+        Default::default() // v0 does not support fee_payer, Hence return default 0, issuer pays the fee
     }
     /// Return the doughnut expiry timestamp
     fn expiry(&self) -> Self::Timestamp {
