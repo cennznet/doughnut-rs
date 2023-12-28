@@ -72,6 +72,7 @@ impl DoughnutV1 {
         dest.push_byte(domain_count_and_not_before_byte);
         dest.write(&self.issuer);
         dest.write(&self.holder);
+        dest.push_byte(self.fee_payer);
 
         for b in &self.expiry.to_le_bytes() {
             dest.push_byte(*b);
@@ -132,6 +133,8 @@ impl Decode for DoughnutV1 {
         let mut holder: [u8; 33] = [0_u8; 33];
         let _ = input.read(&mut holder);
 
+        let fee_payer = input.read_byte()?;
+
         let expiry = u32::from_le_bytes([
             input.read_byte()?,
             input.read_byte()?,
@@ -181,6 +184,7 @@ impl Decode for DoughnutV1 {
         Ok(Self {
             holder,
             issuer,
+            fee_payer,
             expiry,
             not_before,
             signature_version,
@@ -203,6 +207,8 @@ impl DoughnutApi for DoughnutV1 {
     fn issuer(&self) -> Self::PublicKey {
         self.issuer
     }
+    /// Return the doughnut fee payer
+    fn fee_payer(&self) -> u8 { self.fee_payer }
     /// Return the doughnut expiry timestamp
     fn expiry(&self) -> Self::Timestamp {
         self.expiry

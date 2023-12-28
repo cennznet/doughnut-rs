@@ -204,6 +204,10 @@ impl DoughnutApi for DoughnutV0 {
     fn issuer(&self) -> Self::PublicKey {
         self.issuer
     }
+    /// Return the doughnut fee payer
+    fn fee_payer(&self) -> u8 {
+        Default::default() // for default 0, issuer pays the fee
+    }
     /// Return the doughnut expiry timestamp
     fn expiry(&self) -> Self::Timestamp {
         self.expiry

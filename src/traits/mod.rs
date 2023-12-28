@@ -28,6 +28,8 @@ pub trait DoughnutApi {
     fn holder(&self) -> Self::PublicKey;
     /// Return the doughnut issuer
     fn issuer(&self) -> Self::PublicKey;
+    /// Return the doughnut fee payer
+    fn fee_payer(&self) -> u8;
     /// Return the doughnut expiry timestamp
     fn expiry(&self) -> Self::Timestamp;
     /// Return the doughnut 'not before' timestamp
@@ -115,6 +117,7 @@ impl DoughnutApi for () {
     fn issuer(&self) -> Self::PublicKey {
         Default::default()
     }
+    fn fee_payer(&self) -> u8 { 0 }
     fn expiry(&self) -> Self::Timestamp {
         0
     }
