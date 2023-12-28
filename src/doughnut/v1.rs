@@ -33,6 +33,7 @@ const MAX_DOMAINS: usize = 128;
 pub struct DoughnutV1 {
     pub issuer: [u8; 33],
     pub holder: [u8; 33],
+    pub fee_payer: u8,
     pub domains: Vec<(String, Vec<u8>)>,
     pub expiry: u32,
     pub not_before: u32,
