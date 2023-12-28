@@ -14,6 +14,12 @@ use core::convert::TryInto;
 #[cfg(test)]
 mod tests;
 
+/// An enum for doughnut fee mode
+pub enum FeeMode {
+    ISSUER = 0,
+    HOLDER = 1,
+}
+
 /// A version agnostic API trait to expose a doughnut's underlying data.
 /// It requires that associated types implement certain conversion traits in order
 /// to provide a default validation implementation.
@@ -75,7 +81,7 @@ pub trait DoughnutApi {
         match self.fee_mode() {
             0 => self.issuer(),
             1 => self.holder(),
-            _ => self.issuer(), // default is the issuer
+            _ => self.issuer(), // any other value default to the issuer
         }
     }
 
