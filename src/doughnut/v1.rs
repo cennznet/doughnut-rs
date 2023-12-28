@@ -33,7 +33,7 @@ const MAX_DOMAINS: usize = 128;
 pub struct DoughnutV1 {
     pub issuer: [u8; 33],
     pub holder: [u8; 33],
-    pub fee_payer: u8,
+    pub fee_mode: u8,
     pub domains: Vec<(String, Vec<u8>)>,
     pub expiry: u32,
     pub not_before: u32,
@@ -72,7 +72,7 @@ impl DoughnutV1 {
         dest.push_byte(domain_count_and_not_before_byte);
         dest.write(&self.issuer);
         dest.write(&self.holder);
-        dest.push_byte(self.fee_payer);
+        dest.push_byte(self.fee_mode);
 
         for b in &self.expiry.to_le_bytes() {
             dest.push_byte(*b);
@@ -133,7 +133,7 @@ impl Decode for DoughnutV1 {
         let mut holder: [u8; 33] = [0_u8; 33];
         let _ = input.read(&mut holder);
 
-        let fee_payer = input.read_byte()?;
+        let fee_mode = input.read_byte()?;
 
         let expiry = u32::from_le_bytes([
             input.read_byte()?,
@@ -184,7 +184,7 @@ impl Decode for DoughnutV1 {
         Ok(Self {
             holder,
             issuer,
-            fee_payer,
+            fee_mode,
             expiry,
             not_before,
             signature_version,
@@ -207,9 +207,9 @@ impl DoughnutApi for DoughnutV1 {
     fn issuer(&self) -> Self::PublicKey {
         self.issuer
     }
-    /// Return the doughnut fee payer
-    fn fee_payer(&self) -> u8 {
-        self.fee_payer
+    /// Return the doughnut fee mode
+    fn fee_mode(&self) -> u8 {
+        self.fee_mode
     }
     /// Return the doughnut expiry timestamp
     fn expiry(&self) -> Self::Timestamp {
@@ -285,7 +285,7 @@ mod test {
         (
             issuer:$issuer:expr,
             holder:$holder:expr,
-            fee_payer:$fee_payer:expr,
+            fee_mode:$fee_mode:expr,
             domains:$domains:expr,
             expiry:$expiry:expr,
             not_before:$not_before:expr,
@@ -296,7 +296,7 @@ mod test {
             DoughnutV1 {
                 issuer: $issuer,
                 holder: $holder,
-                fee_payer: $fee_payer,
+                fee_mode: $fee_mode,
                 domains: $domains,
                 expiry: $expiry,
                 not_before: $not_before,
@@ -313,7 +313,7 @@ mod test {
             doughnut_builder!(
                 issuer:[0_u8; 33],
                 holder:$holder,
-                fee_payer: 0,
+                fee_mode: 0,
                 domains:vec![("cennznet".to_string(), vec![0])],
                 expiry: $expiry,
                 not_before: $not_before,
@@ -326,12 +326,12 @@ mod test {
             holder: $holder:expr,
             expiry:$expiry:expr,
             not_before:$not_before:expr,
-            fee_payer:$fee_payer:expr,
+            fee_mode:$fee_mode:expr,
         ) => {
             doughnut_builder!(
                 issuer:[0_u8; 33],
                 holder:$holder,
-                fee_payer: $fee_payer,
+                fee_mode: $fee_mode,
                 domains:vec![("cennznet".to_string(), vec![0])],
                 expiry: $expiry,
                 not_before: $not_before,
@@ -347,7 +347,7 @@ mod test {
             doughnut_builder!(
                 issuer:[0_u8; 33],
                 holder:[1_u8; 33],
-                fee_payer: 0,
+                fee_mode: 0,
                 domains:vec![("cennznet".to_string(), vec![0])],
                 expiry: 0,
                 not_before: 0,
@@ -362,7 +362,7 @@ mod test {
             doughnut_builder!(
                 issuer: [0_u8; 33],
                 holder: [1_u8; 33],
-                fee_payer: 0,
+                fee_mode: 0,
                 domains: $domains,
                 expiry: 0,
                 not_before: 0,
@@ -606,7 +606,7 @@ mod test {
         let doughnut = doughnut_builder! (
             issuer: [0x55_u8; 33],
             holder: [0x88_u8; 33],
-            fee_payer: 0x0,
+            fee_mode: 0x0,
             domains: domains,
             expiry: 0x1234,
             not_before: 0x5678,
@@ -689,19 +689,20 @@ mod test {
     // }
 
     #[test]
-    fn holder_as_fee_payer_encode_and_decode() {
+    fn holder_as_fee_mode_encode_and_decode() {
         let holder = [1_u8; 33];
         let doughnut = doughnut_builder!(
             holder: holder,
             expiry: 0,
             not_before: 0,
-            fee_payer: 1, // holder pays the fee
+            fee_mode: 1, // holder pays the fee
         );
 
         let parsed_doughnut = DoughnutV1::decode(&mut &doughnut.encode()[..]).unwrap();
         assert_eq!(parsed_doughnut.holder, holder);
         assert_eq!(parsed_doughnut.expiry, 0);
         assert_eq!(parsed_doughnut.not_before, 0);
-        assert_eq!(parsed_doughnut.fee_payer, 1);
+        assert_eq!(parsed_doughnut.fee_mode, 1);
+        assert_eq!(parsed_doughnut.fee_payer(), holder);
     }
 }
