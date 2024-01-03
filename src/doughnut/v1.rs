@@ -333,11 +333,11 @@ impl DoughnutVerify for DoughnutV1 {
 }
 
 impl Signing for DoughnutV1 {
-    fn sign_ed25519(&mut self, secret_key: &[u8; 32]) -> Result<[u8; 64], SigningError> {
+    fn sign_ed25519(&mut self, _secret_key: &[u8; 32]) -> Result<[u8; 64], SigningError> {
         Err(SigningError::NotSupported)
     }
 
-    fn sign_sr25519(&mut self, secret_key: &[u8; 64]) -> Result<[u8; 64], SigningError> {
+    fn sign_sr25519(&mut self, _secret_key: &[u8; 64]) -> Result<[u8; 64], SigningError> {
         Err(SigningError::NotSupported)
     }
 

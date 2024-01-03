@@ -343,7 +343,7 @@ impl Signing for DoughnutV0 {
         })
     }
 
-    fn sign_ecdsa(&mut self, secret_key: &[u8; 32]) -> Result<[u8; 64], SigningError> {
+    fn sign_ecdsa(&mut self, _secret_key: &[u8; 32]) -> Result<[u8; 64], SigningError> {
         Err(SigningError::NotSupported)
     }
 }
