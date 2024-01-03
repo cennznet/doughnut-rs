@@ -4,11 +4,13 @@
 //! Doughnut traits
 //!
 
+use crate::error::CodecError;
 use crate::{
     alloc::vec::Vec,
     error::{SigningError, ValidationError, VerifyError},
     signature::SignatureVersion,
 };
+use codec::{Error, Input};
 use core::convert::TryInto;
 
 #[cfg(test)]
@@ -178,4 +180,10 @@ impl DoughnutVerify for () {
     fn verify(&self) -> Result<(), VerifyError> {
         Ok(())
     }
+}
+
+/// Additional decoder trait to decode without payload version info
+pub trait DecodeInner: Sized {
+    /// Decodes the doughnut payload without version info. input is expected without version info
+    fn decode_inner<I: Input>(input: &mut I) -> Result<Self, Error>;
 }
