@@ -20,6 +20,23 @@ pub enum FeeMode {
     HOLDER = 1,
 }
 
+/// An enum for doughnut payload version
+pub enum PayloadVersion {
+    V0 = 0,
+    V1 = 1,
+}
+
+impl TryFrom<u16> for PayloadVersion {
+    type Error = CodecError;
+    fn try_from(val: u16) -> Result<Self, Self::Error> {
+        match val {
+            0 => Ok(Self::V0),
+            1 => Ok(Self::V1),
+            _ => Err(CodecError::UnsupportedVersion),
+        }
+    }
+}
+
 /// A version agnostic API trait to expose a doughnut's underlying data.
 /// It requires that associated types implement certain conversion traits in order
 /// to provide a default validation implementation.
