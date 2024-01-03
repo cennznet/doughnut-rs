@@ -4,11 +4,11 @@
 
 /// Error type for codec failures
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub enum CodecError<'a> {
+pub enum CodecError {
     /// The doughnut version is unsupported by the current codec
     UnsupportedVersion,
     /// Invalid encoded format found while decoding
-    BadEncoding(&'a str),
+    BadEncoding,
 }
 
 /// Error type for validation failures
