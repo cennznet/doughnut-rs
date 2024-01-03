@@ -8,12 +8,14 @@
 
 #![allow(clippy::cast_possible_truncation)]
 
-use crate::traits::DoughnutApi;
+use crate::signature::SignatureVersion;
+use crate::traits::{DecodeInner, DoughnutApi, PayloadVersion};
 use crate::{
     alloc::{
         string::{String, ToString},
         vec::Vec,
     },
+    doughnut::{SIGNATURE_MASK, SIGNATURE_OFFSET, VERSION_MASK},
     error::{SigningError, VerifyError},
     signature::{sign_ecdsa, verify_signature},
     traits::{DoughnutVerify, Signing},
@@ -22,9 +24,6 @@ use codec::{Decode, Encode, Input, Output};
 use core::convert::{TryFrom, TryInto};
 
 const NOT_BEFORE_MASK: u8 = 0b0000_0001;
-const SIGNATURE_MASK: u8 = 0b0001_1111;
-const SIGNATURE_OFFSET: usize = 11;
-const VERSION_MASK: u16 = 0b0000_0111_1111_1111;
 
 const MAX_DOMAINS: usize = 128;
 
@@ -121,6 +120,84 @@ impl Decode for DoughnutV1 {
         let payload_version = version_data & VERSION_MASK;
 
         let signature_version = ((version_data >> SIGNATURE_OFFSET) as u8) & SIGNATURE_MASK;
+
+        let domain_count_and_not_before_byte = input.read_byte()?;
+        let permission_domain_count = (domain_count_and_not_before_byte >> 1) + 1;
+        let has_not_before =
+            (domain_count_and_not_before_byte & NOT_BEFORE_MASK) == NOT_BEFORE_MASK;
+
+        let mut issuer: [u8; 33] = [0_u8; 33];
+        let _ = input.read(&mut issuer);
+
+        let mut holder: [u8; 33] = [0_u8; 33];
+        let _ = input.read(&mut holder);
+
+        let fee_mode = input.read_byte()?;
+
+        let expiry = u32::from_le_bytes([
+            input.read_byte()?,
+            input.read_byte()?,
+            input.read_byte()?,
+            input.read_byte()?,
+        ]);
+
+        let not_before = if has_not_before {
+            u32::from_le_bytes([
+                input.read_byte()?,
+                input.read_byte()?,
+                input.read_byte()?,
+                input.read_byte()?,
+            ])
+        } else {
+            0
+        };
+
+        // Build domain permissions list
+        let mut domains: Vec<(String, Vec<u8>)> = Vec::default();
+        // A queue for domain keys and lengths from the domains header section
+        // We use this to order later reads from the domain payload section since we
+        // are restricted by `input` to read the payload byte-by-byte
+        let mut q: Vec<(String, usize)> = Vec::default();
+
+        for _ in 0..permission_domain_count {
+            let mut key_buf: [u8; 16] = Default::default();
+            let _ = input.read(&mut key_buf);
+            let key = core::str::from_utf8(&key_buf)
+                .map_err(|_| codec::Error::from("domain keys should be utf8 encoded"))?
+                .trim_matches(char::from(0))
+                .to_string();
+
+            let payload_length = u16::from_le_bytes([input.read_byte()?, input.read_byte()?]);
+            q.push((key, payload_length as usize));
+        }
+
+        for (key, payload_length) in q {
+            let mut payload = alloc::vec![0; payload_length as usize];
+            input.read(&mut payload)?;
+            domains.push((key, payload));
+        }
+
+        let mut signature = [0_u8; 64];
+        input.read(&mut signature)?;
+
+        Ok(Self {
+            holder,
+            issuer,
+            fee_mode,
+            expiry,
+            not_before,
+            signature_version,
+            payload_version,
+            domains,
+            signature,
+        })
+    }
+}
+
+impl DecodeInner for DoughnutV1 {
+    fn decode_inner<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
+        let payload_version = PayloadVersion::V1 as u16;
+        let signature_version = SignatureVersion::ECDSA as u8;
 
         let domain_count_and_not_before_byte = input.read_byte()?;
         let permission_domain_count = (domain_count_and_not_before_byte >> 1) + 1;
@@ -704,5 +781,22 @@ mod test {
         assert_eq!(parsed_doughnut.not_before, 0);
         assert_eq!(parsed_doughnut.fee_mode, 1);
         assert_eq!(parsed_doughnut.fee_payer(), holder);
+    }
+
+    #[test]
+    fn inner_decode_works() {
+        let payload_version = PayloadVersion::V1; // default value for v1
+        let signature_version = SignatureVersion::ECDSA; // // default value for v1
+        let doughnut = doughnut_builder!(
+            payload_version: payload_version as u16,
+            signature_version: signature_version as u8,
+        );
+
+        let mut full_encoded_payload = doughnut.encode();
+        //split to segregate version info
+        let (version_info, inner_payload) = full_encoded_payload.split_at(2);
+
+        let parsed_doughnut = DoughnutV1::decode_inner(&mut inner_payload.clone()).unwrap();
+        assert_eq!(doughnut, parsed_doughnut);
     }
 }
