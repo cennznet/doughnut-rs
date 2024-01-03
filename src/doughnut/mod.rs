@@ -41,9 +41,6 @@ impl Encode for Doughnut {
 
 impl Decode for Doughnut {
     fn decode<I: Input>(input: &mut I) -> Result<Self, Error> {
-        // TODO: check the first byte without consuming and proxy to the correct decoder version
-        // for now try decode a version 0 no matter what, as that is the only type that exists.
-        // TODO: fix decode according to the version
         let version_data = u16::from_le_bytes([input.read_byte()?, input.read_byte()?]);
         let payload_version = version_data & VERSION_MASK;
         let signature_version = ((version_data >> SIGNATURE_OFFSET) as u8) & SIGNATURE_MASK;
