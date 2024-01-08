@@ -41,6 +41,22 @@ pub struct DoughnutV1 {
     pub signature: [u8; 64],
 }
 
+impl Default for DoughnutV1 {
+    fn default() -> Self {
+        DoughnutV1 {
+            issuer: [0u8; 33],
+            holder: [0u8; 33],
+            fee_mode: 0,
+            domains: Vec::<(String, Vec<u8>)>::new(),
+            expiry: 0,
+            not_before: 0,
+            payload_version: PayloadVersion::V1 as u16,
+            signature_version: SignatureVersion::ECDSA as u8,
+            signature: [0u8; 64],
+        }
+    }
+}
+
 impl DoughnutV1 {
     /// Encodes the doughnut into an byte array and writes the result into a given memory
     /// if `encode_signature` is false, the final signature bytes are not included in the result
