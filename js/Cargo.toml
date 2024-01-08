@@ -1,5 +1,5 @@
 [package]
-name = "pallet-doughnut-js"
+name = "doughnut-js"
 version = "0.1.0"
 authors = ["The Root Network Team"]
 edition = "2021"

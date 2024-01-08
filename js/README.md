@@ -1,4 +1,4 @@
-# @plugnet/doughnut-wasm
+# @trn/doughnut-wasm
 
 Wasm Doughnut codec and maker.
 Currently compliant with the version 0 spec.  
@@ -6,7 +6,7 @@ Currently compliant with the version 0 spec.
 ## Create a Doughnut (unsigned)
 
 ```js
-const Doughnut = require('@plugnet/doughnut-wasm').default;
+const Doughnut = require('@trn/doughnut-wasm').default;
 
 const issuer = new Uint8Array(32);
 const holder = new Uint8Array(32);
@@ -54,7 +54,7 @@ let testDomain = d.domain("test");
 `Decoding`: Create a doughnut object from a encoded doughnut
 
 ```js
-const Doughnut = require('@plugnet/doughnut-wasm').default;
+const Doughnut = require('@trn/doughnut-wasm').default;
 
 const payload = [64, 24, 64, 22, 126, 150, 15, 176, 190, ..., 235, 3, 21, 63, 79, 192, 137, 6];
 const doughnut = Doughnut.decode();
@@ -69,7 +69,7 @@ const encoded = doughnut.encode();
 This package provides some convenience functions for signing doughnuts
 
 ```js
-const Doughnut = require('@plugnet/doughnut-wasm').default;
+const Doughnut = require('@trn/doughnut-wasm').default;
 let doughnut = new Doughnut(...);
 // Schnorrkel
 doughnut.signSr25519(<sr25519 secret key bytes>);
@@ -81,7 +81,7 @@ console.log(doughnut.signature)
 
 Sign with Ed25519 method using a `tweetnacl` keypair
 ```js
-const Doughnut = require('@plugnet/doughnut-wasm').default;
+const Doughnut = require('@trn/doughnut-wasm').default;
 const nacl = require('tweetnacl');
 
 let issuer = nacl.box.keyPair();
@@ -94,7 +94,7 @@ console.log(d.signature());
 Sign with schnorrkel method using a `@polkadot/util-crypto` keypair.
 Note: @polkadot/util-crypto also provides similar ed25519 methods.
 ```js
-const Doughnut = require('@plugnet/doughnut-wasm').default;
+const Doughnut = require('@trn/doughnut-wasm').default;
 const utilCrypto = require('@polkadot/util-crypto');
 const crypto = require('crypto');
 

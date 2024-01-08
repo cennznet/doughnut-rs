@@ -1,5 +1,5 @@
 {
-  "name": "@plugnet/doughnut-wasm",
+  "name": "@trn/doughnut-wasm",
   "version": "0.2.0",
   "description": "Wasm Doughnut codec",
   "main": "libNode/doughnut.js",
