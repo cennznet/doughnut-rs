@@ -2,7 +2,9 @@
 
 use crate::alloc::vec::Vec;
 use crate::error::{SigningError, VerifyError};
+use blake2::{digest, Digest};
 use core::convert::{TryFrom, TryInto};
+use digest::consts::U32;
 use ed25519_dalek::{
     Keypair as Ed25519Keypair, PublicKey as Ed25519PublicKey, Signature as Ed25519Signature,
     Signer, Verifier,
@@ -65,8 +67,7 @@ pub fn sign_sr25519(
 
 /// Sign an ecdsa signature
 pub fn sign_ecdsa(secret_key: &[u8; 32], payload: &[u8]) -> Result<[u8; 64], SigningError> {
-    let payload_hashed = sp_io::hashing::blake2_256(payload);
-
+    let payload_hashed = blake2_256(payload);
     let secret_key = libsecp256k1::SecretKey::parse_slice(secret_key)
         .map_err(|_| SigningError::InvalidECDSASecretKey)?;
     let message = libsecp256k1::Message::parse_slice(&payload_hashed)
@@ -127,7 +128,7 @@ pub fn verify_ecdsa_signature(
     signer: &[u8],
     payload: &[u8],
 ) -> Result<(), VerifyError> {
-    let payload_hashed = sp_io::hashing::blake2_256(payload);
+    let payload_hashed = blake2_256(payload);
     let public_key: [u8; 33] = signer
         .try_into()
         .map_err(|_| VerifyError::BadPublicKeyFormat)?;
@@ -142,6 +143,13 @@ pub fn verify_ecdsa_signature(
         true => Ok(()),
         false => Err(VerifyError::Invalid),
     }
+}
+
+fn blake2_256(data: &[u8]) -> [u8; 32] {
+    let mut hash = [0_u8; 32];
+    type Blake2b256 = blake2::Blake2b<U32>;
+    hash.copy_from_slice(Blake2b256::digest(data).as_slice());
+    hash
 }
 
 #[cfg(test)]

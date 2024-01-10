@@ -13,7 +13,8 @@ primitive-types = { version = "0.12.2", default-features = false }
 schnorrkel = { version = "0.11.4", default-features = false, optional = true }
 ed25519-dalek = { version = "1.0.0-pre.3", default-features = false, features = ["u64_backend", "alloc"], optional = true }
 libsecp256k1 = { version = "0.7", default-features = false, features = [ "hmac", "static-context" ] }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30", default-features = false, optional = true }
+blake2 = { version = "0.10.6", default-features = false, optional = true }
+digest = { version = "0.10.3", default-features = false }
 
 # including this to fix C build issues in consumer crates
 # 'No available targets are compatible with this triple.'
@@ -22,7 +23,7 @@ clear_on_drop = { version = "0.2.3", features = ["no_cc"] }
 [dev-dependencies]
 rand = { version = "0.8.5" }
 rand_core = { version = "0.5.1", features = ["alloc"] }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30"}
 
 [features]
 default = ["std"]
@@ -30,17 +31,17 @@ std = [
     "crypto",
     "ed25519-dalek/std",
     "schnorrkel/std",
-    "sp-io/std",
+    "digest/std"
 ]
 # enable cryptographic signing and verification features in 'no std'
 crypto = [
     "ed25519-dalek",
     "schnorrkel",
-    "sp-io",
+    "blake2"
 ]
 # wasm build
 wasm32 = [
-    "sp-io/disable_panic_handler",
-    "sp-io/disable_oom",
-    "sp-io/disable_allocator",
+    "schnorrkel/nightly",
+    "ed25519-dalek/nightly",
+    "blake2"
 ]
