@@ -106,7 +106,7 @@ impl JsHandle {
     }
 
     #[allow(non_snake_case)]
-    /// Sign and return ed25519 signature
+    /// Sign and return Sr25519 signature
     pub fn signSr25519(&mut self, secret_key: &[u8]) -> Result<JsHandle, JsValue> {
         // only PayloadVersion::V0 supports Sr25519
         if self.payloadVersion() != PayloadVersion::V0 as u16 {

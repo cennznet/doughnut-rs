@@ -3,7 +3,7 @@ const Doughnut = require('../libNode/doughnut').Doughnut;
 /**
  * Extract particular slices into params as needed
  */
-const composeDoughnut = ({issuer, holder, signature}) => {
+const composeV0Doughnut = ({issuer, holder, signature}) => {
     let issuerArr = Array.from(issuer);
     let holderArr = Array.from(holder);
     let signatureArr = Array.from(signature);
@@ -40,6 +40,15 @@ const sr25519Keypair = {
         254, 55, 76, 74, 143, 57, 211, 13, 53, 128, 124, 95, 251, 4, 189])
 };
 
+const ecdsaKeypair = {
+    publicKey: new Uint8Array([
+        2, 10, 16, 145, 52, 31, 229, 102, 75, 250, 23, 130, 213, 224, 71, 121, 104, 144, 104, 201, 22, 176, 76, 179, 101,
+        236, 49, 83, 117, 86, 132, 217, 161]),
+    secretKey: new Uint8Array([
+        203, 109, 249, 222, 30, 252, 167, 163, 153, 138, 142, 173, 78, 2, 21, 157, 95, 169, 156, 62, 13, 79, 214, 67, 38,
+        103, 57, 11, 180, 114, 104, 84])
+};
+
 const signature = new Uint8Array([
     90, 143, 31, 88, 7, 153, 88, 176, 209, 39, 71, 65, 16, 116, 95, 143, 125, 99, 21, 60, 109, 250, 196, 2, 107, 14, 164,
     101, 110, 235, 151, 76, 136, 156, 88, 112, 164, 29, 68, 185, 16, 246, 206, 52, 94, 190, 226, 158, 201, 110, 81, 253,
@@ -51,8 +60,8 @@ const notBefore = 12345;
 
 const defaultSignatureBeforeSigning = Uint8Array.from({length: 64}, x => 0);
 
-const encodedDoughnut = new Uint8Array(
-    composeDoughnut({
+const encodedV0Doughnut = new Uint8Array(
+    composeV0Doughnut({
         holder,
         issuer: ed25519Keypair.publicKey,
         signature,
@@ -61,12 +70,13 @@ const encodedDoughnut = new Uint8Array(
 
 const srSignatureVersion = 0;
 const edSignatureVersion = 1;
+const ecdsaSignatureVersion = 2;
 const defaultSignatureVersion = srSignatureVersion;
 
 describe('wasm doughnut', () => {
     describe('Decoded instance', () => {
         test('getters work', () => {
-            let d = Doughnut.decode(encodedDoughnut);
+            let d = Doughnut.decode(encodedV0Doughnut);
             // Fields are correct
             expect(d.holder()).toEqual(holder);
             expect(d.issuer()).toEqual(ed25519Keypair.publicKey);
@@ -77,16 +87,18 @@ describe('wasm doughnut', () => {
             expect(d.signature()).toEqual(signature);
 
             // encodes the same
-            expect(d.encode()).toEqual(encodedDoughnut);
+            expect(d.encode()).toEqual(encodedV0Doughnut);
         });
     });
 
     describe('Class instance', () => {
-        test('getters + chained API', () => {
+        test('getters + chained API V0 doughnut works)', () => {
            // doughnut is instantiated via chained method calls
             const d = new Doughnut(
+                0,
                 ed25519Keypair.publicKey,
                 holder,
+                0,
                 expiry,
                 notBefore
             )
@@ -104,34 +116,67 @@ describe('wasm doughnut', () => {
 
             expect(d.payloadVersion()).toEqual(0);
             expect(d.domain("test")).toEqual(new Uint8Array([1,2,3,4,5]));
-        }),
+        });
+
         test('addDomain operates on "this" object', () => {
             // doughnut is instantiated and modified in discrete steps
             const d = new Doughnut(
+                0,
                 ed25519Keypair.publicKey,
                 holder,
+                0,
                 expiry,
                 notBefore
-            );
+            )
             expect(() => {
               d.domain("test")}
             ).toThrow(undefined);
             d.addDomain("test", new Uint8Array([1,2,3,4,5]));
             expect(d.domain("test")).toEqual(new Uint8Array([1,2,3,4,5]));
-        })
+        });
 
+        test('getters + chained API V1 doughnut works)', () => {
+            // doughnut is instantiated via chained method calls
+            let ecdsa_holder = new Uint8Array(33).fill(0);
+            const d = new Doughnut(
+                1,
+                ed25519Keypair.publicKey,
+                ecdsa_holder,
+                0,
+                expiry,
+                notBefore
+            )
+            .addDomain("test", new Uint8Array([1,2,3,4,5]))
+            .signEd25519(ecdsaKeypair.secretKey);
+
+            expect(d.encode().length).toBeGreaterThan(0);
+
+            expect(d.holder()).toEqual(ecdsa_holder);
+            expect(d.issuer()).toEqual(ecdsaKeypair.publicKey);
+            expect(d.expiry()).toEqual(expiry);
+            expect(d.notBefore()).toEqual(notBefore);
+
+            expect(d.signatureVersion()).toEqual(ecdsaSignatureVersion);
+
+            expect(d.payloadVersion()).toEqual(1);
+            expect(d.domain("test")).toEqual(new Uint8Array([1,2,3,4,5]));
+        });
     });
 
     describe('Schnorrkel', () => {
         test('sr25519 signing is verifiable', () => {
-            const d = new Doughnut(
+            let d = new Doughnut(
+                0,
                 sr25519Keypair.publicKey,
                 holder,
+                0,
                 expiry,
                 notBefore
             );
             expect(d.signatureVersion()).toEqual(defaultSignatureVersion);
             expect(d.signature()).toEqual(defaultSignatureBeforeSigning);
+            expect(d.payloadVersion()).toEqual(0);
+
 
             d.signSr25519(sr25519Keypair.secretKey);
             
@@ -145,8 +190,10 @@ describe('wasm doughnut', () => {
     describe('ed25519', () => {
         test('ed25519 signing produce the expected signature', () => {
             let d = new Doughnut(
+                0,
                 ed25519Keypair.publicKey,
                 holder,
+                0,
                 expiry,
                 notBefore
             );
