@@ -166,8 +166,8 @@ impl DoughnutVerify for () {
     }
 }
 
-/// Additional decoder trait to decode without payload version info
+/// Additional decoder trait that allows to decode with or without payload version info
 pub trait DecodeInner: Sized {
-    /// Decodes the doughnut payload without version info. input is expected without version info
-    fn decode_inner<I: Input>(input: &mut I) -> Result<Self, Error>;
+    /// Decodes the doughnut payload with or without payload version info
+    fn decode_inner<I: Input>(input: &mut I, with_version_info: bool) -> Result<Self, Error>;
 }
