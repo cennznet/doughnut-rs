@@ -190,12 +190,19 @@ impl Decode for DoughnutV0 {
 }
 
 impl DecodeInner for DoughnutV0 {
-    fn decode_inner<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
-        // Note - these values should be replaced(by the parent function) in the final doughnut.
-        let payload_version = PayloadVersion::V0 as u16;
-        let signature_version = SignatureVersion::Ed25519 as u8;
+    fn decode_inner<I: Input>(
+        input: &mut I,
+        with_version_info: bool,
+    ) -> Result<Self, codec::Error> {
+        let mut payload_version = PayloadVersion::V0 as u16;
+        let mut signature_version = SignatureVersion::Ed25519 as u8;
 
-        // Note - input is expected to be without version info
+        if with_version_info {
+            let version_data = u16::from_le_bytes([input.read_byte()?, input.read_byte()?]);
+            payload_version = version_data & VERSION_MASK;
+            signature_version = ((version_data >> SIGNATURE_OFFSET) as u8) & SIGNATURE_MASK;
+        }
+
         let domain_count_and_not_before_byte = input.read_byte()?;
         let permission_domain_count = (domain_count_and_not_before_byte >> 1) + 1;
         let has_not_before =
@@ -746,11 +753,17 @@ mod test {
             signature_version: signature_version as u8,
         );
 
-        let mut full_encoded_payload = doughnut.encode();
-        //split to segregate version info
-        let (version_info, inner_payload) = full_encoded_payload.split_at(2);
+        let full_encoded_payload = doughnut.encode();
+        // decode full encoded payload with version info
+        let parsed_doughnut_1 =
+            DoughnutV0::decode_inner(&mut full_encoded_payload.clone().as_slice(), true).unwrap();
+        assert_eq!(doughnut, parsed_doughnut_1);
 
-        let parsed_doughnut = DoughnutV0::decode_inner(&mut inner_payload.clone()).unwrap();
-        assert_eq!(doughnut, parsed_doughnut);
+        //split to segregate version info
+        let (_version_info, inner_payload) = full_encoded_payload.split_at(2);
+
+        let parsed_doughnut_2 =
+            DoughnutV0::decode_inner(&mut inner_payload.clone(), false).unwrap();
+        assert_eq!(doughnut, parsed_doughnut_2);
     }
 }

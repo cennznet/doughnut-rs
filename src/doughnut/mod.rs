@@ -50,13 +50,13 @@ impl Decode for Doughnut {
             .map_err(|_| Error::from("invalid doughnut version"))?
         {
             PayloadVersion::V0 => {
-                let mut doughnut_v0 = DoughnutV0::decode_inner(input)?;
+                let mut doughnut_v0 = DoughnutV0::decode_inner(input, false)?;
                 doughnut_v0.payload_version = payload_version;
                 doughnut_v0.signature_version = signature_version;
                 Ok(Doughnut::V0(doughnut_v0))
             }
             PayloadVersion::V1 => {
-                let mut doughnut_v1 = DoughnutV1::decode_inner(input)?;
+                let mut doughnut_v1 = DoughnutV1::decode_inner(input, false)?;
                 doughnut_v1.payload_version = payload_version;
                 doughnut_v1.signature_version = signature_version;
                 Ok(Doughnut::V1(doughnut_v1))
