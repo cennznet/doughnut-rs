@@ -62,6 +62,7 @@ impl JsHandle {
         expiry: u32,
         not_before: u32,
     ) -> Self {
+        console_error_panic_hook::set_once();
         match doughnut_version
             .try_into()
             .expect("Unsupported doughnut version")
