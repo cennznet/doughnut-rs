@@ -113,7 +113,7 @@ pub trait Signing {
     fn sign_sr25519(&mut self, secret_key: &[u8; 64]) -> Result<[u8; 64], SigningError>;
 
     /// sign using ECDSA method
-    fn sign_ecdsa(&mut self, secret_key: &[u8; 32]) -> Result<[u8; 64], SigningError>;
+    fn sign_ecdsa(&mut self, secret_key: &[u8; 32]) -> Result<[u8; 65], SigningError>;
 
     // Adds an EIP191 signature
     fn add_eip191_signature(&mut self, signature: &[u8; 65]) -> Result<(), SigningError>;

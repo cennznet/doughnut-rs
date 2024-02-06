@@ -366,8 +366,11 @@ impl Signing for DoughnutV1 {
         Err(SigningError::NotSupported)
     }
 
-    fn sign_ecdsa(&mut self, _secret_key: &[u8; 32]) -> Result<[u8; 64], SigningError> {
-        Err(SigningError::NotSupported)
+    fn sign_ecdsa(&mut self, secret_key: &[u8; 32]) -> Result<[u8; 65], SigningError> {
+        sign_ecdsa(secret_key, &self.payload()).map(|signature| {
+            self.signature = signature;
+            signature
+        })
     }
 
     fn add_eip191_signature(&mut self, signature: &[u8; 65]) -> Result<(), SigningError> {
