@@ -354,7 +354,7 @@ impl Signing for DoughnutV0 {
         Err(SigningError::NotSupported)
     }
 
-    fn add_metamask_signature(&mut self, _signature: [u8; 64]) -> Result<(), SigningError> {
+    fn add_eip191_signature(&mut self, _signature: &[u8; 65]) -> Result<(), SigningError> {
         Err(SigningError::NotSupported)
     }
 }

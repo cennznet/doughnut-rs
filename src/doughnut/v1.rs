@@ -38,7 +38,7 @@ pub struct DoughnutV1 {
     pub not_before: u32,
     pub payload_version: u16,
     pub signature_version: u8,
-    pub signature: [u8; 64],
+    pub signature: [u8; 65],
 }
 
 impl Default for DoughnutV1 {
@@ -51,8 +51,8 @@ impl Default for DoughnutV1 {
             expiry: 0,
             not_before: 0,
             payload_version: PayloadVersion::V1 as u16,
-            signature_version: SignatureVersion::ECDSA as u8,
-            signature: [0u8; 64],
+            signature_version: SignatureVersion::EIP191 as u8,
+            signature: [0u8; 65],
         }
     }
 }
@@ -193,7 +193,7 @@ impl Decode for DoughnutV1 {
             domains.push((key, payload));
         }
 
-        let mut signature = [0_u8; 64];
+        let mut signature = [0_u8; 65];
         input.read(&mut signature)?;
 
         Ok(Self {
@@ -280,7 +280,7 @@ impl DecodeInner for DoughnutV1 {
             domains.push((key, payload));
         }
 
-        let mut signature = [0_u8; 64];
+        let mut signature = [0_u8; 65];
         input.read(&mut signature)?;
 
         Ok(Self {
@@ -300,7 +300,7 @@ impl DecodeInner for DoughnutV1 {
 impl DoughnutApi for DoughnutV1 {
     type PublicKey = [u8; 33];
     type Timestamp = u32;
-    type Signature = [u8; 64];
+    type Signature = [u8; 65];
     /// Return the doughnut holder account ID
     fn holder(&self) -> Self::PublicKey {
         self.holder
@@ -366,22 +366,12 @@ impl Signing for DoughnutV1 {
         Err(SigningError::NotSupported)
     }
 
-    fn sign_ecdsa(&mut self, secret_key: &[u8; 32]) -> Result<[u8; 64], SigningError> {
-        sign_ecdsa(secret_key, &self.payload()).map(|signature| {
-            self.signature = signature;
-            signature
-        })
+    fn sign_ecdsa(&mut self, _secret_key: &[u8; 32]) -> Result<[u8; 64], SigningError> {
+        Err(SigningError::NotSupported)
     }
 
-    fn add_metamask_signature(&mut self, signature: [u8; 64]) -> Result<(), SigningError> {
-        // Only support Metamask for now
-        // if signature_version != SignatureVersion::Metamask as u8 {
-        //     return Err(SigningError::NotSupported)
-        // }
-
-        // Set the doughnut signature version to metamask
-        self.signature_version = SignatureVersion::Metamask as u8;
-        self.signature = signature;
+    fn add_eip191_signature(&mut self, signature: &[u8; 65]) -> Result<(), SigningError> {
+        self.signature = *signature;
         Ok(())
     }
 }
@@ -433,7 +423,7 @@ mod test {
                 not_before: $not_before,
                 payload_version: 0,
                 signature_version: 0,
-                signature: [0xa5; 64],
+                signature: [0xa5; 65],
             )
         };
         (
@@ -451,7 +441,7 @@ mod test {
                 not_before: $not_before,
                 payload_version: 0,
                 signature_version: 0,
-                signature: [0xa5; 64],
+                signature: [0xa5; 65],
             )
         };
         (
@@ -467,7 +457,7 @@ mod test {
                 not_before: 0,
                 payload_version: $pv,
                 signature_version: $sv,
-                signature: [0xa5; 64],
+                signature: [0xa5; 65],
             )
         };
         (
@@ -482,7 +472,7 @@ mod test {
                 not_before: 0,
                 payload_version: 0,
                 signature_version: 0,
-                signature: [0xa5; 64],
+                signature: [0xa5; 65],
             )
         };
         (holder: $holder:expr,) => {
@@ -726,7 +716,7 @@ mod test {
             not_before: 0x5678,
             payload_version: 0xab,
             signature_version: 0xc,
-            signature: [0xa5; 64],
+            signature: [0xa5; 65],
         );
 
         let parsed_doughnut = DoughnutV1::decode(&mut &doughnut.encode()[..]).unwrap();

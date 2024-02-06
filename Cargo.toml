@@ -15,6 +15,7 @@ ed25519-dalek = { version = "1.0.0-pre.3", default-features = false, features = 
 libsecp256k1 = { version = "0.7", default-features = false, features = [ "hmac", "static-context" ] }
 blake2 = { version = "0.10.6", default-features = false, optional = true }
 digest = { version = "0.10.3", default-features = false }
+sha3 = { version = "0.10.8", default-features = false, optional = true }
 
 # including this to fix C build issues in consumer crates
 # 'No available targets are compatible with this triple.'
@@ -37,11 +38,13 @@ std = [
 crypto = [
     "ed25519-dalek",
     "schnorrkel",
-    "blake2"
+    "blake2",
+    "sha3"
 ]
 # wasm build
 wasm32 = [
     "schnorrkel/nightly",
     "ed25519-dalek/nightly",
-    "blake2"
+    "blake2",
+    "sha3"
 ]

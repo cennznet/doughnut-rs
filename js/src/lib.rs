@@ -173,14 +173,19 @@ impl JsHandle {
     }
 
     #[allow(non_snake_case)]
-    /// Add metamask signature
-    pub fn addMetamaskSignature(&mut self, signature: &[u8]) -> Result<JsHandle, JsValue> {
-        let signature: [u8; 64] = signature
+    /// Add EIP191 signature
+    pub fn addSignature(&mut self, signature: &[u8]) -> Result<JsHandle, JsValue> {
+        // only PayloadVersion::V1 supports ECDSA
+        if self.payloadVersion() != PayloadVersion::V1 as u16 {
+            panic!("unsupported doughnut version and signing scheme");
+        }
+
+        let signature: [u8; 65] = signature
             .try_into()
             .map_err(|_| JsValue::from_str("invalid signature"))?;
         if let Doughnut::V1(ref mut doughnut) = &mut self.0 {
             let _signature = doughnut
-                .add_metamask_signature(&signature)
+                .add_eip191_signature(&signature)
                 .map(|_| ())
                 // throws: 'undefined' in JS on error
                 .map_err(|_| JsValue::undefined())?;

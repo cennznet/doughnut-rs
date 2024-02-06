@@ -149,7 +149,7 @@ mod test {
             not_before: 0,
             payload_version: PayloadVersion::V1 as u16,
             signature_version: SignatureVersion::ECDSA as u8,
-            signature: [0_u8; 64],
+            signature: [0_u8; 65],
         };
         let expected = doughnut_v1.encode();
 
