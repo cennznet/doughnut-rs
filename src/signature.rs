@@ -22,6 +22,7 @@ pub enum SignatureVersion {
     Sr25519 = 0,
     Ed25519 = 1,
     ECDSA = 2,
+    Metamask = 3,
 }
 
 impl TryFrom<u8> for SignatureVersion {
@@ -31,6 +32,7 @@ impl TryFrom<u8> for SignatureVersion {
             0 => Ok(Self::Sr25519),
             1 => Ok(Self::Ed25519),
             2 => Ok(Self::ECDSA),
+            3 => Ok(Self::Metamask),
             _ => Err(VerifyError::UnsupportedVersion),
         }
     }
@@ -89,6 +91,7 @@ pub fn verify_signature(
         SignatureVersion::Ed25519 => verify_ed25519_signature(signature_bytes, signer, payload),
         SignatureVersion::Sr25519 => verify_sr25519_signature(signature_bytes, signer, payload),
         SignatureVersion::ECDSA => verify_ecdsa_signature(signature_bytes, signer, payload),
+        SignatureVersion::Metamask => verify_metamask_signature(signature_bytes, signer, payload),
     }
 }
 
@@ -143,6 +146,43 @@ pub fn verify_ecdsa_signature(
         true => Ok(()),
         false => Err(VerifyError::Invalid),
     }
+}
+
+/// Verify an ecdsa signature
+pub fn verify_metamask_signature(
+    signature_bytes: &[u8],
+    signer: &[u8],
+    payload: &[u8],
+) -> Result<(), VerifyError> {
+    // TODO, signature might need to be 65 bytes?
+
+    // let payload_hashed = blake2_256(payload);
+    let prefixed_message = ethereum_signed_message(payload);
+    // TODO Might need to be keccak hashed
+    let payload_hashed = blake2_256(prefixed_message.as_slice());
+
+    let public_key: [u8; 33] = signer
+        .try_into()
+        .map_err(|_| VerifyError::BadPublicKeyFormat)?;
+
+    let message = libsecp256k1::Message::parse(&payload_hashed);
+    let signature = libsecp256k1::Signature::parse_standard_slice(&signature_bytes[..64])
+        .map_err(|_| VerifyError::BadSignatureFormat)?;
+    let pub_key = libsecp256k1::PublicKey::parse_compressed(&public_key)
+        .map_err(|_| VerifyError::BadPublicKeyFormat)?;
+
+    match libsecp256k1::verify(&message, &signature, &pub_key) {
+        true => Ok(()),
+        false => Err(VerifyError::Invalid),
+    }
+}
+
+/// Constructs the message that Ethereum RPC's `ethereum_sign` and `eth_sign` would sign.
+pub fn ethereum_signed_message(message: &[u8]) -> Vec<u8> {
+    let mut v = b"\x19Ethereum Signed Message:\n".to_vec();
+    v.extend(message.len().to_string().as_bytes());
+    v.extend_from_slice(message);
+    v
 }
 
 fn blake2_256(data: &[u8]) -> [u8; 32] {

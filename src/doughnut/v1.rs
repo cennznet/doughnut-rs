@@ -372,6 +372,18 @@ impl Signing for DoughnutV1 {
             signature
         })
     }
+
+    fn add_metamask_signature(&mut self, signature: [u8; 64]) -> Result<(), SigningError> {
+        // Only support Metamask for now
+        // if signature_version != SignatureVersion::Metamask as u8 {
+        //     return Err(SigningError::NotSupported)
+        // }
+
+        // Set the doughnut signature version to metamask
+        self.signature_version = SignatureVersion::Metamask as u8;
+        self.signature = signature;
+        Ok(())
+    }
 }
 
 #[cfg(test)]

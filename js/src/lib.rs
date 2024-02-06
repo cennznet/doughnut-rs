@@ -172,6 +172,23 @@ impl JsHandle {
         panic!("unsupported doughnut version");
     }
 
+    #[allow(non_snake_case)]
+    /// Add metamask signature
+    pub fn addMetamaskSignature(&mut self, signature: &[u8]) -> Result<JsHandle, JsValue> {
+        let signature: [u8; 64] = signature
+            .try_into()
+            .map_err(|_| JsValue::from_str("invalid signature"))?;
+        if let Doughnut::V1(ref mut doughnut) = &mut self.0 {
+            let _signature = doughnut
+                .add_metamask_signature(&signature)
+                .map(|_| ())
+                // throws: 'undefined' in JS on error
+                .map_err(|_| JsValue::undefined())?;
+            return Ok(self.clone());
+        }
+        panic!("unsupported doughnut version");
+    }
+
     /// Return the doughnut issuer
     pub fn issuer(&self) -> Vec<u8> {
         match self.0 {
