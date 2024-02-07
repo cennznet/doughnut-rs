@@ -10,3 +10,5 @@ pub mod error;
 #[cfg(feature = "crypto")]
 pub mod signature;
 pub mod traits;
+
+pub use doughnut::trnnut::TRNNutV0;

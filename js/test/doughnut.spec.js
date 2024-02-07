@@ -15,7 +15,8 @@ const composeV0Doughnut = ({issuer, holder, signature}) => {
         ...holderArr,
         177, 104, 222, 58, 57, 48, 0, 0, 68, 111, 109, 97, 105, 110, 32, 49, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 68, 111, 109,
         97, 105, 110, 32, 50, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-        ...signatureArr]);
+        ...signatureArr
+    ]);
 };
 
 const holder = new Uint8Array([
@@ -274,4 +275,3 @@ describe('wasm doughnut', () => {
         });
     });
 });
-

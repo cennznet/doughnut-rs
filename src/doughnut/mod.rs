@@ -10,6 +10,8 @@ use core::convert::TryFrom;
 mod v0;
 mod v1;
 
+pub mod trnnut;
+
 use crate::traits::{DecodeInner, PayloadVersion};
 pub use v0::DoughnutV0;
 pub use v1::DoughnutV1;
