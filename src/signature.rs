@@ -1,6 +1,6 @@
 // Copyright 2022-2023 Futureverse Corporation Limited
 
-use crate::alloc::vec::Vec;
+use crate::alloc::{string::ToString, vec::Vec};
 use crate::error::{SigningError, VerifyError};
 use blake2::{digest, Digest};
 use core::convert::{TryFrom, TryInto};
@@ -13,8 +13,6 @@ use schnorrkel::{
     signing_context, PublicKey as Sr25519PublicKey, SecretKey as Sr25519SecretKey,
     Signature as Sr25519Signature,
 };
-use sha3::Keccak256;
-use crate::alloc::string::ToString;
 
 pub const CONTEXT_ID: &[u8] = b"doughnut";
 
@@ -283,7 +281,9 @@ mod test {
 
         assert_eq!(
             verify_eip191_signature(
-                &signature.0, &public_key.as_ref(), &"I don't like doughnuts".as_bytes()
+                &signature.0,
+                &public_key.as_ref(),
+                &"I don't like doughnuts".as_bytes()
             ),
             Err(VerifyError::Invalid)
         );

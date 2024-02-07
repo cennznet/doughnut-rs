@@ -21,7 +21,7 @@ use crate::{
     traits::{DoughnutVerify, Signing},
 };
 use codec::{Decode, Encode, Input, Output};
-use core::convert::{TryFrom, TryInto};
+use core::convert::TryFrom;
 
 const NOT_BEFORE_MASK: u8 = 0b0000_0001;
 
