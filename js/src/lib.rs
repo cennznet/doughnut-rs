@@ -173,6 +173,28 @@ impl JsHandle {
     }
 
     #[allow(non_snake_case)]
+    /// Sign and return EIP191 signature
+    pub fn signEIP191(&mut self, secret_key: &[u8]) -> Result<JsHandle, JsValue> {
+        // only PayloadVersion::V1 supports EIP191
+        if self.payloadVersion() != PayloadVersion::V1 as u16 {
+            panic!("unsupported doughnut version and signing scheme");
+        }
+
+        let secret_key: [u8; 32] = secret_key
+            .try_into()
+            .map_err(|_| JsValue::from_str("invalid secret key"))?;
+        if let Doughnut::V1(ref mut doughnut) = &mut self.0 {
+            let _signature = doughnut
+                .sign_eip191(&secret_key)
+                .map(|_| ())
+                // throws: 'undefined' in JS on error
+                .map_err(|_| JsValue::undefined())?;
+            return Ok(self.clone());
+        }
+        panic!("unsupported doughnut version");
+    }
+
+    #[allow(non_snake_case)]
     /// Add EIP191 signature
     pub fn addSignature(&mut self, signature: &[u8]) -> Result<JsHandle, JsValue> {
         // only PayloadVersion::V1 supports ECDSA
