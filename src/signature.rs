@@ -96,8 +96,8 @@ pub mod crypto {
         let message = keccak_256(ethereum_signed_message(&payload_hashed).as_slice());
         let secret_key = libsecp256k1::SecretKey::parse_slice(secret_key)
             .map_err(|_| SigningError::InvalidECDSASecretKey)?;
-        let message =
-            libsecp256k1::Message::parse_slice(&message).map_err(|_| SigningError::InvalidPayload)?;
+        let message = libsecp256k1::Message::parse_slice(&message)
+            .map_err(|_| SigningError::InvalidPayload)?;
         let (signature, _) = libsecp256k1::sign(&message, &secret_key);
 
         // Extend the signature to 65 bytes
@@ -228,7 +228,9 @@ pub mod crypto {
         use super::*;
         // The ed25519 and schnorrkel libs use different implementations of `OsRng`
         // two different libraries are used: `rand` and `rand_core` as a workaround
-        use ed25519_dalek::{Keypair as Ed25519Keypair, SIGNATURE_LENGTH as ED25519_SIGNATURE_LENGTH};
+        use ed25519_dalek::{
+            Keypair as Ed25519Keypair, SIGNATURE_LENGTH as ED25519_SIGNATURE_LENGTH,
+        };
         use libsecp256k1::SecretKey as ECDSASecretKey;
         use rand::prelude::*;
         use rand_core::OsRng;
@@ -362,7 +364,8 @@ pub mod crypto {
             let (keypair, secret_key) = generate_ecdsa_keypair();
             let public_key = keypair.public();
             let payload = "To a deep sea diver who is swimming with a raincoat".as_bytes();
-            let signed_payload = "To a deep sea diver who is swimming without a raincoat".as_bytes();
+            let signed_payload =
+                "To a deep sea diver who is swimming without a raincoat".as_bytes();
             let signature = sign_ecdsa(&secret_key.serialize(), signed_payload).unwrap();
 
             assert_eq!(
