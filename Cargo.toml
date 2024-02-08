@@ -13,7 +13,7 @@ serde = { version = "1.0.145", default-features = false, features = ["derive", "
 primitive-types = { version = "0.12.2", default-features = false }
 schnorrkel = { version = "0.11.4", default-features = false, optional = true }
 ed25519-dalek = { version = "1.0.0-pre.3", default-features = false, features = ["u64_backend", "alloc"], optional = true }
-libsecp256k1 = { version = "0.7", default-features = false, features = [ "hmac", "static-context" ] }
+libsecp256k1 = { version = "0.7", default-features = false, optional = true, features = [ "hmac", "static-context" ] }
 blake2 = { version = "0.10.6", default-features = false, optional = true }
 digest = { version = "0.10.3", default-features = false }
 sha3 = { version = "0.10.8", default-features = false, optional = true }
@@ -43,14 +43,9 @@ std = [
 ]
 # enable cryptographic signing and verification features in 'no std'
 crypto = [
+    "libsecp256k1",
     "ed25519-dalek",
     "schnorrkel",
     "blake2",
     "sha3"
-]
-# wasm build
-wasm32 = [
-    "schnorrkel/nightly",
-    "ed25519-dalek/nightly",
-    "blake2"
 ]
