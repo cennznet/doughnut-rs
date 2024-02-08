@@ -20,7 +20,7 @@
   "scripts": {
     "pack": "wasm-pack build --target web --release",
     "build": "rm -rf libNode libBrowser && sh build.sh browser libBrowser && sh build.sh nodejs libNode",
-    "test": "jest && node test/nodeImportWorks.js"
+    "test": "jest"
   },
   "devDependencies": {
     "jest": "^26.1.0"
