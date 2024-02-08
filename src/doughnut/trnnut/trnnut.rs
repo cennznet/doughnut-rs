@@ -12,8 +12,6 @@ use pact::{interpreter::interpret, types::PactType};
 
 use crate::doughnut::trnnut::{module, PartialDecode, RuntimeDomain, ValidationErr, WILDCARD};
 use module::Module;
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
 
 pub const MAX_MODULES: usize = 256;
 pub const MAX_METHODS: usize = 128;
@@ -21,8 +19,7 @@ pub const VERSION_BYTES: [u8; 2] = [0, 0];
 pub const MAX_TRNNUT_BYTES: usize = u16::max_value() as usize;
 
 /// A TRN permission domain struct for embedding in doughnuts
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[cfg_attr(test, derive(Clone, Debug, Eq, PartialEq))]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TRNNutV0 {
     pub modules: Vec<Module>,
 }

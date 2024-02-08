@@ -14,6 +14,8 @@ use doughnut_rs::{
 };
 use wasm_bindgen::prelude::*;
 
+pub mod trnnut;
+
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
@@ -230,7 +232,6 @@ impl JsHandle {
                 v1.signature = signature;
                 return Ok(self.clone());
             }
-            _ => panic!("unsupported doughnut version"),
         }
     }
 
