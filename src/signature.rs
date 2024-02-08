@@ -316,7 +316,7 @@ pub mod crypto {
 
         #[test]
         fn test_eip191_signature_verifies() {
-            let (keypair, secret_key) = generate_ecdsa_keypair();
+            let (keypair, _secret_key) = generate_ecdsa_keypair();
             let payload = "I like doughnuts".as_bytes();
             let message = blake2_256(payload);
             let eth_message = ethereum_signed_message(&message);
@@ -329,7 +329,7 @@ pub mod crypto {
 
         #[test]
         fn test_eip191_signature_does_not_verify() {
-            let (keypair, secret_key) = generate_ecdsa_keypair();
+            let (keypair, _secret_key) = generate_ecdsa_keypair();
             let payload = "I like doughnuts".as_bytes();
             let message = blake2_256(payload);
             let eth_message = ethereum_signed_message(&message);
