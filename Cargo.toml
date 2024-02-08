@@ -22,8 +22,8 @@ sha3 = { version = "0.10.8", default-features = false, optional = true }
 # 'No available targets are compatible with this triple.'
 clear_on_drop = { version = "0.2.3", features = ["no_cc"] }
 
-# pact = { git = "https://github.com/futureversecom/trn-pact", branch = "feat/wasm-pack", default-features = false }
-pact = { path = "../trn-pact/", default-features = false }
+pact = { git = "https://github.com/futureversecom/trn-pact", branch = "feat/wasm-pack", default-features = false }
+# pact = { path = "../trn-pact/", default-features = false }
 
 [dev-dependencies]
 rand = { version = "0.8.5" }
