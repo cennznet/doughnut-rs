@@ -1,5 +1,5 @@
 const Doughnut = require('../libNode/doughnut').Doughnut;
-const {SignatureVersion,  PayloadVersion} = require("../libNode/doughnut");
+const {SignatureVersion,  PayloadVersion, FeeMode} = require("../libNode/doughnut");
 
 /**
  * Extract particular slices into params as needed
@@ -247,6 +247,30 @@ describe('wasm doughnut', () => {
 
             expect(d.signatureVersion()).toEqual(SignatureVersion.EIP191);
             expect(d.verify(ecdsa_holder, 12346)).toEqual(true);
+        });
+    });
+
+    describe('addSignature', () => {
+        test('addSignature works', () => {
+            let ecdsa_holder = new Uint8Array(33).fill(1);
+            const d = new Doughnut(
+                PayloadVersion.V1,
+                ecdsaKeypair.publicKey,
+                ecdsa_holder,
+                FeeMode.HOLDER,
+                expiry,
+                notBefore
+            );
+            expect(d.signatureVersion()).toEqual(SignatureVersion.EIP191); // for V1 doughnut, default signature version is EIP191
+            expect(d.signature()).toEqual(defaultECDSASignatureBeforeSigning);
+
+            // sign ECDSA
+            d.signECDSA(ecdsaKeypair.secretKey);
+            expect(d.signatureVersion()).toEqual(SignatureVersion.ECDSA);
+
+            // now sign EIP191
+            d.signEIP191(ecdsaKeypair.secretKey);
+            expect(d.signatureVersion()).toEqual(SignatureVersion.EIP191);
         });
     });
 });
