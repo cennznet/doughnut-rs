@@ -367,3 +367,26 @@ impl JsHandle {
         }
     }
 }
+
+// enum to represent PayloadVersion
+#[wasm_bindgen(js_name = PayloadVersion)]
+pub enum PayloadVersionJS {
+    V0 = 0,
+    V1 = 1,
+}
+
+// enum to represent SignatureVersion
+#[wasm_bindgen(js_name = SignatureVersion)]
+pub enum SignatureVersionJS {
+    Sr25519 = 0,
+    Ed25519 = 1,
+    ECDSA = 2,
+    EIP191 = 3,
+}
+
+// enum to represent PayloadVersion
+#[wasm_bindgen(js_name = FeeMode)]
+pub enum FeeModeJS {
+    ISSUER = 0,
+    HOLDER = 1,
+}
