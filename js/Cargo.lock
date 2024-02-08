@@ -269,9 +269,9 @@ dependencies = [
  "parity-scale-codec",
  "primitive-types",
  "schnorrkel",
- "sha3",
  "serde",
  "serde_json",
+ "sha3",
 ]
 
 [[package]]
