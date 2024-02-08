@@ -82,6 +82,22 @@ pub fn sign_ecdsa(secret_key: &[u8; 32], payload: &[u8]) -> Result<[u8; 65], Sig
     Ok(signature_extended)
 }
 
+/// Sign an eip191 signature
+pub fn sign_eip191(secret_key: &[u8; 32], payload: &[u8]) -> Result<[u8; 65], SigningError> {
+    let payload_hashed = blake2_256(payload);
+    let message = keccak_256(ethereum_signed_message(&payload_hashed).as_slice());
+    let secret_key = libsecp256k1::SecretKey::parse_slice(secret_key)
+        .map_err(|_| SigningError::InvalidECDSASecretKey)?;
+    let message =
+        libsecp256k1::Message::parse_slice(&message).map_err(|_| SigningError::InvalidPayload)?;
+    let (signature, _) = libsecp256k1::sign(&message, &secret_key);
+
+    // Extend the signature to 65 bytes
+    let mut signature_extended: [u8; 65] = [0; 65];
+    signature_extended[..64].copy_from_slice(&signature.serialize());
+    Ok(signature_extended)
+}
+
 /// Verify the signature for a `DoughnutApi` impl type
 #[allow(clippy::module_name_repetitions)]
 pub fn verify_signature(
@@ -258,6 +274,39 @@ mod test {
     }
 
     #[test]
+    fn can_sign_ecdsa() {
+        const ECDSA_SIGNATURE_LENGTH: usize = 65;
+
+        let (_, secret_key) = generate_ecdsa_keypair();
+        let payload = "this is a payload".as_bytes();
+        let signature = sign_ecdsa(&secret_key.serialize(), payload).unwrap();
+
+        assert_eq!(signature.len(), ECDSA_SIGNATURE_LENGTH);
+    }
+
+    #[test]
+    fn can_sign_eip191() {
+        const EIP191_SIGNATURE_LENGTH: usize = 65;
+
+        let (_, secret_key) = generate_ecdsa_keypair();
+        let payload = "this is a payload".as_bytes();
+        let signature = sign_eip191(&secret_key.serialize(), payload).unwrap();
+
+        assert_eq!(signature.len(), EIP191_SIGNATURE_LENGTH);
+    }
+
+    #[test]
+    fn test_eip191_signed_signature_verification_works() {
+        let (keypair, secret_key) = generate_ecdsa_keypair();
+        let public_key = keypair.public();
+        let payload = "this is a payload".as_bytes();
+        let signature = sign_eip191(&secret_key.serialize(), payload).unwrap();
+
+        verify_eip191_signature(&signature, &public_key.as_ref(), &payload)
+            .expect("Signed signature can be verified");
+    }
+
+    #[test]
     fn test_eip191_signature_verifies() {
         let (keypair, secret_key) = generate_ecdsa_keypair();
         let payload = "I like doughnuts".as_bytes();
@@ -287,17 +336,6 @@ mod test {
             ),
             Err(VerifyError::Invalid)
         );
-    }
-
-    #[test]
-    fn can_sign_ecdsa() {
-        const ECDSA_SIGNATURE_LENGTH: usize = 65;
-
-        let (_, secret_key) = generate_ecdsa_keypair();
-        let payload = "this is a payload".as_bytes();
-        let signature = sign_ecdsa(&secret_key.serialize(), payload).unwrap();
-
-        assert_eq!(signature.len(), ECDSA_SIGNATURE_LENGTH);
     }
 
     #[test]
