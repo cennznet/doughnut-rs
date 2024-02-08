@@ -403,7 +403,7 @@ pub enum SignatureVersionJS {
     EIP191 = 3,
 }
 
-// enum to represent PayloadVersion
+// enum to represent FeeMode
 #[wasm_bindgen(js_name = FeeMode)]
 pub enum FeeModeJS {
     ISSUER = 0,
