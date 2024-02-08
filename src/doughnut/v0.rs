@@ -354,11 +354,7 @@ impl Signing for DoughnutV0 {
         Err(SigningError::NotSupported)
     }
 
-    fn sign_eip191(&mut self, secret_key: &[u8; 32]) -> Result<[u8; 65], SigningError> {
-        Err(SigningError::NotSupported)
-    }
-
-    fn add_eip191_signature(&mut self, _signature: &[u8; 65]) -> Result<(), SigningError> {
+    fn sign_eip191(&mut self, _secret_key: &[u8; 32]) -> Result<[u8; 65], SigningError> {
         Err(SigningError::NotSupported)
     }
 }

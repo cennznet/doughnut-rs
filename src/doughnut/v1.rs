@@ -381,11 +381,6 @@ impl Signing for DoughnutV1 {
             signature
         })
     }
-
-    fn add_eip191_signature(&mut self, signature: &[u8; 65]) -> Result<(), SigningError> {
-        self.signature = *signature;
-        Ok(())
-    }
 }
 
 #[cfg(test)]
