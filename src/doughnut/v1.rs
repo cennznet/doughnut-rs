@@ -8,7 +8,7 @@
 
 #![allow(clippy::cast_possible_truncation)]
 
-use crate::signature::SignatureVersion;
+use crate::signature::{sign_eip191, SignatureVersion};
 use crate::traits::{DecodeInner, DoughnutApi, PayloadVersion};
 use crate::{
     alloc::{
@@ -368,6 +368,15 @@ impl Signing for DoughnutV1 {
 
     fn sign_ecdsa(&mut self, secret_key: &[u8; 32]) -> Result<[u8; 65], SigningError> {
         sign_ecdsa(secret_key, &self.payload()).map(|signature| {
+            self.signature_version = SignatureVersion::ECDSA as u8;
+            self.signature = signature;
+            signature
+        })
+    }
+
+    fn sign_eip191(&mut self, secret_key: &[u8; 32]) -> Result<[u8; 65], SigningError> {
+        sign_eip191(secret_key, &self.payload()).map(|signature| {
+            self.signature_version = SignatureVersion::EIP191 as u8;
             self.signature = signature;
             signature
         })
