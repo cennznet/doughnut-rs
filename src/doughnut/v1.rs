@@ -8,7 +8,9 @@
 
 #![allow(clippy::cast_possible_truncation)]
 
-use crate::signature::{sign_eip191, SignatureVersion};
+#[cfg(feature = "crypto")]
+use crate::signature::crypto::{sign_ecdsa, sign_eip191, verify_signature};
+use crate::signature::SignatureVersion;
 use crate::traits::{DecodeInner, DoughnutApi, PayloadVersion};
 use crate::{
     alloc::{
@@ -16,10 +18,13 @@ use crate::{
         vec::Vec,
     },
     doughnut::{SIGNATURE_MASK, SIGNATURE_OFFSET, VERSION_MASK},
+};
+#[cfg(feature = "crypto")]
+use crate::{
     error::{SigningError, VerifyError},
-    signature::{sign_ecdsa, verify_signature},
     traits::{DoughnutVerify, Signing},
 };
+
 use codec::{Decode, Encode, Input, Output};
 use core::convert::TryFrom;
 
@@ -346,6 +351,7 @@ impl DoughnutApi for DoughnutV1 {
     }
 }
 
+#[cfg(feature = "crypto")]
 impl DoughnutVerify for DoughnutV1 {
     fn verify(&self) -> Result<(), VerifyError> {
         verify_signature(
@@ -357,6 +363,7 @@ impl DoughnutVerify for DoughnutV1 {
     }
 }
 
+#[cfg(feature = "crypto")]
 impl Signing for DoughnutV1 {
     fn sign_ed25519(&mut self, _secret_key: &[u8; 32]) -> Result<[u8; 64], SigningError> {
         Err(SigningError::NotSupported)

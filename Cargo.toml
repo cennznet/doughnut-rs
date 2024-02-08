@@ -9,8 +9,7 @@ repository = "https://github.com/futureversecom/trn-doughnut-rs"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.6.9", default-features = false, features = ["derive"] }
-serde = { version = "1.0.145", default-features = false, features = ["derive"] }
-serde_json = { version = "1.0.64", default-features = false, features = ["alloc"]}
+serde = { version = "1.0.145", default-features = false, features = ["derive", "alloc"] }
 primitive-types = { version = "0.12.2", default-features = false }
 schnorrkel = { version = "0.11.4", default-features = false, optional = true }
 ed25519-dalek = { version = "1.0.0-pre.3", default-features = false, features = ["u64_backend", "alloc"], optional = true }
@@ -37,7 +36,6 @@ std = [
     "codec/std",
     "pact/std",
     "serde/std",
-    "serde_json/std",
     "crypto",
     "ed25519-dalek/std",
     "schnorrkel/std",
@@ -54,6 +52,5 @@ crypto = [
 wasm32 = [
     "schnorrkel/nightly",
     "ed25519-dalek/nightly",
-    "blake2",
-    "sha3"
+    "blake2"
 ]

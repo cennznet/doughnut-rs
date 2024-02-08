@@ -12,16 +12,21 @@ use codec::{Decode, Encode, Input, Output};
 use core::convert::TryFrom;
 use primitive_types::H512;
 
-use crate::traits::{DecodeInner, DoughnutApi, DoughnutVerify, PayloadVersion};
+#[cfg(feature = "crypto")]
+use crate::signature::crypto::{sign_ed25519, sign_sr25519, verify_signature};
+use crate::signature::SignatureVersion;
+use crate::traits::{DecodeInner, DoughnutApi, PayloadVersion};
 use crate::{
     alloc::{
         string::{String, ToString},
         vec::Vec,
     },
     doughnut::{SIGNATURE_MASK, SIGNATURE_OFFSET, VERSION_MASK},
+};
+#[cfg(feature = "crypto")]
+use crate::{
     error::{SigningError, VerifyError},
-    signature::{sign_ed25519, sign_sr25519, verify_signature, SignatureVersion},
-    traits::Signing,
+    traits::{DoughnutVerify, Signing},
 };
 
 const NOT_BEFORE_MASK: u8 = 0b0000_0001;
@@ -322,6 +327,7 @@ impl DoughnutApi for DoughnutV0 {
     }
 }
 
+#[cfg(feature = "crypto")]
 impl DoughnutVerify for DoughnutV0 {
     fn verify(&self) -> Result<(), VerifyError> {
         verify_signature(
@@ -333,6 +339,7 @@ impl DoughnutVerify for DoughnutV0 {
     }
 }
 
+#[cfg(feature = "crypto")]
 impl Signing for DoughnutV0 {
     fn sign_ed25519(&mut self, secret_key: &[u8; 32]) -> Result<[u8; 64], SigningError> {
         self.signature_version = SignatureVersion::Ed25519 as u8;

@@ -452,7 +452,6 @@ dependencies = [
  "rand_core 0.5.1",
  "schnorrkel 0.11.4",
  "serde",
- "serde_json",
  "sha3",
  "sp-core",
 ]

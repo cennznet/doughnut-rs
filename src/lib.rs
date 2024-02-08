@@ -7,7 +7,6 @@ extern crate alloc;
 
 pub mod doughnut;
 pub mod error;
-#[cfg(feature = "crypto")]
 pub mod signature;
 pub mod traits;
 
