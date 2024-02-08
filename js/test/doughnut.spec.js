@@ -1,4 +1,5 @@
 const Doughnut = require('../libNode/doughnut').Doughnut;
+const {SignatureVersion,  PayloadVersion} = require("../libNode/doughnut");
 
 /**
  * Extract particular slices into params as needed
@@ -59,6 +60,7 @@ const expiry = 987654321;
 const notBefore = 12345;
 
 const defaultSignatureBeforeSigning = Uint8Array.from({length: 64}, x => 0);
+const defaultECDSASignatureBeforeSigning = Uint8Array.from({length: 65}, x => 0);
 
 const encodedV0Doughnut = new Uint8Array(
     composeV0Doughnut({
@@ -68,10 +70,7 @@ const encodedV0Doughnut = new Uint8Array(
     })
 );
 
-const srSignatureVersion = 0;
-const edSignatureVersion = 1;
-const ecdsaSignatureVersion = 2;
-const defaultSignatureVersion = srSignatureVersion;
+const defaultSignatureVersionV0Doughnuts = SignatureVersion.Sr25519;
 
 describe('wasm doughnut', () => {
     describe('Decoded instance', () => {
@@ -112,7 +111,7 @@ describe('wasm doughnut', () => {
             expect(d.expiry()).toEqual(expiry);
             expect(d.notBefore()).toEqual(notBefore);
 
-            expect(d.signatureVersion()).toEqual(edSignatureVersion);
+            expect(d.signatureVersion()).toEqual(SignatureVersion.Ed25519);
 
             expect(d.payloadVersion()).toEqual(0);
             expect(d.domain("test")).toEqual(new Uint8Array([1,2,3,4,5]));
@@ -156,7 +155,7 @@ describe('wasm doughnut', () => {
             expect(d.expiry()).toEqual(expiry);
             expect(d.notBefore()).toEqual(notBefore);
 
-            expect(d.signatureVersion()).toEqual(ecdsaSignatureVersion);
+            expect(d.signatureVersion()).toEqual(SignatureVersion.ECDSA);
 
             expect(d.payloadVersion()).toEqual(1);
             expect(d.domain("test")).toEqual(new Uint8Array([1,2,3,4,5]));
@@ -174,14 +173,14 @@ describe('wasm doughnut', () => {
                 expiry,
                 notBefore
             );
-            expect(d.signatureVersion()).toEqual(defaultSignatureVersion);
+            expect(d.signatureVersion()).toEqual(defaultSignatureVersionV0Doughnuts);
             expect(d.signature()).toEqual(defaultSignatureBeforeSigning);
             expect(d.payloadVersion()).toEqual(0);
 
 
             d.signSr25519(sr25519Keypair.secretKey);
             
-            expect(d.signatureVersion()).toEqual(srSignatureVersion);
+            expect(d.signatureVersion()).toEqual(SignatureVersion.Sr25519);
             // schnorrkel signatures are random, so we don't assert the output
             // only that it is verifiable
             expect(d.verify(holder, 12346)).toEqual(true);
@@ -198,12 +197,12 @@ describe('wasm doughnut', () => {
                 expiry,
                 notBefore
             );
-            expect(d.signatureVersion()).toEqual(defaultSignatureVersion);
+            expect(d.signatureVersion()).toEqual(defaultSignatureVersionV0Doughnuts);
             expect(d.signature()).toEqual(defaultSignatureBeforeSigning);
 
             d.signEd25519(ed25519Keypair.secretKey);
 
-            expect(d.signatureVersion()).toEqual(edSignatureVersion);
+            expect(d.signatureVersion()).toEqual(SignatureVersion.Ed25519);
             expect(d.signature()).toEqual(signature);
             expect(d.verify(holder, 12346)).toEqual(true);
         });
@@ -220,12 +219,33 @@ describe('wasm doughnut', () => {
                 expiry,
                 notBefore
             );
-            expect(d.signatureVersion()).toEqual(ecdsaSignatureVersion); // for V1 doughnut, default signature version is ecdsa
-            expect(d.signature()).toEqual(defaultSignatureBeforeSigning);
+            expect(d.signatureVersion()).toEqual(SignatureVersion.EIP191); // for V1 doughnut, default signature version is EIP191
+            expect(d.signature()).toEqual(defaultECDSASignatureBeforeSigning);
 
             d.signECDSA(ecdsaKeypair.secretKey);
 
-            expect(d.signatureVersion()).toEqual(ecdsaSignatureVersion);
+            expect(d.signatureVersion()).toEqual(SignatureVersion.ECDSA); // once signed, signature version updates accordingly.
+            expect(d.verify(ecdsa_holder, 12346)).toEqual(true);
+        });
+    });
+
+    describe('eip191', () => {
+        test('eip191 signing produce the expected signature', () => {
+            let ecdsa_holder = new Uint8Array(33).fill(1);
+            const d = new Doughnut(
+                1,
+                ecdsaKeypair.publicKey,
+                ecdsa_holder,
+                0,
+                expiry,
+                notBefore
+            );
+            expect(d.signatureVersion()).toEqual(SignatureVersion.EIP191); // for V1 doughnut, default signature version is EIP191
+            expect(d.signature()).toEqual(defaultECDSASignatureBeforeSigning);
+
+            d.signEIP191(ecdsaKeypair.secretKey);
+
+            expect(d.signatureVersion()).toEqual(SignatureVersion.EIP191);
             expect(d.verify(ecdsa_holder, 12346)).toEqual(true);
         });
     });
