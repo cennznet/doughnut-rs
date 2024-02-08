@@ -8,9 +8,9 @@ extern crate alloc;
 use alloc::{format, string::ToString, vec::Vec};
 use codec::{Decode, Encode};
 use core::convert::TryInto;
-use doughnut_rs::signature::SignatureVersion;
 use doughnut_rs::{
     doughnut::{Doughnut, DoughnutV0, DoughnutV1},
+    signature::SignatureVersion,
     traits::{DoughnutApi, DoughnutVerify, PayloadVersion, Signing},
 };
 use wasm_bindgen::prelude::*;
