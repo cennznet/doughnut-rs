@@ -16,12 +16,14 @@ use core::convert::TryInto;
 mod tests;
 
 /// An enum for doughnut fee mode
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FeeMode {
     ISSUER = 0,
     HOLDER = 1,
 }
 
 /// An enum for doughnut payload version
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PayloadVersion {
     V0 = 0,
     V1 = 1,

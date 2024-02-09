@@ -18,6 +18,7 @@ pub const CONTEXT_ID: &[u8] = b"doughnut";
 
 /// Doughnut signature version
 #[allow(clippy::module_name_repetitions)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SignatureVersion {
     Sr25519 = 0,
     Ed25519 = 1,
