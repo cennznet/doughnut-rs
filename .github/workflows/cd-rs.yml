@@ -3,9 +3,8 @@ name: Publish to Crates.io
 on:
   workflow_dispatch:
 
-# Note: The `doughtnut-js` package version is based on the `js/Cargo.toml` file.
 jobs:
-  publish-npm:
+  publish-crate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
