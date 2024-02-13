@@ -13,10 +13,11 @@ use crate::doughnut::trnnut::{
 };
 
 use codec::{Decode, Encode};
-use pact::interpreter::{Comparator, OpCode, OpComp};
-use pact::types::{Contract as PactContract, DataTable};
-use pact::types::{Numeric, PactType, StringLike};
 use std::vec::Vec;
+use trn_pact::{
+    interpreter::{Comparator, OpCode, OpComp},
+    types::{Contract as PactContract, DataTable, Numeric, PactType, StringLike},
+};
 
 fn make_methods(method: &Method) -> Vec<Method> {
     let mut methods = Vec::<Method>::default();

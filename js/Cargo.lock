@@ -203,7 +203,7 @@ dependencies = [
 
 [[package]]
 name = "doughnut-js"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clear_on_drop",
  "console_error_panic_hook",
@@ -222,12 +222,12 @@ dependencies = [
  "digest 0.10.7",
  "ed25519-dalek",
  "libsecp256k1",
- "pact",
  "parity-scale-codec",
  "primitive-types",
  "schnorrkel",
  "serde",
  "sha3",
+ "trn-pact",
 ]
 
 [[package]]
@@ -459,14 +459,6 @@ name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
-
-[[package]]
-name = "pact"
-version = "0.2.0"
-source = "git+https://github.com/futureversecom/trn-pact?branch=feat/wasm-pack#32b05f69598d79d3551b3dc5b7923c20e789d364"
-dependencies = [
- "bit_reverse",
-]
 
 [[package]]
 name = "parity-scale-codec"
@@ -762,6 +754,15 @@ dependencies = [
  "indexmap",
  "toml_datetime",
  "winnow",
+]
+
+[[package]]
+name = "trn-pact"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c9e8b39cbee577a1b769eb099238660ae60386fdf53521b3b81ded249460e51"
+dependencies = [
+ "bit_reverse",
 ]
 
 [[package]]

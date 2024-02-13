@@ -11,7 +11,7 @@ use alloc::{
 };
 use codec::{Decode, Encode, Input, Output};
 use core::convert::TryFrom;
-use pact::types::Contract as PactContract;
+use trn_pact::types::Contract as PactContract;
 
 const BLOCK_COOLDOWN_MASK: u8 = 0x01;
 const CONSTRAINTS_MASK: u8 = 0x02;

@@ -8,7 +8,7 @@
 use alloc::vec::Vec;
 use codec::{Decode, Encode, Input, Output};
 use core::convert::TryFrom;
-use pact::{interpreter::interpret, types::PactType};
+use trn_pact::{interpreter::interpret, types::PactType};
 
 use crate::doughnut::trnnut::{module, PartialDecode, RuntimeDomain, ValidationErr, WILDCARD};
 use module::Module;

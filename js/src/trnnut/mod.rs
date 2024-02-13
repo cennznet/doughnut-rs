@@ -70,7 +70,8 @@ impl TRNNutJS {
     pub fn new(modules: &JsValue) -> Self {
         console_error_panic_hook::set_once();
 
-        let modules: Vec<Module> = serde_wasm_bindgen::from_value(modules.clone()).expect("Deserialization of modules failed");
+        let modules: Vec<Module> = serde_wasm_bindgen::from_value(modules.clone())
+            .expect("Deserialization of modules failed");
 
         let trnnut: TRNNutV0 = TRNNutV0 { modules };
         TRNNutJS(trnnut)
@@ -78,7 +79,8 @@ impl TRNNutJS {
 
     #[wasm_bindgen(js_name = getModule)]
     pub fn get_module(&self, module: &str) -> JsValue {
-        self.0.get_module(module)
+        self.0
+            .get_module(module)
             .map(|module| serde_wasm_bindgen::to_value(&module).unwrap_or(JsValue::UNDEFINED))
             .unwrap_or(JsValue::UNDEFINED)
     }
@@ -142,11 +144,11 @@ impl TRNNutJS {
 //     /// Create a new Method
 //     pub fn new(name: &str, block_cooldown: u32, constraints: Vec<u8>) -> Self {
 //         console_error_panic_hook::set_once();
-        
+
 //         let method = Method::new(name)
 //             .block_cooldown(block_cooldown)
 //             .constraints(constraints);
-        
+
 //         MethodJS(method)
 //     }
 
