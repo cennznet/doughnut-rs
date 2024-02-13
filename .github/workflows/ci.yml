@@ -40,8 +40,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install & Build dependencies
         uses: ./.github/actions/install-wasm-dependencies
-      - name: cargo check wasm in js directory
-        run: cargo check --target wasm32-unknown-unknown
+      - run: cargo fmt --all --check
+        working-directory: js
+      - run: cargo check --target wasm32-unknown-unknown
         working-directory: js
       - name: Test JS wasm library
         run: pnpm test
