@@ -15,7 +15,10 @@ jobs:
         run: |
           wasm-pack pack ./pkg
           echo "The version of the package is: $(cat pkg/package.json | jq -r .version)"
+        working-directory: js
       - name: Publish to NPM
-        run: wasm-pack publish --tag next --access public
+        # run: wasm-pack publish --tag next --access public
+        run: wasm-pack publish --tag latest --access public
+        working-directory: js
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
