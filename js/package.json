@@ -1,29 +1,27 @@
 {
-  "name": "@trn/doughnut-wasm",
-  "version": "0.2.0",
+  "name": "@therootnetwork/doughnut-wasm",
+  "version": "0.1.0",
   "description": "Wasm Doughnut codec",
-  "main": "libNode/doughnut.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/futureversecom/trn-doughnut-rs.git"
   },
-  "keywords": [ "doughnut" ],
+  "keywords": [
+    "doughnut"
+  ],
   "author": "Futureverse Developers",
   "license": "UNLICENSED",
-  "bugs": { "url": "https://github.com/futureversecom/trn-doughnut-rs/issues" },
+  "bugs": {
+    "url": "https://github.com/futureversecom/trn-doughnut-rs/issues"
+  },
   "homepage": "https://github.com/futureversecom/trn-doughnut-rs/js#readme",
-  "browser": "libBrowser/doughnut.js",
-  "files": [
-    "libBrowser/*",
-    "libNode/*"
-  ],
   "scripts": {
     "pack": "wasm-pack build --target web --release",
-    "build": "rm -rf libNode libBrowser && sh build.sh browser libBrowser && sh build.sh nodejs libNode",
+    "build": "./build.sh",
     "test": "jest"
   },
   "devDependencies": {
-    "jest": "^26.1.0"
+    "jest": "^29.7.0"
   },
   "dependencies": {
     "@polkadot/util-crypto": "^2.18.1",

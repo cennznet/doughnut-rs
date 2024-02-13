@@ -67,8 +67,8 @@ To generate the package run:
 curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
 # build
-cd js/ && yarn build
+cd js/ && pnpm build
 
 # Run tests
-yarn test
+pnpm test
 ```

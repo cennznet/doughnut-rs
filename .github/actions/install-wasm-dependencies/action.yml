@@ -12,17 +12,23 @@ runs:
     - uses: Swatinem/rust-cache@v2
       with:
         cache-on-failure: true
-    - name: Install Node.js LTS
-      uses: actions/setup-node@v4
+    # https://github.com/actions/setup-node/blob/main/docs/advanced-usage.md#caching-packages-data
+    - uses: pnpm/action-setup@v2
+      with:
+        version: 8.15.1
+    - uses: actions/setup-node@v4
       with:
         node-version: 'lts/*'
-        cache: 'yarn'
-        cache-dependency-path: js/yarn.lock
+        cache: 'pnpm'
+        cache-dependency-path: js/pnpm-lock.yaml
     - name: Install JS deps
-      run: yarn install --frozen-lockfile
+      run: pnpm install
+      shell: bash
       working-directory: js
     - name: Install wasm-pack
-      run: yarn global add wasm-pack
+      run: pnpm install -g wasm-pack
+      shell: bash
     - name: Build JS wasm library using wasm-pack
-      run: yarn build
+      run: pnpm build
+      shell: bash
       working-directory: js

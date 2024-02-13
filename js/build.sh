@@ -1,29 +1,31 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 set -ex
-echo "building js pkg for $1 out to: $2"
-rustup run nightly wasm-pack build \
-    --target $1 \
-    --scope trn \
-    --out-name doughnut \
-    --out-dir $2 \
-    --release
 
-# Add 'crypto' polyfill to js libs
-echo "
-// Polyfill to enable signing in some JS environments
-// See: https://stackoverflow.com/questions/52612122/how-to-use-jest-to-test-functions-using-crypto-or-window-mscrypto
-const crypto = require('crypto');
-if(global.self !== undefined) {
-  Object.defineProperty(global.self, 'crypto', {
-    value: {
-      getRandomValues: arr => crypto.randomBytes(arr.length)
-    }
-  });
-}
-" >> $2/doughnut.js
+# Check if jq is installed
+if ! [ -x "$(command -v jq)" ]; then
+    echo "jq is not installed" >& 2
+    exit 1
+fi
 
-# Remove wasm-pack generated files
-# They are unintentionally excluding required files when `npm pack` is run
-cd $2
-rm package.json README.md .gitignore LICENSE
+# Clean previous packages
+if [ -d "pkg" ]; then
+    rm -rf pkg
+fi
 
+if [ -d "pkg-node" ]; then
+    rm -rf pkg-node
+fi
+
+PKG_NAME="doughnut"
+
+# Build for both targets
+rustup run nightly wasm-pack build --target web --scope therootnetwork --out-name $PKG_NAME --release
+rustup run nightly wasm-pack build --target nodejs --scope therootnetwork --out-name $PKG_NAME --release --out-dir pkg-node
+
+# Merge nodejs & browser packages into `pkg/` directory
+cp "pkg-node/${PKG_NAME}.js" "pkg/${PKG_NAME}_main.js"
+sed "s/require[\(]'\.\/${PKG_NAME}/require\('\.\/${PKG_NAME}_main/" "pkg-node/${PKG_NAME}.js" > "pkg/${PKG_NAME}_bg.js"
+jq ".files += [\"${PKG_NAME}_bg.js\"]" pkg/package.json \
+  | jq ".main = \"${PKG_NAME}_main.js\"" > pkg/temp.json
+mv pkg/temp.json pkg/package.json
