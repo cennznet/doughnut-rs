@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["The Root Network Team"]
 edition = "2021"
 description = "The official rust doughnut codec"
-license = "UNLICENSED"
+license = "Apache-2.0"
 repository = "https://github.com/futureversecom/trn-doughnut-rs"
 
 [dependencies]
