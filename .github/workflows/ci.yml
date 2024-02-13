@@ -38,10 +38,13 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Install & Build dependencies
-        uses: ./.github/actions/install-wasm-dependencies
+      - uses: dtolnay/rust-toolchain@1.73
+        with:
+          components: rustfmt
       - run: cargo fmt --all --check
         working-directory: js
+      - name: Install & Build dependencies
+        uses: ./.github/actions/install-wasm-dependencies
       - run: cargo check --target wasm32-unknown-unknown
         working-directory: js
       - name: Test JS wasm library

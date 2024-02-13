@@ -9,7 +9,6 @@ runs:
       with:
         toolchain: nightly-x86_64-unknown-linux-gnu
         target: wasm32-unknown-unknown
-        components: rustfmt
     - uses: Swatinem/rust-cache@v2
       with:
         cache-on-failure: true
