@@ -38,31 +38,10 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: check files
-        run: ls -la
-        working-directory: js
-      - uses: dtolnay/rust-toolchain@1.73
-        with:
-          toolchain: nightly-x86_64-unknown-linux-gnu
-          target: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
+      - name: Install dependencies
+        uses: ./.github/actions/install-deps.yml
       - name: cargo check wasm in js directory
-        run: cd ./js && cargo check --target wasm32-unknown-unknown
-      - name: Install Node.js LTS
-        uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
-          cache: 'yarn'
-          cache-dependency-path: js/yarn.lock
-      - name: Install JS deps
-        run: yarn install --frozen-lockfile
-        working-directory: js
-      - name: Install wasm-pack
-        run: yarn global add wasm-pack
-      - name: Build JS wasm library using wasm-pack
-        run: yarn build
+        run: cargo check --target wasm32-unknown-unknown
         working-directory: js
       - name: Test JS wasm library
         run: yarn test
