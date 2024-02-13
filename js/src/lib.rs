@@ -1,4 +1,4 @@
-// Copyright 2022-2023 Futureverse Corporation Limited
+// Copyright 2023-2024 Futureverse Corporation Limited
 
 //! Provide JS-Rust API bindings to create and inspect Doughnuts
 

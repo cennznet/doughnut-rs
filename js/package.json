@@ -16,7 +16,6 @@
   },
   "homepage": "https://github.com/futureversecom/trn-doughnut-rs/js#readme",
   "scripts": {
-    "pack": "wasm-pack build --target web --release",
     "build": "./build.sh",
     "test": "jest"
   },

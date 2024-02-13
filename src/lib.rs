@@ -1,4 +1,4 @@
-// Copyright 2022-2023 Futureverse Corporation Limited
+// Copyright 2023-2024 Futureverse Corporation Limited
 
 #![warn(clippy::pedantic)]
 #![allow(clippy::must_use_candidate, clippy::missing_errors_doc)]
