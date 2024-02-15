@@ -13,8 +13,9 @@ jobs:
         uses: ./.github/actions/install-wasm-dependencies
       - name: Pack and print version
         run: |
-          wasm-pack pack ./doughnut-web
-          echo "The version of the package is: $(cat doughnut-web/package.json | jq -r .version)"
+          mv ./doughnut-web ./pkg
+          wasm-pack pack ./pkg
+          echo "The version of the package is: $(cat ./pkg/package.json | jq -r .version)"
         working-directory: js
       - name: Publish to NPM
         # run: wasm-pack publish --tag next --access public
@@ -31,8 +32,9 @@ jobs:
         uses: ./.github/actions/install-wasm-dependencies
       - name: Pack and print version
         run: |
-          wasm-pack pack ./doughnut-nodejs
-          echo "The version of the package is: $(cat doughnut-nodejs/package.json | jq -r .version)"
+          mv ./doughnut-nodejs ./pkg
+          wasm-pack pack ./pkg
+          echo "The version of the package is: $(cat ./pkg/package.json | jq -r .version)"
         working-directory: js
       - name: Publish to NPM
         # run: wasm-pack publish --tag next --access public
