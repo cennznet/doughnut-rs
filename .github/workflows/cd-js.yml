@@ -3,9 +3,9 @@ name: Publish to NPM
 on:
   workflow_dispatch:
 
-# Note: The `doughtnut-js` package version is based on the `js/Cargo.toml` file.
+# Note: The `doughtnut-web` & `doughnut-nodejs` package version is based on the `js/Cargo.toml` file.
 jobs:
-  publish-npm:
+  publish-npm-web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -13,8 +13,26 @@ jobs:
         uses: ./.github/actions/install-wasm-dependencies
       - name: Pack and print version
         run: |
-          wasm-pack pack ./pkg
-          echo "The version of the package is: $(cat pkg/package.json | jq -r .version)"
+          wasm-pack pack ./doughnut-web
+          echo "The version of the package is: $(cat doughnut-web/package.json | jq -r .version)"
+        working-directory: js
+      - name: Publish to NPM
+        # run: wasm-pack publish --tag next --access public
+        run: wasm-pack publish --tag latest --access public
+        working-directory: js
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-npm-nodejs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install & Build dependencies
+        uses: ./.github/actions/install-wasm-dependencies
+      - name: Pack and print version
+        run: |
+          wasm-pack pack ./doughnut-nodejs
+          echo "The version of the package is: $(cat doughnut-nodejs/package.json | jq -r .version)"
         working-directory: js
       - name: Publish to NPM
         # run: wasm-pack publish --tag next --access public

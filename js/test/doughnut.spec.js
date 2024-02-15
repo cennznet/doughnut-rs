@@ -1,5 +1,5 @@
-const Doughnut = require('../pkg-node/doughnut').Doughnut;
-const { SignatureVersion,  PayloadVersion, FeeMode } = require("../pkg-node/doughnut");
+const Doughnut = require('../doughnut-nodejs').Doughnut;
+const { SignatureVersion,  PayloadVersion, FeeMode } = require("../doughnut-nodejs");
 
 /**
  * Extract particular slices into params as needed

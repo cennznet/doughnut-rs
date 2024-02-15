@@ -1,5 +1,7 @@
 # js build output
-*.tgz
 node_modules/
-pkg/
-pkg-node/
+doughnut-*/
+*.tgz
+
+# rust build output
+target/

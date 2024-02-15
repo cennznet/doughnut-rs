@@ -1,4 +1,4 @@
-const TRNNut = require('../pkg-node/doughnut').TRNNut;
+const TRNNut = require('../doughnut-nodejs').TRNNut;
 
 // The test used is same as it_works_decode_with_method_cooldown in rust
 const encodedTRNNut = new Uint8Array([
