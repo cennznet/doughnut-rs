@@ -2,20 +2,16 @@
 
 set -ex
 
-# Check if jq is installed
+# check if jq is installed
 if ! [ -x "$(command -v jq)" ]; then
-    echo "jq is not installed" >& 2
-    exit 1
+  echo "jq is not installed" >& 2
+  exit 1
 fi
 
-# Clean previous packages
-if [ -d "doughnut-web" ]; then
-    rm -rf doughnut-web
-fi
-
-if [ -d "doughnut-nodejs" ]; then
-    rm -rf doughnut-nodejs
-fi
+# clean previous packages
+rm -rf pkg/
+rm -rf doughnut-web/
+rm -rf doughnut-nodejs/
 
 # build for web js target
 rustup run nightly wasm-pack build --target web --scope therootnetwork --out-name doughnut-web --release --out-dir doughnut-web
