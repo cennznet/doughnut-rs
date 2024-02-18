@@ -1,15 +1,15 @@
-// Copyright 2022-2023 Futureverse Corporation Limited
+// Copyright 2023-2024 Futureverse Corporation Limited
 //!
-//! TRNNut - Integration Tests
+//! Topping - Integration Tests
 //!
 
 #![cfg(test)]
 
 use super::*;
-use crate::doughnut::trnnut::{
+use crate::doughnut::topping::{
     method::Method,
     module::Module,
-    trnnut::{MAX_METHODS, MAX_MODULES},
+    topping::{MAX_METHODS, MAX_MODULES},
 };
 
 use codec::{Decode, Encode};
@@ -39,8 +39,8 @@ fn it_works_encode() {
     let module = Module::new("module_test").methods(methods);
     let modules = make_modules(&module);
 
-    let trnnut = TRNNutV0 { modules };
-    let encoded = trnnut.encode();
+    let topping = Topping { modules };
+    let encoded = topping.encode();
 
     let expected_version = vec![0, 0];
     let expected_modules = vec![
@@ -60,10 +60,10 @@ fn it_works_encode_one_module() {
     let module = Module::new("module_test").methods(methods);
     let modules = make_modules(&module);
 
-    let trnnut = TRNNutV0 { modules };
+    let topping = Topping { modules };
 
     assert_eq!(
-        trnnut.encode(),
+        topping.encode(),
         vec![
             0, 0, 0, 0, 109, 111, 100, 117, 108, 101, 95, 116, 101, 115, 116, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 109, 101, 116, 104, 111, 100, 95, 116,
@@ -82,10 +82,10 @@ fn it_works_decode() {
     ];
 
     let encoded: Vec<u8> = [encoded_version, encoded_modules].concat();
-    let c: TRNNutV0 = Decode::decode(&mut &encoded[..]).expect("it works");
+    let c: Topping = Decode::decode(&mut &encoded[..]).expect("it works");
 
     assert_eq!(c.encode(), encoded);
-    let c0 = TRNNutV0::try_from(c).unwrap();
+    let c0 = Topping::try_from(c).unwrap();
     assert_eq!(c0.modules.len(), 1);
 }
 
@@ -99,10 +99,10 @@ fn it_works_encode_with_module_cooldown() {
         .methods(methods);
     let modules = make_modules(&module);
 
-    let trnnut = TRNNutV0 { modules };
+    let topping = Topping { modules };
 
     assert_eq!(
-        trnnut.encode(),
+        topping.encode(),
         vec![
             0, 0, 0, 1, 109, 111, 100, 117, 108, 101, 95, 116, 101, 115, 116, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 81, 1, 0, 0, 109, 101, 116, 104, 111,
@@ -119,8 +119,8 @@ fn it_works_decode_with_module_cooldown() {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 81, 1, 0, 0, 109, 101, 116, 104, 111, 100, 95,
         116, 101, 115, 116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ];
-    let c: TRNNutV0 = Decode::decode(&mut &encoded[..]).expect("It works");
-    let c0 = TRNNutV0::try_from(c).unwrap();
+    let c: Topping = Decode::decode(&mut &encoded[..]).expect("It works");
+    let c0 = Topping::try_from(c).unwrap();
     assert_eq!(
         c0.get_module("module_test")
             .expect("module exists")
@@ -139,10 +139,10 @@ fn it_works_encode_with_method_cooldown() {
         .methods(methods);
     let modules = make_modules(&module);
 
-    let trnnut = TRNNutV0 { modules };
+    let topping = Topping { modules };
 
     assert_eq!(
-        trnnut.encode(),
+        topping.encode(),
         vec![
             0, 0, 0, 1, 109, 111, 100, 117, 108, 101, 95, 116, 101, 115, 116, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 81, 1, 0, 1, 109, 101, 116, 104, 111,
@@ -160,8 +160,8 @@ fn it_works_decode_with_method_cooldown() {
         116, 101, 115, 116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 123, 0,
         0, 0, 0,
     ];
-    let c: TRNNutV0 = Decode::decode(&mut &encoded[..]).expect("It works");
-    let c0 = TRNNutV0::try_from(c).unwrap();
+    let c: Topping = Decode::decode(&mut &encoded[..]).expect("It works");
+    let c0 = Topping::try_from(c).unwrap();
     assert_eq!(
         c0.get_module("module_test")
             .expect("module exists")
@@ -182,7 +182,7 @@ fn it_works_decode_with_method_cooldown() {
 fn it_works_decode_with_version_0() {
     let encoded: Vec<u8> = vec![1, 2, 3, 192];
     assert_eq!(
-        TRNNutV0::decode(&mut &encoded[..]),
+        Topping::decode(&mut &encoded[..]),
         Err(codec::Error::from("expected version : 0"))
     );
 }
@@ -212,8 +212,8 @@ fn it_works_encode_with_constraints() {
     let module = Module::new("module_test").methods(methods);
     let modules = make_modules(&module);
 
-    let trnnut = TRNNutV0 { modules };
-    let encoded = trnnut.encode();
+    let topping = Topping { modules };
+    let encoded = topping.encode();
 
     assert_eq!(
         encoded,
@@ -240,10 +240,10 @@ fn it_works_decode_with_constraints() {
         246, 0, 0, 0, 0, 0, 0, 0, 128, 16, 178, 128, 0, 0, 0, 0, 0, 0, 0, 224, 116, 101, 115, 116,
         105, 110, 103, 0, 0, 0, 17,
     ];
-    let c: TRNNutV0 = Decode::decode(&mut &encoded[..]).expect("it works");
+    let c: Topping = Decode::decode(&mut &encoded[..]).expect("it works");
     assert_eq!(c.encode(), encoded);
 
-    let c0 = TRNNutV0::try_from(c).unwrap();
+    let c0 = Topping::try_from(c).unwrap();
     let method = &c0
         .get_module("module_test")
         .expect("module exists")
@@ -278,7 +278,7 @@ fn it_works_with_lots_of_things_codec() {
     modules.push(module);
     modules.push(module2);
 
-    let trnnut = TRNNutV0 { modules };
+    let topping = Topping { modules };
 
     let encoded = vec![
         0, 0, 1, 3, 109, 111, 100, 117, 108, 101, 95, 116, 101, 115, 116, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -291,8 +291,8 @@ fn it_works_with_lots_of_things_codec() {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 123, 0, 0, 0, 1, 109, 101, 116, 104, 111, 100, 95, 116,
         101, 115, 116, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 65, 1, 0, 0,
     ];
-    assert_eq!(trnnut.encode(), encoded);
-    assert_eq!(trnnut, TRNNutV0::decode(&mut &encoded[..]).unwrap());
+    assert_eq!(topping.encode(), encoded);
+    assert_eq!(topping, Topping::decode(&mut &encoded[..]).unwrap());
 }
 
 #[test]
@@ -323,23 +323,23 @@ fn it_validates_modules() {
         .methods(methods);
     let modules = make_modules(&module);
 
-    let trnnut = TRNNutV0 { modules };
+    let topping = Topping { modules };
     let args = [
         PactType::Numeric(Numeric(123)),
         PactType::StringLike(StringLike(b"test".to_vec())),
     ];
 
     assert_eq!(
-        trnnut.validate_module(&module.name, &method.name, &args),
+        topping.validate_module(&module.name, &method.name, &args),
         Ok(())
     );
     assert_eq!(
-        trnnut.validate_module("module_test2", &method.name, &args),
-        Err(ValidationErr::NoPermission(RuntimeDomain::Module))
+        topping.validate_module("module_test2", &method.name, &args),
+        Err(ValidationErr::NoPermission(Runtimetopping::Module))
     );
     assert_eq!(
-        trnnut.validate_module(&module.name, "method_test2", &args),
-        Err(ValidationErr::NoPermission(RuntimeDomain::Method))
+        topping.validate_module(&module.name, "method_test2", &args),
+        Err(ValidationErr::NoPermission(Runtimetopping::Method))
     );
 }
 
@@ -362,11 +362,11 @@ fn it_validate_modules_error_with_bad_bytecode() {
         .methods(methods);
     let modules = make_modules(&module);
 
-    let trnnut = TRNNutV0 { modules };
+    let topping = Topping { modules };
     let args = [PactType::StringLike(StringLike(b"test".to_vec()))];
 
     assert_eq!(
-        trnnut.validate_module(&module.name, &method.name, &args),
+        topping.validate_module(&module.name, &method.name, &args),
         Err(ValidationErr::ConstraintsInterpretation)
     );
 }
@@ -405,15 +405,15 @@ fn it_validate_modules_error_with_false_constraints() {
         .methods(methods);
     let modules = make_modules(&module);
 
-    let trnnut = TRNNutV0 { modules };
+    let topping = Topping { modules };
     let args = [
         PactType::Numeric(Numeric(321)),
         PactType::StringLike(StringLike(b"b".to_vec())),
     ];
 
     assert_eq!(
-        trnnut.validate_module(&module.name, &method.name, &args),
-        Err(ValidationErr::NoPermission(RuntimeDomain::MethodArguments))
+        topping.validate_module(&module.name, &method.name, &args),
+        Err(ValidationErr::NoPermission(Runtimetopping::MethodArguments))
     );
 }
 
@@ -427,21 +427,21 @@ fn it_validate_modules_with_empty_constraints() {
         .methods(methods);
     let modules = make_modules(&module);
 
-    let trnnut = TRNNutV0 { modules };
+    let topping = Topping { modules };
     let args = [
         PactType::Numeric(Numeric(0)),
         PactType::StringLike(StringLike(b"test".to_vec())),
     ];
 
     assert_eq!(
-        trnnut.validate_module(&module.name, &method.name, &args),
+        topping.validate_module(&module.name, &method.name, &args),
         Ok(())
     );
 }
 
 #[test]
 fn it_works_get_pact() {
-    // A TRNNut with constraints set
+    // A Topping with constraints set
     let encoded_with: Vec<u8> = vec![
         0, 0, 0, 0, 109, 111, 100, 117, 108, 101, 95, 116, 101, 115, 116, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 109, 101, 116, 104, 111, 100, 95, 116, 101, 115,
@@ -450,9 +450,9 @@ fn it_works_get_pact() {
         105, 110, 103, 0, 0, 0, 17, 0,
     ];
 
-    let trnnut_with: TRNNutV0 = Decode::decode(&mut &encoded_with[..]).expect("it works");
-    let trnnut_with_v0 = TRNNutV0::try_from(trnnut_with).unwrap();
-    let pact_with = trnnut_with_v0
+    let topping_with: Topping = Decode::decode(&mut &encoded_with[..]).expect("it works");
+    let topping_with_v0 = Topping::try_from(topping_with).unwrap();
+    let pact_with = topping_with_v0
         .get_module("module_test")
         .expect("module exists")
         .get_method("method_test")
@@ -480,16 +480,16 @@ fn it_works_get_pact() {
         );
     }
 
-    // A TRNNut without constraints set
+    // A Topping without constraints set
     let encoded_without: Vec<u8> = vec![
         0, 0, 0, 0, 109, 111, 100, 117, 108, 101, 95, 116, 101, 115, 116, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 109, 101, 116, 104, 111, 100, 95, 116, 101, 115,
         116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ];
 
-    let trnnut_without: TRNNutV0 = Decode::decode(&mut &encoded_without[..]).expect("it works");
-    let trnnut_without_v0 = TRNNutV0::try_from(trnnut_without).unwrap();
-    let contract_without = trnnut_without_v0
+    let topping_without: Topping = Decode::decode(&mut &encoded_without[..]).expect("it works");
+    let topping_without_v0 = Topping::try_from(topping_without).unwrap();
+    let contract_without = topping_without_v0
         .get_module("module_test")
         .expect("module exists")
         .get_method("method_test")
@@ -522,11 +522,11 @@ fn wildcard_method_validate_modules() {
         .methods(methods);
     let modules = make_modules(&module);
 
-    let trnnut = TRNNutV0 { modules };
+    let topping = Topping { modules };
     let args = [];
 
     assert_eq!(
-        trnnut.validate_module(&module.name, "my_unregistered_method", &args),
+        topping.validate_module(&module.name, "my_unregistered_method", &args),
         Ok(())
     );
 }
@@ -539,9 +539,9 @@ fn wildcard_module() {
     let module = Module::new(WILDCARD).block_cooldown(1).methods(methods);
     let modules = make_modules(&module);
 
-    let trnnut = TRNNutV0 { modules };
+    let topping = Topping { modules };
 
-    let result = trnnut.get_module("my_unregistered_module");
+    let result = topping.get_module("my_unregistered_module");
     assert_eq!(result, Some(&module));
 }
 
@@ -553,11 +553,11 @@ fn wildcard_module_validate_modules() {
     let module = Module::new(WILDCARD).block_cooldown(1).methods(methods);
     let modules = make_modules(&module);
 
-    let trnnut = TRNNutV0 { modules };
+    let topping = Topping { modules };
     let args = [];
 
     assert_eq!(
-        trnnut.validate_module("my_unregistered_module", "registered_method", &args),
+        topping.validate_module("my_unregistered_module", "registered_method", &args),
         Ok(())
     );
 }
@@ -570,11 +570,11 @@ fn wildcard_module_wildcard_method_validate_modules() {
     let module = Module::new(WILDCARD).block_cooldown(1).methods(methods);
     let modules = make_modules(&module);
 
-    let trnnut = TRNNutV0 { modules };
+    let topping = Topping { modules };
     let args = [];
 
     assert_eq!(
-        trnnut.validate_module("my_unregistered_module", "my_unregistered_method", &args),
+        topping.validate_module("my_unregistered_module", "my_unregistered_method", &args),
         Ok(())
     );
 }
@@ -589,12 +589,12 @@ fn unregistered_module_fails_validation() {
         .methods(methods);
     let modules = make_modules(&module);
 
-    let trnnut = TRNNutV0 { modules };
+    let topping = Topping { modules };
     let args = [];
 
     assert_eq!(
-        trnnut.validate_module("my_unregistered_module", "registered_method", &args),
-        Err(ValidationErr::NoPermission(RuntimeDomain::Module))
+        topping.validate_module("my_unregistered_module", "registered_method", &args),
+        Err(ValidationErr::NoPermission(Runtimetopping::Module))
     );
 }
 
@@ -608,12 +608,12 @@ fn unregistered_method_fails_validation() {
         .methods(methods);
     let modules = make_modules(&module);
 
-    let trnnut = TRNNutV0 { modules };
+    let topping = Topping { modules };
     let args = [];
 
     assert_eq!(
-        trnnut.validate_module("registered_module", "my_unregistered_method", &args),
-        Err(ValidationErr::NoPermission(RuntimeDomain::Method))
+        topping.validate_module("registered_module", "my_unregistered_method", &args),
+        Err(ValidationErr::NoPermission(Runtimetopping::Method))
     );
 }
 
@@ -651,9 +651,9 @@ fn registered_modules_have_priority_over_wildcard_modules() {
     modules.push(wild_module);
     modules.push(registered_module);
 
-    let trnnut = TRNNutV0 { modules };
+    let topping = Topping { modules };
 
-    let result = trnnut.get_module("registered_module").unwrap();
+    let result = topping.get_module("registered_module").unwrap();
 
     assert_eq!(result.name, "registered_module");
 }
@@ -661,8 +661,8 @@ fn registered_modules_have_priority_over_wildcard_modules() {
 #[test]
 fn it_fails_to_encode_with_zero_modules() {
     let modules: Vec<Module> = Vec::default();
-    let trnnut = TRNNutV0 { modules };
-    assert_eq!(trnnut.encode(), Vec::<u8>::default());
+    let topping = Topping { modules };
+    assert_eq!(topping.encode(), Vec::<u8>::default());
 }
 
 #[test]
@@ -670,8 +670,8 @@ fn it_fails_to_encode_with_zero_methods() {
     let methods: Vec<Method> = Vec::default();
     let module = Module::new("TestModule").methods(methods);
     let modules = make_modules(&module);
-    let trnnut = TRNNutV0 { modules };
-    assert_eq!(trnnut.encode(), Vec::<u8>::default());
+    let topping = Topping { modules };
+    assert_eq!(topping.encode(), Vec::<u8>::default());
 }
 
 #[test]
@@ -683,8 +683,8 @@ fn it_fails_to_encode_with_too_many_modules() {
         let module = Module::new(&x.to_string()).methods(methods.clone());
         modules.push(module);
     }
-    let trnnut = TRNNutV0 { modules };
-    assert_eq!(trnnut.encode(), Vec::<u8>::default());
+    let topping = Topping { modules };
+    assert_eq!(topping.encode(), Vec::<u8>::default());
 }
 
 #[test]
@@ -696,12 +696,12 @@ fn it_fails_to_encode_with_too_many_methods() {
     }
     let module = Module::new("registered_module").methods(methods);
     let modules = make_modules(&module);
-    let trnnut = TRNNutV0 { modules };
-    assert_eq!(trnnut.encode(), Vec::<u8>::default());
+    let topping = Topping { modules };
+    assert_eq!(topping.encode(), Vec::<u8>::default());
 }
 
 #[test]
-fn it_fails_to_encode_when_trnnut_is_too_large() {
+fn it_fails_to_encode_when_topping_is_too_large() {
     // 33 bytes per method, 33 + 33 * Method bytes per module
     // if 64 methods, per 64 modules, total bytes > 137,000
     let mut methods: Vec<Method> = Vec::default();
@@ -714,13 +714,13 @@ fn it_fails_to_encode_when_trnnut_is_too_large() {
         let module = Module::new(&x.to_string()).methods(methods.clone());
         modules.push(module);
     }
-    let trnnut = TRNNutV0 { modules };
-    assert_eq!(trnnut.encode(), Vec::<u8>::default());
+    let topping = Topping { modules };
+    assert_eq!(topping.encode(), Vec::<u8>::default());
 }
 
 #[test]
 fn it_fails_decode_with_invalid_constraints() {
-    let encoded_trnnut: Vec<u8> = vec![
+    let encoded_topping: Vec<u8> = vec![
         0, 0, 1, 64, 109, 111, 100, 117, 108, 101, 95, 116, 101, 115, 116, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 109, 101, 116, 104, 111, 100, 95, 116, 101, 115,
         116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -730,20 +730,20 @@ fn it_fails_decode_with_invalid_constraints() {
     let n_too_short: Vec<u8> = vec![1, 0, 1];
     let n_too_large: Vec<u8> = vec![3, 0, 0b1000_0000, 0b1000_0000, 0b0000_1111];
 
-    let encoded_with_bad_type_id: Vec<u8> = [encoded_trnnut.clone(), bad_type_id].concat();
-    let encoded_with_n_too_short: Vec<u8> = [encoded_trnnut.clone(), n_too_short].concat();
-    let encoded_with_n_too_large: Vec<u8> = [encoded_trnnut, n_too_large].concat();
+    let encoded_with_bad_type_id: Vec<u8> = [encoded_topping.clone(), bad_type_id].concat();
+    let encoded_with_n_too_short: Vec<u8> = [encoded_topping.clone(), n_too_short].concat();
+    let encoded_with_n_too_large: Vec<u8> = [encoded_topping, n_too_large].concat();
 
     assert_eq!(
-        TRNNutV0::decode(&mut &encoded_with_bad_type_id[..]),
+        Topping::decode(&mut &encoded_with_bad_type_id[..]),
         Err(codec::Error::from("invalid constraints codec")),
     );
     assert_eq!(
-        TRNNutV0::decode(&mut &encoded_with_n_too_short[..]),
+        Topping::decode(&mut &encoded_with_n_too_short[..]),
         Err(codec::Error::from("invalid constraints codec")),
     );
     assert_eq!(
-        TRNNutV0::decode(&mut &encoded_with_n_too_large[..]),
+        Topping::decode(&mut &encoded_with_n_too_large[..]),
         Err(codec::Error::from("invalid constraints codec")),
     );
 }

@@ -1,4 +1,4 @@
-// Copyright 2022-2023 Futureverse Corporation Limited
+// Copyright 2023-2024 Futureverse Corporation Limited
 
 //!
 //! A versioned doughnut wrapper.
@@ -10,7 +10,7 @@ use core::convert::TryFrom;
 mod v0;
 mod v1;
 
-pub mod trnnut;
+pub mod topping;
 
 use crate::traits::{DecodeInner, PayloadVersion};
 pub use v0::DoughnutV0;
@@ -98,11 +98,11 @@ mod test {
 
     #[test]
     fn versioned_doughnut_v0_works() {
-        let domains = vec![("something".to_string(), vec![0, 1, 2, 3, 4])];
+        let toppings = vec![("something".to_string(), vec![0, 1, 2, 3, 4])];
         let doughnut_v0 = DoughnutV0 {
             issuer: [1_u8; 32],
             holder: [2_u8; 32],
-            domains,
+            toppings,
             expiry: 0,
             not_before: 0,
             payload_version: 3,
@@ -118,11 +118,11 @@ mod test {
 
     #[test]
     fn versioned_doughnut_v0_codec_is_transparent() {
-        let domains = vec![("something".to_string(), vec![0, 1, 2, 3, 4])];
+        let toppings = vec![("something".to_string(), vec![0, 1, 2, 3, 4])];
         let doughnut_v0 = DoughnutV0 {
             issuer: [1_u8; 32],
             holder: [2_u8; 32],
-            domains,
+            toppings,
             expiry: 0,
             not_before: 0,
             payload_version: PayloadVersion::V0 as u16,
@@ -141,12 +141,12 @@ mod test {
 
     #[test]
     fn versioned_doughnut_v1_codec_is_transparent() {
-        let domains = vec![("something".to_string(), vec![0, 1, 2, 3, 4])];
+        let toppings = vec![("something".to_string(), vec![0, 1, 2, 3, 4])];
         let doughnut_v1 = DoughnutV1 {
             issuer: [1_u8; 33],
             holder: [2_u8; 33],
             fee_mode: 0,
-            domains,
+            toppings,
             expiry: 0,
             not_before: 0,
             payload_version: PayloadVersion::V1 as u16,

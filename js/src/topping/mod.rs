@@ -1,12 +1,12 @@
-// Copyright 2022-2023 Futureverse Corporation Limited
+// Copyright 2023-2024 Futureverse Corporation Limited
 
-//! Provide JS-Rust API bindings to create and inspect TRNNut
+//! Provide JS-Rust API bindings to create and inspect Topping
 
 extern crate alloc;
 
 use alloc::{format, vec::Vec};
 use codec::{Decode, Encode};
-use doughnut_rs::doughnut::trnnut::{module::Module, TRNNutV0};
+use doughnut_rs::doughnut::topping::{module::Module, Topping};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -58,23 +58,23 @@ extern "C" {
     pub type ModuleJS;
 }
 
-/// A js handle/wrapper for a rust versioned trnnut struct
-#[wasm_bindgen(js_name = TRNNut)]
-pub struct TRNNutJS(TRNNutV0);
+/// A js handle/wrapper for a rust versioned topping struct
+#[wasm_bindgen(js_name = Topping)]
+pub struct ToppingJS(Topping);
 
-#[wasm_bindgen(js_class = TRNNut)]
+#[wasm_bindgen(js_class = Topping)]
 #[allow(irrefutable_let_patterns)]
-impl TRNNutJS {
+impl ToppingJS {
     #[wasm_bindgen(constructor)]
-    /// Create a new TRNNut, it is always v0 for now
+    /// Create a new Topping, it is always v0 for now
     pub fn new(modules: &JsValue) -> Self {
         console_error_panic_hook::set_once();
 
         let modules: Vec<Module> = serde_wasm_bindgen::from_value(modules.clone())
             .expect("Deserialization of modules failed");
 
-        let trnnut: TRNNutV0 = TRNNutV0 { modules };
-        TRNNutJS(trnnut)
+        let topping: Topping = Topping { modules };
+        ToppingJS(topping)
     }
 
     #[wasm_bindgen(js_name = getModule)]
@@ -85,15 +85,15 @@ impl TRNNutJS {
             .unwrap_or(JsValue::UNDEFINED)
     }
 
-    /// Encode the trnnut into bytes
+    /// Encode the topping into bytes
     pub fn encode(&mut self) -> Vec<u8> {
         self.0.encode()
     }
 
-    /// Decode a version 0 trnnut from `input` bytes
-    pub fn decode(input: &[u8]) -> Result<TRNNutJS, JsValue> {
-        match TRNNutV0::decode(&mut &input[..]) {
-            Ok(trnnut) => Ok(TRNNutJS(trnnut)),
+    /// Decode a version 0 topping from `input` bytes
+    pub fn decode(input: &[u8]) -> Result<ToppingJS, JsValue> {
+        match Topping::decode(&mut &input[..]) {
+            Ok(topping) => Ok(ToppingJS(topping)),
             Err(err) => {
                 log(&format!("failed decoding: {:?}", err));
                 Err(JsValue::undefined())

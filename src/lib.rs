@@ -10,4 +10,4 @@ pub mod error;
 pub mod signature;
 pub mod traits;
 
-pub use doughnut::trnnut::TRNNutV0;
+pub use doughnut::topping::Topping;

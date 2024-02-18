@@ -9,7 +9,7 @@ const composeV0Doughnut = ({issuer, holder, signature}) => {
     let holderArr = Array.from(holder);
     let signatureArr = Array.from(signature);
     return new Uint8Array([
-        // version and domain count
+        // version and topping count
         0, 8, 3,
         ...issuerArr,
         ...holderArr,
@@ -102,7 +102,7 @@ describe('wasm doughnut', () => {
                 expiry,
                 notBefore
             )
-            .addDomain("test", new Uint8Array([1,2,3,4,5]))
+            .addTopping("test", new Uint8Array([1,2,3,4,5]))
             .signEd25519(ed25519Keypair.secretKey);
 
             expect(d.encode().length).toBeGreaterThan(0);
@@ -115,10 +115,10 @@ describe('wasm doughnut', () => {
             expect(d.signatureVersion()).toEqual(SignatureVersion.Ed25519);
 
             expect(d.payloadVersion()).toEqual(0);
-            expect(d.domain("test")).toEqual(new Uint8Array([1,2,3,4,5]));
+            expect(d.topping("test")).toEqual(new Uint8Array([1,2,3,4,5]));
         });
 
-        test('addDomain operates on "this" object', () => {
+        test('addTopping operates on "this" object', () => {
             // doughnut is instantiated and modified in discrete steps
             const d = new Doughnut(
                 0,
@@ -129,10 +129,10 @@ describe('wasm doughnut', () => {
                 notBefore
             )
             expect(() => {
-              d.domain("test")}
+              d.topping("test")}
             ).toThrow(undefined);
-            d.addDomain("test", new Uint8Array([1,2,3,4,5]));
-            expect(d.domain("test")).toEqual(new Uint8Array([1,2,3,4,5]));
+            d.addTopping("test", new Uint8Array([1,2,3,4,5]));
+            expect(d.topping("test")).toEqual(new Uint8Array([1,2,3,4,5]));
         });
 
         test('getters + chained API V1 doughnut works', () => {
@@ -146,7 +146,7 @@ describe('wasm doughnut', () => {
                 expiry,
                 notBefore
             )
-            .addDomain("test", new Uint8Array([1,2,3,4,5]))
+            .addTopping("test", new Uint8Array([1,2,3,4,5]))
             .signECDSA(ecdsaKeypair.secretKey);
 
             expect(d.encode().length).toBeGreaterThan(0);
@@ -159,7 +159,7 @@ describe('wasm doughnut', () => {
             expect(d.signatureVersion()).toEqual(SignatureVersion.ECDSA);
 
             expect(d.payloadVersion()).toEqual(1);
-            expect(d.domain("test")).toEqual(new Uint8Array([1,2,3,4,5]));
+            expect(d.topping("test")).toEqual(new Uint8Array([1,2,3,4,5]));
         });
     });
 

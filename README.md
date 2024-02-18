@@ -13,7 +13,7 @@ let doughnut = DoughnutV0::new(&encoded_doughnut)?;
 
 Query permission domains
 ```rust
-let domain: &[u8] = doughnut.get_domain("something")?;
+let domain: &[u8] = doughnut.get_topping("something")?;
 ```
 
 Check a doughnut is valid to be used by a user (`who`) at a timestamp (`when`).  

@@ -1,13 +1,13 @@
-// Copyright 2022-2023 Futureverse Corporation Limited
+// Copyright 2023-2024 Futureverse Corporation Limited
 //!
-//! # TRNNut - Module
+//! # Topping - Module
 //!
-//! Delegated runtime module permissions of TRNNut for use in TRN
+//! Delegated runtime module permissions of Topping for use in TRN
 //!
 
 use super::method::Method;
 use super::WILDCARD;
-use crate::doughnut::trnnut::trnnut::MAX_METHODS;
+use crate::doughnut::topping::topping::MAX_METHODS;
 use alloc::{
     string::{String, ToString},
     vec::Vec,
@@ -17,7 +17,7 @@ use core::convert::TryFrom;
 
 const BLOCK_COOLDOWN_MASK: u8 = 0b0000_0001;
 
-/// A TRN permission domain module
+/// A TRN permission topping module
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Module {
     pub name: String,

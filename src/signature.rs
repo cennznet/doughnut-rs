@@ -1,4 +1,4 @@
-// Copyright 2022-2023 Futureverse Corporation Limited
+// Copyright 2023-2024 Futureverse Corporation Limited
 
 use crate::error::VerifyError;
 use core::convert::TryFrom;
@@ -433,7 +433,7 @@ pub mod crypto {
         }
 
         #[test]
-        fn test_sr25519_signature_does_not_verify_bad_domain() {
+        fn test_sr25519_signature_does_not_verify_bad_topping() {
             let keypair = generate_sr25519_keypair();
             let payload = "Where your crystal mind and magenta feelings";
             let context = signing_context(b"hoaniland");

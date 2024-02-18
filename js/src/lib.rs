@@ -14,7 +14,7 @@ use doughnut_rs::{
 };
 use wasm_bindgen::prelude::*;
 
-pub mod trnnut;
+pub mod topping;
 
 #[wasm_bindgen]
 extern "C" {
@@ -94,15 +94,15 @@ impl JsHandle {
     }
 
     #[allow(non_snake_case)]
-    /// Add a permission domain to this `doughnut`
-    pub fn addDomain(&mut self, key: &str, value: &[u8]) -> Self {
+    /// Add a permission topping to this `doughnut`
+    pub fn addTopping(&mut self, key: &str, value: &[u8]) -> Self {
         match self.0 {
             Doughnut::V0(ref mut doughnut) => {
-                doughnut.domains.push((key.to_string(), value.to_vec()));
+                doughnut.toppings.push((key.to_string(), value.to_vec()));
                 return self.clone();
             }
             Doughnut::V1(ref mut doughnut) => {
-                doughnut.domains.push((key.to_string(), value.to_vec()));
+                doughnut.toppings.push((key.to_string(), value.to_vec()));
                 return self.clone();
             }
         }
@@ -334,19 +334,19 @@ impl JsHandle {
         }
     }
 
-    /// Return the payload for domain, if it exists in the doughnut
-    /// This will throw "undefined" in JS if the domain is not found
-    pub fn domain(&self, domain: &str) -> Result<Vec<u8>, JsValue> {
+    /// Return the payload for topping, if it exists in the doughnut
+    /// This will throw "undefined" in JS if the topping is not found
+    pub fn topping(&self, topping: &str) -> Result<Vec<u8>, JsValue> {
         match self.0 {
             Doughnut::V0(ref doughnut) => {
                 return doughnut
-                    .get_domain(domain)
+                    .get_topping(topping)
                     .map(|d| Ok(d.to_vec()))
                     .unwrap_or_else(|| Err(JsValue::undefined()))
             }
             Doughnut::V1(ref doughnut) => {
                 return doughnut
-                    .get_domain(domain)
+                    .get_topping(topping)
                     .map(|d| Ok(d.to_vec()))
                     .unwrap_or_else(|| Err(JsValue::undefined()))
             }

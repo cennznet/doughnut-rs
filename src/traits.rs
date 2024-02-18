@@ -1,4 +1,4 @@
-// Copyright 2022-2023 Futureverse Corporation Limited
+// Copyright 2023-2024 Futureverse Corporation Limited
 
 //!
 //! Doughnut traits
@@ -63,8 +63,8 @@ pub trait DoughnutApi {
     fn signature(&self) -> Self::Signature;
     /// Return the doughnut signature version
     fn signature_version(&self) -> u8;
-    /// Return the payload for domain, if it exists in the doughnut
-    fn get_domain(&self, domain: &str) -> Option<&[u8]>;
+    /// Return the payload for topping, if it exists in the doughnut
+    fn get_topping(&self, topping: &str) -> Option<&[u8]>;
     /// Validate the doughnut is usable by a public key (`who`) at the current timestamp (`not_before` <= `now` <= `expiry`)
     fn validate<Q, R>(&self, who: Q, now: R) -> Result<(), ValidationError>
     where
@@ -154,7 +154,7 @@ impl DoughnutApi for () {
     fn signature_version(&self) -> u8 {
         255
     }
-    fn get_domain(&self, _domain: &str) -> Option<&[u8]> {
+    fn get_topping(&self, _topping: &str) -> Option<&[u8]> {
         None
     }
     fn validate<Q, R>(&self, _who: Q, _now: R) -> Result<(), ValidationError> {
@@ -201,20 +201,20 @@ mod tests {
         srKeypair::generate_with(&mut csprng)
     }
 
-    fn test_domain_data() -> Vec<u8> {
-        let domain_id_1 = vec![
+    fn test_topping_data() -> Vec<u8> {
+        let topping_id_1 = vec![
             115, 111, 109, 101, 116, 104, 105, 110, 103, 0, 0, 0, 0, 0, 0, 0,
         ];
-        let domain_id_2 = vec![
+        let topping_id_2 = vec![
             115, 111, 109, 101, 116, 104, 105, 110, 103, 69, 108, 115, 101, 0, 0, 0,
         ];
         [
             vec![196, 94, 16, 0, 75, 32, 0, 0], // expiry and not before
-            domain_id_1,
-            vec![1, 0], // domain length
-            domain_id_2,
-            vec![1, 0], // domain length
-            vec![0, 0], // domain data
+            topping_id_1,
+            vec![1, 0], // topping length
+            topping_id_2,
+            vec![1, 0], // topping length
+            vec![0, 0], // topping data
         ]
         .concat()
     }
@@ -225,11 +225,11 @@ mod tests {
         let context = signing_context(CONTEXT_ID);
 
         // Signature version = 0
-        // has not before (b0) and 2 domains (b1..7)
+        // has not before (b0) and 2 toppings (b1..7)
         let header: Vec<u8> = vec![0, 0, 3];
         let issuer = keypair.public.to_bytes().to_vec();
         let holder = vec![0x15; 32];
-        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+        let payload: Vec<u8> = [header, issuer, holder, test_topping_data()].concat();
         let invalid_payload_stub = [0_u8; 64];
         let invalid_signature_bytes = keypair
             .sign(context.bytes(&invalid_payload_stub))
@@ -261,11 +261,11 @@ mod tests {
         let keypair = generate_ed25519_keypair();
 
         // Signature version = 1 (b3)
-        // has not before (b0) and 2 domains (b1..7)
+        // has not before (b0) and 2 toppings (b1..7)
         let header: Vec<u8> = vec![0, 8, 3];
         let issuer = keypair.public.to_bytes().to_vec();
         let holder = vec![0x15; 32];
-        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+        let payload: Vec<u8> = [header, issuer, holder, test_topping_data()].concat();
         let invalid_payload_stub = [0_u8; 64];
         let invalid_signature_bytes = keypair.sign(&invalid_payload_stub).to_bytes().to_vec();
         let encoded_with_invalid_signature: Vec<u8> = [payload, invalid_signature_bytes].concat();
@@ -294,11 +294,11 @@ mod tests {
         let keypair = generate_ed25519_keypair();
         let issuer = keypair.public.to_bytes();
         let holder = [0x15; 32];
-        let domains = vec![("test".to_string(), vec![0u8])];
+        let toppings = vec![("test".to_string(), vec![0u8])];
         let mut doughnut = DoughnutV0 {
             issuer,
             holder,
-            domains,
+            toppings,
             ..Default::default()
         };
         doughnut.sign_ed25519(&keypair.secret.to_bytes()).unwrap();
@@ -314,11 +314,11 @@ mod tests {
         let keypair = generate_sr25519_keypair();
         let issuer = keypair.public.to_bytes();
         let holder = [0x15; 32];
-        let domains = vec![("test".to_string(), vec![0u8])];
+        let toppings = vec![("test".to_string(), vec![0u8])];
         let mut doughnut = DoughnutV0 {
             issuer,
             holder,
-            domains,
+            toppings,
             ..Default::default()
         };
         doughnut
@@ -338,12 +338,12 @@ mod tests {
         let context = signing_context(CONTEXT_ID);
 
         // Signature version = 0
-        // has not before (b0) and 2 domains (b1..7)
+        // has not before (b0) and 2 toppings (b1..7)
         let header: Vec<u8> = vec![0, 0, 3];
         let issuer = keypair.public.to_bytes().to_vec();
         let holder = vec![0x15; 32];
 
-        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+        let payload: Vec<u8> = [header, issuer, holder, test_topping_data()].concat();
         let invalid_signature = keypair_invalid.sign(context.bytes(&payload));
 
         let encoded: Vec<u8> = [payload, invalid_signature.to_bytes().to_vec()].concat();
@@ -357,12 +357,12 @@ mod tests {
         let keypair = generate_ed25519_keypair();
 
         // Signature version = 1 (b3)
-        // has not before (b0) and 2 domains (b1..7)
+        // has not before (b0) and 2 toppings (b1..7)
         let header: Vec<u8> = vec![0, 8, 3];
         let issuer = keypair.public.to_bytes().to_vec();
         let holder = vec![0x15; 32];
 
-        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+        let payload: Vec<u8> = [header, issuer, holder, test_topping_data()].concat();
         let signature = keypair.sign(&payload);
 
         let mut encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();

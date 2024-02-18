@@ -1,8 +1,8 @@
-// Copyright 2022-2023 Futureverse Corporation Limited
+// Copyright 2023-2024 Futureverse Corporation Limited
 //!
-//! # TRNNut - V0
+//! # Topping
 //!
-//! Version 0 TRNNut type.
+//! Topping type.
 //!
 
 use alloc::vec::Vec;
@@ -10,22 +10,22 @@ use codec::{Decode, Encode, Input, Output};
 use core::convert::TryFrom;
 use trn_pact::{interpreter::interpret, types::PactType};
 
-use crate::doughnut::trnnut::{module, PartialDecode, RuntimeDomain, ValidationErr, WILDCARD};
+use crate::doughnut::topping::{module, PartialDecode, Runtimetopping, ValidationErr, WILDCARD};
 use module::Module;
 
 pub const MAX_MODULES: usize = 256;
 pub const MAX_METHODS: usize = 128;
 pub const VERSION_BYTES: [u8; 2] = [0, 0];
-pub const MAX_TRNNUT_BYTES: usize = u16::max_value() as usize;
+pub const MAX_TOPPING_BYTES: usize = u16::max_value() as usize;
 
-/// A TRN permission domain struct for embedding in doughnuts
+/// A TRN permission topping struct for embedding in doughnuts
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct TRNNutV0 {
+pub struct Topping {
     pub modules: Vec<Module>,
 }
 
-impl TRNNutV0 {
-    /// Returns the module, if it exists in the TRNNut
+impl Topping {
+    /// Returns the module, if it exists in the Topping
     /// Wildcard modules have lower priority than defined modules
     pub fn get_module(&self, module: &str) -> Option<&Module> {
         let mut outcome: Option<&Module> = None;
@@ -41,7 +41,7 @@ impl TRNNutV0 {
     }
 }
 
-impl Encode for TRNNutV0 {
+impl Encode for Topping {
     fn encode_to<T: Output + ?Sized>(&self, buf: &mut T) {
         if self.modules.is_empty() || self.modules.len() > MAX_MODULES {
             return;
@@ -67,14 +67,14 @@ impl Encode for TRNNutV0 {
         preliminary_buf.push_byte(module_count.unwrap());
         preliminary_buf.write(module_payload_buf.as_slice());
 
-        // Avoid writing outside of the allocated domain buffer
-        if preliminary_buf.len() <= MAX_TRNNUT_BYTES {
+        // Avoid writing outside of the allocated topping buffer
+        if preliminary_buf.len() <= MAX_TOPPING_BYTES {
             buf.write(preliminary_buf.as_slice());
         }
     }
 }
 
-impl PartialDecode for TRNNutV0 {
+impl PartialDecode for Topping {
     fn partial_decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
         let module_count = input.read_byte()? + 1;
         let mut modules = Vec::<Module>::default();
@@ -88,7 +88,7 @@ impl PartialDecode for TRNNutV0 {
     }
 }
 
-impl Decode for TRNNutV0 {
+impl Decode for Topping {
     fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
         let version = u16::from_le_bytes([input.read_byte()?, input.read_byte()?]);
         if version != 0 {
@@ -98,31 +98,31 @@ impl Decode for TRNNutV0 {
     }
 }
 
-impl TRNNutV0 {
-    /// Validates a TRNNut runtime module by:
+impl Topping {
+    /// Validates a Topping runtime module by:
     /// (1) looking for `module_name` and `method_name`
     /// (2) executing the Pact interpreter if constraints exist
     ///
     /// # Errors
     ///
-    /// Will return error if validation fails with the type of error embedded in `RuntimeDomain`
+    /// Will return error if validation fails with the type of error embedded in `Runtimetopping`
     pub fn validate_module(
         &self,
         module_name: &str,
         method_name: &str,
         args: &[PactType],
-    ) -> Result<(), ValidationErr<RuntimeDomain>> {
+    ) -> Result<(), ValidationErr<Runtimetopping>> {
         let module = self
             .get_module(module_name)
-            .ok_or_else(|| ValidationErr::NoPermission(RuntimeDomain::Module))?;
+            .ok_or_else(|| ValidationErr::NoPermission(Runtimetopping::Module))?;
         let method = module
             .get_method(method_name)
-            .ok_or_else(|| ValidationErr::NoPermission(RuntimeDomain::Method))?;
+            .ok_or_else(|| ValidationErr::NoPermission(Runtimetopping::Method))?;
         if let Some(pact) = method.get_pact() {
             match interpret(args, pact.data_table.as_ref(), &pact.bytecode) {
                 Ok(true) => {}
                 Ok(false) => {
-                    return Err(ValidationErr::NoPermission(RuntimeDomain::MethodArguments))
+                    return Err(ValidationErr::NoPermission(Runtimetopping::MethodArguments))
                 }
                 Err(_) => return Err(ValidationErr::ConstraintsInterpretation),
             }

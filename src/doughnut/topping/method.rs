@@ -1,8 +1,8 @@
-// Copyright 2022-2023 Futureverse Corporation Limited
+// Copyright 2023-2024 Futureverse Corporation Limited
 //!
-//! # TRNNut - Method
+//! # Topping - Method
 //!
-//! Delegated method permissions of TRNNut for use in TRN
+//! Delegated method permissions of topping for use in TRN
 //!
 
 use alloc::{
@@ -17,7 +17,7 @@ const BLOCK_COOLDOWN_MASK: u8 = 0x01;
 const CONSTRAINTS_MASK: u8 = 0x02;
 const MAX_CONSTRAINTS: usize = 256;
 
-/// A TRN permission domain module method
+/// A TRN permission topping module method
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Method {
     pub name: String,

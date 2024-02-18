@@ -1,8 +1,7 @@
-// Copyright 2022-2023 Futureverse Corporation Limited
+// Copyright 2023-2024 Futureverse Corporation Limited
+//! # Topping
 //!
-//! # TRNNut
-//!
-//! Delegated authority nut for TRN
+//! Delegated authority topping for TRN
 //!
 
 #![warn(clippy::pedantic)]
@@ -17,25 +16,27 @@ use codec::Input;
 
 pub mod method;
 pub mod module;
-pub mod trnnut;
+pub mod topping;
 pub mod validation;
 
-pub use crate::{doughnut::trnnut::trnnut::TRNNutV0, doughnut::trnnut::validation::ValidationErr};
+pub use crate::{
+    doughnut::topping::topping::Topping, doughnut::topping::validation::ValidationErr,
+};
 
 #[cfg(test)]
 mod tests;
 
 pub const WILDCARD: &str = "*";
 
-/// A TRN module permission domain
+/// A TRN module permission topping
 #[derive(Debug, Eq, PartialEq)]
-pub enum RuntimeDomain {
+pub enum Runtimetopping {
     Method,
     MethodArguments,
     Module,
 }
 
-impl Display for RuntimeDomain {
+impl Display for Runtimetopping {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::Method => write!(f, "method"),
