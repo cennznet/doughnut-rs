@@ -19,25 +19,13 @@ use trn_pact::{
     types::{Contract as PactContract, DataTable, Numeric, PactType, StringLike},
 };
 
-fn make_methods(method: &Method) -> Vec<Method> {
-    let mut methods = Vec::<Method>::default();
-    methods.push(method.clone());
-    methods
-}
-
-fn make_modules(module: &Module) -> Vec<Module> {
-    let mut modules = Vec::<Module>::default();
-    modules.push(module.clone());
-    modules
-}
-
 #[test]
 fn it_works_encode() {
     let method = Method::new("method_test");
-    let methods = make_methods(&method);
+    let methods = vec![method];
 
     let module = Module::new("module_test").methods(methods);
-    let modules = make_modules(&module);
+    let modules = vec![module];
 
     let topping = Topping { modules };
     let encoded = topping.encode();
@@ -55,10 +43,10 @@ fn it_works_encode() {
 #[test]
 fn it_works_encode_one_module() {
     let method = Method::new("method_test");
-    let methods = make_methods(&method);
+    let methods = vec![method];
 
     let module = Module::new("module_test").methods(methods);
-    let modules = make_modules(&module);
+    let modules = vec![module];
 
     let topping = Topping { modules };
 
@@ -92,12 +80,12 @@ fn it_works_decode() {
 #[test]
 fn it_works_encode_with_module_cooldown() {
     let method = Method::new("method_test");
-    let methods = make_methods(&method);
+    let methods = vec![method];
 
     let module = Module::new("module_test")
         .block_cooldown(86_400)
         .methods(methods);
-    let modules = make_modules(&module);
+    let modules = vec![module];
 
     let topping = Topping { modules };
 
@@ -132,12 +120,12 @@ fn it_works_decode_with_module_cooldown() {
 #[test]
 fn it_works_encode_with_method_cooldown() {
     let method = Method::new("method_test").block_cooldown(123);
-    let methods = make_methods(&method);
+    let methods = vec![method];
 
     let module = Module::new("module_test")
         .block_cooldown(86_400)
         .methods(methods);
-    let modules = make_modules(&module);
+    let modules = vec![module];
 
     let topping = Topping { modules };
 
@@ -207,10 +195,10 @@ fn it_works_encode_with_constraints() {
     pact.encode(&mut constraints);
 
     let method = Method::new("method_test").constraints(constraints.clone());
-    let methods = make_methods(&method);
+    let methods = vec![method];
 
     let module = Module::new("module_test").methods(methods);
-    let modules = make_modules(&module);
+    let modules = vec![module];
 
     let topping = Topping { modules };
     let encoded = topping.encode();
@@ -316,12 +304,12 @@ fn it_validates_modules() {
     let method = Method::new("method_test")
         .block_cooldown(123)
         .constraints(constraints);
-    let methods = make_methods(&method);
+    let methods = vec![method.clone()];
 
     let module = Module::new("module_test")
         .block_cooldown(86_400)
         .methods(methods);
-    let modules = make_modules(&module);
+    let modules = vec![module.clone()];
 
     let topping = Topping { modules };
     let args = [
@@ -355,12 +343,12 @@ fn it_validate_modules_error_with_bad_bytecode() {
     let method = Method::new("method_test")
         .block_cooldown(123)
         .constraints(constraints);
-    let methods = make_methods(&method);
+    let methods = vec![method.clone()];
 
     let module = Module::new("module_test")
         .block_cooldown(86_400)
         .methods(methods);
-    let modules = make_modules(&module);
+    let modules = vec![module.clone()];
 
     let topping = Topping { modules };
     let args = [PactType::StringLike(StringLike(b"test".to_vec()))];
@@ -398,12 +386,12 @@ fn it_validate_modules_error_with_false_constraints() {
     let method = Method::new("method_test")
         .block_cooldown(123)
         .constraints(constraints);
-    let methods = make_methods(&method);
+    let methods = vec![method.clone()];
 
     let module = Module::new("module_test")
         .block_cooldown(86_400)
         .methods(methods);
-    let modules = make_modules(&module);
+    let modules = vec![module.clone()];
 
     let topping = Topping { modules };
     let args = [
@@ -420,12 +408,12 @@ fn it_validate_modules_error_with_false_constraints() {
 #[test]
 fn it_validate_modules_with_empty_constraints() {
     let method = Method::new("method_test").block_cooldown(123);
-    let methods = make_methods(&method);
+    let methods = vec![method.clone()];
 
     let module = Module::new("module_test")
         .block_cooldown(86_400)
         .methods(methods);
-    let modules = make_modules(&module);
+    let modules = vec![module.clone()];
 
     let topping = Topping { modules };
     let args = [
@@ -502,7 +490,7 @@ fn it_works_get_pact() {
 #[test]
 fn wildcard_method() {
     let method = Method::new(WILDCARD).block_cooldown(123);
-    let methods = make_methods(&method);
+    let methods = vec![method.clone()];
 
     let module = Module::new("module_test")
         .block_cooldown(1)
@@ -515,12 +503,12 @@ fn wildcard_method() {
 #[test]
 fn wildcard_method_validate_modules() {
     let method = Method::new(WILDCARD).block_cooldown(123);
-    let methods = make_methods(&method);
+    let methods = vec![method];
 
     let module = Module::new("module_test")
         .block_cooldown(1)
         .methods(methods);
-    let modules = make_modules(&module);
+    let modules = vec![module.clone()];
 
     let topping = Topping { modules };
     let args = [];
@@ -534,10 +522,10 @@ fn wildcard_method_validate_modules() {
 #[test]
 fn wildcard_module() {
     let method = Method::new("registered_method").block_cooldown(123);
-    let methods = make_methods(&method);
+    let methods = vec![method];
 
     let module = Module::new(WILDCARD).block_cooldown(1).methods(methods);
-    let modules = make_modules(&module);
+    let modules = vec![module.clone()];
 
     let topping = Topping { modules };
 
@@ -548,10 +536,10 @@ fn wildcard_module() {
 #[test]
 fn wildcard_module_validate_modules() {
     let method = Method::new("registered_method").block_cooldown(123);
-    let methods = make_methods(&method);
+    let methods = vec![method];
 
     let module = Module::new(WILDCARD).block_cooldown(1).methods(methods);
-    let modules = make_modules(&module);
+    let modules = vec![module];
 
     let topping = Topping { modules };
     let args = [];
@@ -565,10 +553,10 @@ fn wildcard_module_validate_modules() {
 #[test]
 fn wildcard_module_wildcard_method_validate_modules() {
     let method = Method::new(WILDCARD).block_cooldown(123);
-    let methods = make_methods(&method);
+    let methods = vec![method];
 
     let module = Module::new(WILDCARD).block_cooldown(1).methods(methods);
-    let modules = make_modules(&module);
+    let modules = vec![module];
 
     let topping = Topping { modules };
     let args = [];
@@ -582,12 +570,12 @@ fn wildcard_module_wildcard_method_validate_modules() {
 #[test]
 fn unregistered_module_fails_validation() {
     let method = Method::new("registered_method").block_cooldown(123);
-    let methods = make_methods(&method);
+    let methods = vec![method];
 
     let module = Module::new("registered_module")
         .block_cooldown(1)
         .methods(methods);
-    let modules = make_modules(&module);
+    let modules = vec![module];
 
     let topping = Topping { modules };
     let args = [];
@@ -601,12 +589,12 @@ fn unregistered_module_fails_validation() {
 #[test]
 fn unregistered_method_fails_validation() {
     let method = Method::new("registered_method").block_cooldown(123);
-    let methods = make_methods(&method);
+    let methods = vec![method];
 
     let module = Module::new("registered_module")
         .block_cooldown(1)
         .methods(methods);
-    let modules = make_modules(&module);
+    let modules = vec![module];
 
     let topping = Topping { modules };
     let args = [];
@@ -638,7 +626,7 @@ fn registered_methods_have_priority_over_wildcard_methods() {
 #[test]
 fn registered_modules_have_priority_over_wildcard_modules() {
     let method = Method::new("registered_method").block_cooldown(123);
-    let methods = make_methods(&method);
+    let methods = vec![method];
 
     let wild_module = Module::new(WILDCARD)
         .block_cooldown(123)
@@ -669,7 +657,7 @@ fn it_fails_to_encode_with_zero_modules() {
 fn it_fails_to_encode_with_zero_methods() {
     let methods: Vec<Method> = Vec::default();
     let module = Module::new("TestModule").methods(methods);
-    let modules = make_modules(&module);
+    let modules = vec![module];
     let topping = Topping { modules };
     assert_eq!(topping.encode(), Vec::<u8>::default());
 }
@@ -677,7 +665,7 @@ fn it_fails_to_encode_with_zero_methods() {
 #[test]
 fn it_fails_to_encode_with_too_many_modules() {
     let method = Method::new("registered_method");
-    let methods = make_methods(&method);
+    let methods = vec![method];
     let mut modules: Vec<Module> = Vec::default();
     for x in 0..MAX_MODULES + 1 {
         let module = Module::new(&x.to_string()).methods(methods.clone());
@@ -695,7 +683,7 @@ fn it_fails_to_encode_with_too_many_methods() {
         methods.push(method);
     }
     let module = Module::new("registered_module").methods(methods);
-    let modules = make_modules(&module);
+    let modules = vec![module];
     let topping = Topping { modules };
     assert_eq!(topping.encode(), Vec::<u8>::default());
 }
