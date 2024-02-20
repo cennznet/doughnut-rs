@@ -1,6 +1,6 @@
 [package]
 name = "doughnut-rs"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["The Root Network Team"]
 edition = "2021"
 description = "The official rust doughnut codec"
