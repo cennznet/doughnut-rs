@@ -1,14 +1,14 @@
-// Copyright 2019-2020 Centrality Investments Limited
+// Copyright 2023-2024 Futureverse Corporation Limited
 
 #![allow(clippy::module_name_repetitions)]
 
 /// Error type for codec failures
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub enum CodecError<'a> {
+pub enum CodecError {
     /// The doughnut version is unsupported by the current codec
     UnsupportedVersion,
     /// Invalid encoded format found while decoding
-    BadEncoding(&'a str),
+    BadEncoding,
 }
 
 /// Error type for validation failures
@@ -33,6 +33,8 @@ pub enum VerifyError {
     BadSignatureFormat,
     /// PublicKey format is invalid
     BadPublicKeyFormat,
+    /// Message payload format is invalid
+    BadPayloadFormat,
     /// The signature does not verify the payload from signer
     Invalid,
 }
@@ -40,10 +42,16 @@ pub enum VerifyError {
 /// A signature signing error
 #[derive(PartialEq, Debug)]
 pub enum SigningError {
-    // Provided public/secret key is invalid ed25519 signing
+    /// Provided public/secret key is invalid ed25519 signing
     InvalidEd25519Key,
-    // Provided public key is invalid for sr25519 signing
+    /// Provided public key is invalid for sr25519 signing
     InvalidSr25519PublicKey,
-    // Provided secret key is invalid for sr25519 signing
+    /// Provided secret key is invalid for sr25519 signing
     InvalidSr25519SecretKey,
+    /// Provided secret key is invalid for ECDSA signing
+    InvalidECDSASecretKey,
+    /// Provided payload is invalid
+    InvalidPayload,
+    /// Not supported
+    NotSupported,
 }

@@ -1,0 +1,77 @@
+name: CI
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  # push:
+  #   branches: [main]
+  pull_request:
+    branches:
+      - main
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: test ${{ matrix.rust }} ${{ matrix.flags }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: ["stable", "1.73"]
+        flags: ["--all-features"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: test
+        run: cargo test ${{ matrix.flags }}
+
+  js-wasm-build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.73
+        with:
+          components: rustfmt
+      - run: cargo fmt --all --check
+        working-directory: js
+      - name: Install & Build dependencies
+        uses: ./.github/actions/install-wasm-dependencies
+      - run: cargo check --target wasm32-unknown-unknown
+        working-directory: js
+      - name: Test JS wasm library
+        run: pnpm test
+        working-directory: js
+
+  # clippy:
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 30
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: dtolnay/rust-toolchain@1.73
+  #       with:
+  #         components: clippy
+  #     - uses: Swatinem/rust-cache@v2
+  #       with:
+  #         cache-on-failure: true
+  #     - run: cargo clippy --workspace --all-targets --all-features
+  #       env:
+  #         RUSTFLAGS: -Dwarnings
+
+  fmt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.73
+        with:
+          components: rustfmt
+      - run: cargo fmt --all --check

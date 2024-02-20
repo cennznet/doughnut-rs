@@ -1,29 +1,24 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 set -ex
-echo "building js pkg for $1 out to: $2"
-wasm-pack build \
-    --target $1 \
-    --scope plugnet \
-    --out-name doughnut \
-    --out-dir $2 \
-    --release
 
-# Add 'crypto' polyfill to js libs
-echo "
-// Polyfill to enable signing in some JS environments
-// See: https://stackoverflow.com/questions/52612122/how-to-use-jest-to-test-functions-using-crypto-or-window-mscrypto
-const crypto = require('crypto');
-if(global.self !== undefined) {
-  Object.defineProperty(global.self, 'crypto', {
-    value: {
-      getRandomValues: arr => crypto.randomBytes(arr.length)
-    }
-  });
-}
-" >> $2/doughnut.js
+# check if jq is installed
+if ! [ -x "$(command -v jq)" ]; then
+  echo "jq is not installed" >& 2
+  exit 1
+fi
 
-# Remove wasm-pack generated files
-# They are unintentionally excluding required files when `npm pack` is run
-cd $2
-rm package.json README.md .gitignore LICENSE
+# clean previous packages
+rm -rf pkg/
+rm -rf doughnut-web/
+rm -rf doughnut-nodejs/
 
+# build for web js target
+rustup run nightly wasm-pack build --target web --scope therootnetwork --out-name doughnut-web --release --out-dir doughnut-web
+# modify package.json for web
+jq '.name="@therootnetwork/doughnut-web"' doughnut-web/package.json > temp.json && mv temp.json doughnut-web/package.json
+
+# build for nodejs target
+rustup run nightly wasm-pack build --target nodejs --scope therootnetwork --out-name doughnut-nodejs --release --out-dir doughnut-nodejs
+# modify package.json for nodejs
+jq '.name="@therootnetwork/doughnut-nodejs"' doughnut-nodejs/package.json > temp.json && mv temp.json doughnut-nodejs/package.json

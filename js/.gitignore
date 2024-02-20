@@ -1,5 +1,8 @@
 # js build output
 *.tgz
-node_modules
-libNode
-libBrowser
+node_modules/
+pkg/
+doughnut-*/
+
+# rust build output
+target/

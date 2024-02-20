@@ -1,4 +1,4 @@
-// Copyright 2019-2020 Centrality Investments Limited
+// Copyright 2023-2024 Futureverse Corporation Limited
 
 //!
 //! Doughnut V0 codec
@@ -12,25 +12,32 @@ use codec::{Decode, Encode, Input, Output};
 use core::convert::TryFrom;
 use primitive_types::H512;
 
-use crate::alloc::{
-    string::{String, ToString},
-    vec::Vec,
+#[cfg(feature = "crypto")]
+use crate::signature::crypto::{sign_ed25519, sign_sr25519, verify_signature};
+use crate::signature::SignatureVersion;
+use crate::traits::{DecodeInner, DoughnutApi, PayloadVersion};
+use crate::{
+    alloc::{
+        string::{String, ToString},
+        vec::Vec,
+    },
+    doughnut::{SIGNATURE_MASK, SIGNATURE_OFFSET, VERSION_MASK},
 };
-use crate::traits::DoughnutApi;
+#[cfg(feature = "crypto")]
+use crate::{
+    error::{SigningError, VerifyError},
+    traits::{DoughnutVerify, Signing},
+};
 
 const NOT_BEFORE_MASK: u8 = 0b0000_0001;
-const SIGNATURE_MASK: u8 = 0b0001_1111;
-const SIGNATURE_OFFSET: usize = 11;
-const VERSION_MASK: u16 = 0b0000_0111_1111_1111;
-
-const MAX_DOMAINS: usize = 128;
+const MAX_TOPPING: usize = 128;
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct DoughnutV0 {
     pub issuer: [u8; 32],
     pub holder: [u8; 32],
-    pub domains: Vec<(String, Vec<u8>)>,
+    pub toppings: Vec<(String, Vec<u8>)>,
     pub expiry: u32,
     pub not_before: u32,
     pub payload_version: u16,
@@ -41,13 +48,17 @@ pub struct DoughnutV0 {
 impl DoughnutV0 {
     /// Encodes the doughnut into an byte array and writes the result into a given memory
     /// if `encode_signature` is false, the final signature bytes are not included in the result
-    fn encode_to_with_signature_optional<T: Output>(&self, dest: &mut T, encode_signature: bool) {
-        // Defensive early return when there are no domains
-        if self.domains.is_empty() || self.domains.len() > MAX_DOMAINS {
+    fn encode_to_with_signature_optional<T: Output + ?Sized>(
+        &self,
+        dest: &mut T,
+        encode_signature: bool,
+    ) {
+        // Defensive early return when there are no toppings
+        if self.toppings.is_empty() || self.toppings.len() > MAX_TOPPING {
             return;
         }
-        let domain_count = u8::try_from(self.domains.len() - 1);
-        if domain_count.is_err() {
+        let topping_count = u8::try_from(self.toppings.len() - 1);
+        if topping_count.is_err() {
             return;
         }
 
@@ -56,12 +67,12 @@ impl DoughnutV0 {
         version_data |= u16::from(self.signature_version & SIGNATURE_MASK) << SIGNATURE_OFFSET;
         dest.write(&version_data.to_le_bytes());
 
-        let mut domain_count_and_not_before_byte = domain_count.unwrap() << 1;
+        let mut topping_count_and_not_before_byte = topping_count.unwrap() << 1;
 
         if self.not_before > 0 {
-            domain_count_and_not_before_byte |= NOT_BEFORE_MASK;
+            topping_count_and_not_before_byte |= NOT_BEFORE_MASK;
         }
-        dest.push_byte(domain_count_and_not_before_byte);
+        dest.push_byte(topping_count_and_not_before_byte);
         dest.write(&self.issuer);
         dest.write(&self.holder);
 
@@ -75,8 +86,8 @@ impl DoughnutV0 {
             }
         }
 
-        // Write permission domain headers
-        for (key, payload) in &self.domains {
+        // Write permission topping headers
+        for (key, payload) in &self.toppings {
             let mut key_buf = [0_u8; 16];
             let length = key_buf.len().min(key.len());
             key_buf[..length].clone_from_slice(&key.as_bytes()[..length]);
@@ -86,8 +97,8 @@ impl DoughnutV0 {
             }
         }
 
-        // Write permission domain payloads
-        for (_, payload) in &self.domains {
+        // Write permission topping payloads
+        for (_, payload) in &self.toppings {
             dest.write(payload);
         }
 
@@ -98,57 +109,12 @@ impl DoughnutV0 {
 }
 
 impl Encode for DoughnutV0 {
-    fn encode_to<T: Output>(&self, dest: &mut T) {
+    fn encode_to<T: Output + ?Sized>(&self, dest: &mut T) {
         self.encode_to_with_signature_optional(dest, true);
     }
 }
 
 impl codec::EncodeLike for DoughnutV0 {}
-
-impl DoughnutApi for DoughnutV0 {
-    type PublicKey = [u8; 32];
-    type Timestamp = u32;
-    type Signature = [u8; 64];
-    /// Return the doughnut holder account ID
-    fn holder(&self) -> Self::PublicKey {
-        self.holder
-    }
-    /// Return the doughnut issuer account ID
-    fn issuer(&self) -> Self::PublicKey {
-        self.issuer
-    }
-    /// Return the doughnut expiry timestamp
-    fn expiry(&self) -> Self::Timestamp {
-        self.expiry
-    }
-    /// Return the doughnut 'not before' timestamp
-    fn not_before(&self) -> Self::Timestamp {
-        self.not_before
-    }
-    /// Return the doughnut payload bytes
-    fn payload(&self) -> Vec<u8> {
-        let mut r = Vec::with_capacity(self.size_hint());
-        self.encode_to_with_signature_optional(&mut r, false);
-        r
-    }
-    /// Return the doughnut signature bytes
-    fn signature(&self) -> Self::Signature {
-        self.signature.into()
-    }
-    /// Return the doughnut signature version
-    fn signature_version(&self) -> u8 {
-        self.signature_version
-    }
-    /// Return the payload by `domain` key, if it exists in this doughnut
-    fn get_domain(&self, domain: &str) -> Option<&[u8]> {
-        for (key, payload) in &self.domains {
-            if key == domain {
-                return Some(&payload);
-            }
-        }
-        None
-    }
-}
 
 impl Decode for DoughnutV0 {
     fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
@@ -158,10 +124,10 @@ impl Decode for DoughnutV0 {
 
         let signature_version = ((version_data >> SIGNATURE_OFFSET) as u8) & SIGNATURE_MASK;
 
-        let domain_count_and_not_before_byte = input.read_byte()?;
-        let permission_domain_count = (domain_count_and_not_before_byte >> 1) + 1;
+        let topping_count_and_not_before_byte = input.read_byte()?;
+        let permission_topping_count = (topping_count_and_not_before_byte >> 1) + 1;
         let has_not_before =
-            (domain_count_and_not_before_byte & NOT_BEFORE_MASK) == NOT_BEFORE_MASK;
+            (topping_count_and_not_before_byte & NOT_BEFORE_MASK) == NOT_BEFORE_MASK;
 
         let mut issuer: [u8; 32] = Default::default();
         let _ = input.read(&mut issuer);
@@ -187,18 +153,18 @@ impl Decode for DoughnutV0 {
             0
         };
 
-        // Build domain permissions list
-        let mut domains: Vec<(String, Vec<u8>)> = Vec::default();
-        // A queue for domain keys and lengths from the domains header section
-        // We use this to order later reads from the domain payload section since we
+        // Build topping permissions list
+        let mut toppings: Vec<(String, Vec<u8>)> = Vec::default();
+        // A queue for topping keys and lengths from the toppings header section
+        // We use this to order later reads from the topping payload section since we
         // are restricted by `input` to read the payload byte-by-byte
         let mut q: Vec<(String, usize)> = Vec::default();
 
-        for _ in 0..permission_domain_count {
+        for _ in 0..permission_topping_count {
             let mut key_buf: [u8; 16] = Default::default();
             let _ = input.read(&mut key_buf);
             let key = core::str::from_utf8(&key_buf)
-                .map_err(|_| codec::Error::from("domain keys should be utf8 encoded"))?
+                .map_err(|_| codec::Error::from("topping keys should be utf8 encoded"))?
                 .trim_matches(char::from(0))
                 .to_string();
 
@@ -207,9 +173,9 @@ impl Decode for DoughnutV0 {
         }
 
         for (key, payload_length) in q {
-            let mut payload = vec![0; payload_length as usize];
+            let mut payload = alloc::vec![0; payload_length as usize];
             input.read(&mut payload)?;
-            domains.push((key, payload));
+            toppings.push((key, payload));
         }
 
         let mut signature = [0_u8; 64];
@@ -222,9 +188,181 @@ impl Decode for DoughnutV0 {
             not_before,
             signature_version,
             payload_version,
-            domains,
+            toppings,
             signature: H512::from(signature),
         })
+    }
+}
+
+impl DecodeInner for DoughnutV0 {
+    fn decode_inner<I: Input>(
+        input: &mut I,
+        with_version_info: bool,
+    ) -> Result<Self, codec::Error> {
+        let mut payload_version = PayloadVersion::V0 as u16;
+        let mut signature_version = SignatureVersion::Ed25519 as u8;
+
+        if with_version_info {
+            let version_data = u16::from_le_bytes([input.read_byte()?, input.read_byte()?]);
+            payload_version = version_data & VERSION_MASK;
+            signature_version = ((version_data >> SIGNATURE_OFFSET) as u8) & SIGNATURE_MASK;
+        }
+
+        let topping_count_and_not_before_byte = input.read_byte()?;
+        let permission_topping_count = (topping_count_and_not_before_byte >> 1) + 1;
+        let has_not_before =
+            (topping_count_and_not_before_byte & NOT_BEFORE_MASK) == NOT_BEFORE_MASK;
+
+        let mut issuer: [u8; 32] = Default::default();
+        let _ = input.read(&mut issuer);
+
+        let mut holder: [u8; 32] = Default::default();
+        let _ = input.read(&mut holder);
+
+        let expiry = u32::from_le_bytes([
+            input.read_byte()?,
+            input.read_byte()?,
+            input.read_byte()?,
+            input.read_byte()?,
+        ]);
+
+        let not_before = if has_not_before {
+            u32::from_le_bytes([
+                input.read_byte()?,
+                input.read_byte()?,
+                input.read_byte()?,
+                input.read_byte()?,
+            ])
+        } else {
+            0
+        };
+
+        // Build topping permissions list
+        let mut toppings: Vec<(String, Vec<u8>)> = Vec::default();
+        // A queue for topping keys and lengths from the toppings header section
+        // We use this to order later reads from the topping payload section since we
+        // are restricted by `input` to read the payload byte-by-byte
+        let mut q: Vec<(String, usize)> = Vec::default();
+
+        for _ in 0..permission_topping_count {
+            let mut key_buf: [u8; 16] = Default::default();
+            let _ = input.read(&mut key_buf);
+            let key = core::str::from_utf8(&key_buf)
+                .map_err(|_| codec::Error::from("topping keys should be utf8 encoded"))?
+                .trim_matches(char::from(0))
+                .to_string();
+
+            let payload_length = u16::from_le_bytes([input.read_byte()?, input.read_byte()?]);
+            q.push((key, payload_length as usize));
+        }
+
+        for (key, payload_length) in q {
+            let mut payload = alloc::vec![0; payload_length as usize];
+            input.read(&mut payload)?;
+            toppings.push((key, payload));
+        }
+
+        let mut signature = [0_u8; 64];
+        input.read(&mut signature)?;
+
+        Ok(Self {
+            holder,
+            issuer,
+            expiry,
+            not_before,
+            signature_version,
+            payload_version,
+            toppings,
+            signature: H512::from(signature),
+        })
+    }
+}
+
+impl DoughnutApi for DoughnutV0 {
+    type PublicKey = [u8; 32];
+    type Timestamp = u32;
+    type Signature = [u8; 64];
+    /// Return the doughnut holder account ID
+    fn holder(&self) -> Self::PublicKey {
+        self.holder
+    }
+    /// Return the doughnut issuer account ID
+    fn issuer(&self) -> Self::PublicKey {
+        self.issuer
+    }
+    /// Return the doughnut fee mode
+    fn fee_mode(&self) -> u8 {
+        Default::default() // v0 does not support fee_mode, Hence return default 0, issuer pays the fee
+    }
+    /// Return the doughnut expiry timestamp
+    fn expiry(&self) -> Self::Timestamp {
+        self.expiry
+    }
+    /// Return the doughnut 'not before' timestamp
+    fn not_before(&self) -> Self::Timestamp {
+        self.not_before
+    }
+    /// Return the doughnut payload bytes
+    fn payload(&self) -> Vec<u8> {
+        let mut r = Vec::with_capacity(self.size_hint());
+        self.encode_to_with_signature_optional(&mut r, false);
+        r
+    }
+    /// Return the doughnut signature bytes
+    fn signature(&self) -> Self::Signature {
+        self.signature.into()
+    }
+    /// Return the doughnut signature version
+    fn signature_version(&self) -> u8 {
+        self.signature_version
+    }
+    /// Return the payload by `topping` key, if it exists in this doughnut
+    fn get_topping(&self, topping: &str) -> Option<&[u8]> {
+        for (key, payload) in &self.toppings {
+            if key == topping {
+                return Some(&payload);
+            }
+        }
+        None
+    }
+}
+
+#[cfg(feature = "crypto")]
+impl DoughnutVerify for DoughnutV0 {
+    fn verify(&self) -> Result<(), VerifyError> {
+        verify_signature(
+            self.signature_version(),
+            &self.signature(),
+            &self.issuer(),
+            &self.payload(),
+        )
+    }
+}
+
+#[cfg(feature = "crypto")]
+impl Signing for DoughnutV0 {
+    fn sign_ed25519(&mut self, secret_key: &[u8; 32]) -> Result<[u8; 64], SigningError> {
+        self.signature_version = SignatureVersion::Ed25519 as u8;
+        sign_ed25519(&self.issuer(), secret_key, &self.payload()).map(|signature| {
+            self.signature = H512::from_slice(&signature);
+            signature
+        })
+    }
+
+    fn sign_sr25519(&mut self, secret_key: &[u8; 64]) -> Result<[u8; 64], SigningError> {
+        self.signature_version = SignatureVersion::Sr25519 as u8;
+        sign_sr25519(&self.issuer(), secret_key, &self.payload()).map(|signature| {
+            self.signature = H512::from_slice(&signature);
+            signature
+        })
+    }
+
+    fn sign_ecdsa(&mut self, _secret_key: &[u8; 32]) -> Result<[u8; 65], SigningError> {
+        Err(SigningError::NotSupported)
+    }
+
+    fn sign_eip191(&mut self, _secret_key: &[u8; 32]) -> Result<[u8; 65], SigningError> {
+        Err(SigningError::NotSupported)
     }
 }
 
@@ -241,7 +379,7 @@ mod test {
         (
             issuer:$issuer:expr,
             holder:$holder:expr,
-            domains:$domains:expr,
+            toppings:$toppings:expr,
             expiry:$expiry:expr,
             not_before:$not_before:expr,
             payload_version:$pv:expr,
@@ -251,7 +389,7 @@ mod test {
             DoughnutV0 {
                 issuer: $issuer,
                 holder: $holder,
-                domains: $domains,
+                toppings: $toppings,
                 expiry: $expiry,
                 not_before: $not_before,
                 payload_version: $pv,
@@ -267,7 +405,7 @@ mod test {
             doughnut_builder!(
                 issuer:[0_u8; 32],
                 holder:$holder,
-                domains:vec![("cennznet".to_string(), vec![0])],
+                toppings:vec![("trn".to_string(), vec![0])],
                 expiry: $expiry,
                 not_before: $not_before,
                 payload_version: 0,
@@ -282,7 +420,7 @@ mod test {
             doughnut_builder!(
                 issuer:[0_u8; 32],
                 holder:[1_u8; 32],
-                domains:vec![("cennznet".to_string(), vec![0])],
+                toppings:vec![("trn".to_string(), vec![0])],
                 expiry: 0,
                 not_before: 0,
                 payload_version: $pv,
@@ -291,12 +429,12 @@ mod test {
             )
         };
         (
-            domains:$domains:expr,
+            toppings:$toppings:expr,
         ) => {
             doughnut_builder!(
                 issuer: [0_u8; 32],
                 holder: [1_u8; 32],
-                domains: $domains,
+                toppings: $toppings,
                 expiry: 0,
                 not_before: 0,
                 payload_version: 0,
@@ -462,61 +600,61 @@ mod test {
     }
 
     #[test]
-    fn no_domains_fails_encoding() {
-        let doughnut = doughnut_builder!(domains: vec![],);
+    fn no_toppings_fails_encoding() {
+        let doughnut = doughnut_builder!(toppings: vec![],);
 
         let encoded = doughnut.encode();
-        assert_eq!(encoded, []);
+        assert_eq!(encoded, Vec::<u8>::new());
     }
 
     #[test]
-    fn too_many_domains_fails_encoding() {
-        let mut domains: Vec<(String, Vec<u8>)> = vec![];
-        for x in 0..MAX_DOMAINS + 1 {
-            domains.push((x.to_string(), vec![]));
+    fn too_many_toppings_fails_encoding() {
+        let mut toppings: Vec<(String, Vec<u8>)> = vec![];
+        for x in 0..MAX_TOPPING + 1 {
+            toppings.push((x.to_string(), vec![]));
         }
 
-        let doughnut = doughnut_builder!(domains: domains,);
+        let doughnut = doughnut_builder!(toppings: toppings,);
 
         let encoded = doughnut.encode();
-        assert_eq!(encoded, []);
+        assert_eq!(encoded, Vec::<u8>::new());
     }
 
     #[test]
-    fn can_encode_up_to_max_domains() {
-        let mut domains: Vec<(String, Vec<u8>)> = vec![];
-        for x in 0..MAX_DOMAINS {
-            domains.push((x.to_string(), vec![]));
+    fn can_encode_up_to_max_toppings() {
+        let mut toppings: Vec<(String, Vec<u8>)> = vec![];
+        for x in 0..MAX_TOPPING {
+            toppings.push((x.to_string(), vec![]));
         }
 
-        let doughnut = doughnut_builder!(domains: domains,);
+        let doughnut = doughnut_builder!(toppings: toppings,);
 
         let encoded = doughnut.encode();
-        let expected_length = 135 + (18 * MAX_DOMAINS);
+        let expected_length = 135 + (18 * MAX_TOPPING);
 
         assert_eq!(encoded.len(), expected_length);
     }
 
     #[test]
-    fn short_domain_name_is_parsed() {
-        let doughnut = doughnut_builder!(domains: vec![("Smol".to_string(), vec![])],);
+    fn short_topping_name_is_parsed() {
+        let doughnut = doughnut_builder!(toppings: vec![("Smol".to_string(), vec![])],);
 
         let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
-        assert_eq!(parsed_doughnut.domains[0].0, "Smol");
+        assert_eq!(parsed_doughnut.toppings[0].0, "Smol");
     }
 
     #[test]
-    fn long_domain_name_is_truncated() {
+    fn long_topping_name_is_truncated() {
         let doughnut =
-            doughnut_builder!(domains: vec![("SweetLikeAChic-a-CherryCola".to_string(), vec![])],);
+            doughnut_builder!(toppings: vec![("SweetLikeAChic-a-CherryCola".to_string(), vec![])],);
 
         let parsed_doughnut = DoughnutV0::decode(&mut &doughnut.encode()[..]).unwrap();
-        assert_eq!(parsed_doughnut.domains[0].0, "SweetLikeAChic-a");
+        assert_eq!(parsed_doughnut.toppings[0].0, "SweetLikeAChic-a");
     }
 
     #[test]
     fn full_encode_and_decode_works() {
-        let domains = vec![
+        let toppings = vec![
             (
                 "Come".to_string(),
                 vec![0x42, 0x72, 0x65, 0x61, 0x74, 0x68, 0x65],
@@ -536,7 +674,7 @@ mod test {
         let doughnut = doughnut_builder! (
             issuer: [0x55_u8; 32],
             holder: [0x88_u8; 32],
-            domains: domains,
+            toppings: toppings,
             expiry: 0x1234,
             not_before: 0x5678,
             payload_version: 0xab,
@@ -591,7 +729,7 @@ mod test {
     }
 
     #[test]
-    fn decode_error_with_bad_domain_character() {
+    fn decode_error_with_bad_topping_character() {
         let doughnut = doughnut_builder!();
         let mut encoded = doughnut.encode();
         encoded[72] = 0xff; //invalid utf-8
@@ -600,13 +738,13 @@ mod test {
 
         assert_eq!(
             result,
-            Err(codec::Error::from("domain keys should be utf8 encoded"))
+            Err(codec::Error::from("topping keys should be utf8 encoded"))
         );
     }
 
     #[test]
-    fn decode_error_with_incorrect_domain_length() {
-        let doughnut = doughnut_builder!(domains: vec![("ZeroLength".to_string(), vec![])],);
+    fn decode_error_with_incorrect_topping_length() {
+        let doughnut = doughnut_builder!(toppings: vec![("ZeroLength".to_string(), vec![])],);
         let mut encoded = doughnut.encode();
         encoded[72 + 16] = 0xff; //invalid utf-8
 
@@ -615,5 +753,28 @@ mod test {
             result,
             Err(codec::Error::from("Not enough data to fill buffer"))
         );
+    }
+
+    #[test]
+    fn inner_decode_works() {
+        let payload_version = PayloadVersion::V0; // default value for v0
+        let signature_version = SignatureVersion::Ed25519; // // default value for v0
+        let doughnut = doughnut_builder!(
+            payload_version: payload_version as u16,
+            signature_version: signature_version as u8,
+        );
+
+        let full_encoded_payload = doughnut.encode();
+        // decode full encoded payload with version info
+        let parsed_doughnut_1 =
+            DoughnutV0::decode_inner(&mut full_encoded_payload.clone().as_slice(), true).unwrap();
+        assert_eq!(doughnut, parsed_doughnut_1);
+
+        //split to segregate version info
+        let (_version_info, inner_payload) = full_encoded_payload.split_at(2);
+
+        let parsed_doughnut_2 =
+            DoughnutV0::decode_inner(&mut inner_payload.clone(), false).unwrap();
+        assert_eq!(doughnut, parsed_doughnut_2);
     }
 }

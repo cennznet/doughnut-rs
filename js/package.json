@@ -1,35 +1,29 @@
 {
-  "name": "@plugnet/doughnut-wasm",
-  "version": "0.2.0",
+  "name": "@therootnetwork/doughnut-wasm",
+  "version": "0.1.0",
   "description": "Wasm Doughnut codec",
-  "main": "libNode/doughnut.js",
-  "browser": "libBrowser/doughnut.js",
-  "dependencies": {
-    "@polkadot/util-crypto": "^2.18.1",
-    "tweetnacl": "^1.0.3"
-  },
-  "devDependencies": {
-    "jest": "^26.1.0"
-  },
-  "files": [
-    "libBrowser/*",
-    "libNode/*"
-  ],
-  "scripts": {
-    "build": "rm -rf libNode libBrowser && sh build.sh browser libBrowser && sh build.sh nodejs libNode",
-    "test": "jest && node test/nodeImportWorks.js"
-  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cennznet/doughnut-rs.git"
+    "url": "git+https://github.com/futureversecom/trn-doughnut-rs.git"
   },
   "keywords": [
     "doughnut"
   ],
-  "author": "Centrality Developers",
+  "author": "Futureverse Developers",
   "license": "UNLICENSED",
   "bugs": {
-    "url": "https://github.com/cennznet/doughnut-rs/issues"
+    "url": "https://github.com/futureversecom/trn-doughnut-rs/issues"
   },
-  "homepage": "https://github.com/cennznet/doughnut-rs/js#readme"
+  "homepage": "https://github.com/futureversecom/trn-doughnut-rs/js#readme",
+  "scripts": {
+    "build": "./build.sh",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "dependencies": {
+    "@polkadot/util-crypto": "^2.18.1",
+    "tweetnacl": "^1.0.3"
+  }
 }

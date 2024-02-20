@@ -1,10 +1,10 @@
 # rust stuff, we don't want in npm package
-target
-src
+target/
+src/
 Cargo.lock
 Cargo.toml
 
 # js stuff
-node_modules
-test
+node_modules/
+test/
 build.sh

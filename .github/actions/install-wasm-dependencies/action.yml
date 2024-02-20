@@ -1,0 +1,35 @@
+name: "Install dependencies"
+description: "Prepare repository and all dependencies"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@1.73
+      with:
+        toolchain: nightly-x86_64-unknown-linux-gnu
+        target: wasm32-unknown-unknown
+    - uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
+    # https://github.com/actions/setup-node/blob/main/docs/advanced-usage.md#caching-packages-data
+    - uses: pnpm/action-setup@v2
+      with:
+        version: 8.15.1
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 'lts/*'
+        registry-url: 'https://registry.npmjs.org'
+        cache: 'pnpm'
+        cache-dependency-path: js/pnpm-lock.yaml
+    - name: Install JS deps
+      run: pnpm install
+      shell: bash
+      working-directory: js
+    - name: Install wasm-pack
+      run: pnpm install -g wasm-pack
+      shell: bash
+    - name: Build JS wasm library using wasm-pack
+      run: pnpm build
+      shell: bash
+      working-directory: js

@@ -1,11 +1,128 @@
-// Copyright 2019-2020 Centrality Investments Limited
+// Copyright 2023-2024 Futureverse Corporation Limited
 
-//! Doughnut trait impls
+//!
+//! Doughnut traits
+//!
+
+use crate::error::CodecError;
 use crate::{
     alloc::vec::Vec,
-    error::{ValidationError, VerifyError},
-    traits::{DoughnutApi, DoughnutVerify},
+    error::{SigningError, ValidationError, VerifyError},
 };
+use codec::{Error, Input};
+use core::convert::TryInto;
+
+/// An enum for doughnut fee mode
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FeeMode {
+    ISSUER = 0,
+    HOLDER = 1,
+}
+
+/// An enum for doughnut payload version
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PayloadVersion {
+    V0 = 0,
+    V1 = 1,
+}
+
+impl TryFrom<u16> for PayloadVersion {
+    type Error = CodecError;
+    fn try_from(val: u16) -> Result<Self, Self::Error> {
+        match val {
+            0 => Ok(Self::V0),
+            1 => Ok(Self::V1),
+            _ => Err(CodecError::UnsupportedVersion),
+        }
+    }
+}
+
+/// A version agnostic API trait to expose a doughnut's underlying data.
+/// It requires that associated types implement certain conversion traits in order
+/// to provide a default validation implementation.
+pub trait DoughnutApi {
+    /// The holder and issuer public key type
+    type PublicKey: PartialEq + AsRef<[u8]>;
+    /// The expiry timestamp type
+    type Timestamp: PartialOrd + TryInto<u32>;
+    /// The signature type
+    type Signature;
+    /// Return the doughnut holder
+    fn holder(&self) -> Self::PublicKey;
+    /// Return the doughnut issuer
+    fn issuer(&self) -> Self::PublicKey;
+    /// Return the doughnut fee mode
+    fn fee_mode(&self) -> u8;
+    /// Return the doughnut expiry timestamp
+    fn expiry(&self) -> Self::Timestamp;
+    /// Return the doughnut 'not before' timestamp
+    fn not_before(&self) -> Self::Timestamp;
+    /// Return the doughnut payload bytes
+    fn payload(&self) -> Vec<u8>;
+    /// Return the doughnut signature
+    fn signature(&self) -> Self::Signature;
+    /// Return the doughnut signature version
+    fn signature_version(&self) -> u8;
+    /// Return the payload for topping, if it exists in the doughnut
+    fn get_topping(&self, topping: &str) -> Option<&[u8]>;
+    /// Validate the doughnut is usable by a public key (`who`) at the current timestamp (`not_before` <= `now` <= `expiry`)
+    fn validate<Q, R>(&self, who: Q, now: R) -> Result<(), ValidationError>
+    where
+        Q: AsRef<[u8]>,
+        R: TryInto<u32>,
+    {
+        if who.as_ref() != self.holder().as_ref() {
+            return Err(ValidationError::HolderIdentityMismatched);
+        }
+        let now_ = now.try_into().map_err(|_| ValidationError::Conversion)?;
+        if now_
+            < self
+                .not_before()
+                .try_into()
+                .map_err(|_| ValidationError::Conversion)?
+        {
+            return Err(ValidationError::Premature);
+        }
+        if now_
+            >= self
+                .expiry()
+                .try_into()
+                .map_err(|_| ValidationError::Conversion)?
+        {
+            return Err(ValidationError::Expired);
+        }
+        Ok(())
+    }
+    /// Return the doughnut fee payer
+    fn fee_payer(&self) -> Self::PublicKey {
+        match self.fee_mode() {
+            0 => self.issuer(),
+            1 => self.holder(),
+            _ => self.issuer(), // any other value default to the issuer
+        }
+    }
+}
+
+/// Provide doughnut signing
+pub trait Signing {
+    /// sign using Ed25519 method
+    fn sign_ed25519(&mut self, secret_key: &[u8; 32]) -> Result<[u8; 64], SigningError>;
+
+    /// sign using Sr25519 method
+    fn sign_sr25519(&mut self, secret_key: &[u8; 64]) -> Result<[u8; 64], SigningError>;
+
+    /// sign using ECDSA method
+    fn sign_ecdsa(&mut self, secret_key: &[u8; 32]) -> Result<[u8; 65], SigningError>;
+
+    /// sign using EIP191 method
+    fn sign_eip191(&mut self, secret_key: &[u8; 32]) -> Result<[u8; 65], SigningError>;
+}
+
+/// Provide doughnut signature checks
+pub trait DoughnutVerify {
+    /// Verify the doughnut signature, return whether it is valid or not
+    fn verify(&self) -> Result<(), VerifyError>;
+}
 
 // Dummy implementation for unit type
 impl DoughnutApi for () {
@@ -18,6 +135,9 @@ impl DoughnutApi for () {
     }
     fn issuer(&self) -> Self::PublicKey {
         Default::default()
+    }
+    fn fee_mode(&self) -> u8 {
+        0
     }
     fn expiry(&self) -> Self::Timestamp {
         0
@@ -34,64 +154,11 @@ impl DoughnutApi for () {
     fn signature_version(&self) -> u8 {
         255
     }
-    fn get_domain(&self, _domain: &str) -> Option<&[u8]> {
+    fn get_topping(&self, _topping: &str) -> Option<&[u8]> {
         None
     }
     fn validate<Q, R>(&self, _who: Q, _now: R) -> Result<(), ValidationError> {
         Ok(())
-    }
-}
-
-#[cfg(feature = "crypto")]
-pub mod crypto {
-    //! Crypto.verification and signing impls for Doughnut types
-    use crate::{
-        alloc::vec::Vec,
-        doughnut::Doughnut,
-        error::{SigningError, VerifyError},
-        signature::{sign_ed25519, sign_sr25519, verify_signature, SignatureVersion},
-        traits::{DoughnutApi, DoughnutVerify, Signing},
-        v0::DoughnutV0,
-    };
-    use primitive_types::H512;
-
-    impl DoughnutVerify for DoughnutV0 {
-        fn verify(&self) -> Result<(), VerifyError> {
-            verify_signature(
-                &self.signature(),
-                self.signature_version(),
-                &self.issuer(),
-                &self.payload(),
-            )
-        }
-    }
-
-    #[allow(unreachable_patterns)]
-    impl DoughnutVerify for Doughnut {
-        fn verify(&self) -> Result<(), VerifyError> {
-            match self {
-                Self::V0(v0) => v0.verify(),
-                _ => Err(VerifyError::UnsupportedVersion),
-            }
-        }
-    }
-
-    impl Signing for DoughnutV0 {
-        fn sign_ed25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
-            self.signature_version = SignatureVersion::Ed25519 as u8;
-            sign_ed25519(&self.issuer(), secret_key, &self.payload()).map(|signature| {
-                self.signature = H512::from_slice(&signature);
-                signature
-            })
-        }
-
-        fn sign_sr25519(&mut self, secret_key: &[u8]) -> Result<Vec<u8>, SigningError> {
-            self.signature_version = SignatureVersion::Sr25519 as u8;
-            sign_sr25519(&self.issuer(), secret_key, &self.payload()).map(|signature| {
-                self.signature = H512::from_slice(&signature);
-                signature
-            })
-        }
     }
 }
 
@@ -101,20 +168,25 @@ impl DoughnutVerify for () {
     }
 }
 
+/// Additional decoder trait that allows to decode with or without payload version info
+pub trait DecodeInner: Sized {
+    /// Decodes the doughnut payload with or without payload version info
+    fn decode_inner<I: Input>(input: &mut I, with_version_info: bool) -> Result<Self, Error>;
+}
+
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
     use crate::{
-        error::SigningError,
+        doughnut::DoughnutV0,
         signature::{SignatureVersion, CONTEXT_ID},
         traits::{DoughnutVerify, Signing},
-        v0::DoughnutV0,
     };
     use codec::Decode;
     use primitive_types::H512;
     // The ed25519 and schnorrkel libs use different implementations of `OsRng`
     // two different libraries are used: `rand` and `rand_core` as a workaround
-    use ed25519_dalek::Keypair as Ed25519Keypair;
+    use ed25519_dalek::{Keypair as Ed25519Keypair, Signer};
     use rand::prelude::*;
     use rand_core::OsRng;
     use schnorrkel::{signing_context, Keypair as srKeypair};
@@ -129,20 +201,20 @@ mod test {
         srKeypair::generate_with(&mut csprng)
     }
 
-    fn test_domain_data() -> Vec<u8> {
-        let domain_id_1 = vec![
+    fn test_topping_data() -> Vec<u8> {
+        let topping_id_1 = vec![
             115, 111, 109, 101, 116, 104, 105, 110, 103, 0, 0, 0, 0, 0, 0, 0,
         ];
-        let domain_id_2 = vec![
+        let topping_id_2 = vec![
             115, 111, 109, 101, 116, 104, 105, 110, 103, 69, 108, 115, 101, 0, 0, 0,
         ];
         [
             vec![196, 94, 16, 0, 75, 32, 0, 0], // expiry and not before
-            domain_id_1,
-            vec![1, 0], // domain length
-            domain_id_2,
-            vec![1, 0], // domain length
-            vec![0, 0], // domain data
+            topping_id_1,
+            vec![1, 0], // topping length
+            topping_id_2,
+            vec![1, 0], // topping length
+            vec![0, 0], // topping data
         ]
         .concat()
     }
@@ -153,11 +225,11 @@ mod test {
         let context = signing_context(CONTEXT_ID);
 
         // Signature version = 0
-        // has not before (b0) and 2 domains (b1..7)
+        // has not before (b0) and 2 toppings (b1..7)
         let header: Vec<u8> = vec![0, 0, 3];
         let issuer = keypair.public.to_bytes().to_vec();
         let holder = vec![0x15; 32];
-        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+        let payload: Vec<u8> = [header, issuer, holder, test_topping_data()].concat();
         let invalid_payload_stub = [0_u8; 64];
         let invalid_signature_bytes = keypair
             .sign(context.bytes(&invalid_payload_stub))
@@ -172,7 +244,7 @@ mod test {
         assert_eq!(doughnut.verify(), Err(VerifyError::Invalid));
 
         // Sign a Doughnut and return newly signed signature
-        let signature: Vec<u8> = doughnut.sign_sr25519(&secret_key).expect("it signed ok");
+        let signature: [u8; 64] = doughnut.sign_sr25519(&secret_key).expect("it signed ok");
 
         // Assume signature is assigned to a Doughnut after signing
         assert_eq!(doughnut.signature, H512::from_slice(signature.as_slice()));
@@ -189,11 +261,11 @@ mod test {
         let keypair = generate_ed25519_keypair();
 
         // Signature version = 1 (b3)
-        // has not before (b0) and 2 domains (b1..7)
+        // has not before (b0) and 2 toppings (b1..7)
         let header: Vec<u8> = vec![0, 8, 3];
         let issuer = keypair.public.to_bytes().to_vec();
         let holder = vec![0x15; 32];
-        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+        let payload: Vec<u8> = [header, issuer, holder, test_topping_data()].concat();
         let invalid_payload_stub = [0_u8; 64];
         let invalid_signature_bytes = keypair.sign(&invalid_payload_stub).to_bytes().to_vec();
         let encoded_with_invalid_signature: Vec<u8> = [payload, invalid_signature_bytes].concat();
@@ -205,7 +277,7 @@ mod test {
         assert_eq!(doughnut.verify(), Err(VerifyError::Invalid));
 
         // Sign a Doughnut and return newly signed signature
-        let signature: Vec<u8> = doughnut.sign_ed25519(secret_key).expect("it signed ok");
+        let signature: [u8; 64] = doughnut.sign_ed25519(secret_key).expect("it signed ok");
 
         // Assume signature is assigned to a Doughnut after signing
         assert_eq!(doughnut.signature, H512::from_slice(signature.as_slice()));
@@ -222,11 +294,11 @@ mod test {
         let keypair = generate_ed25519_keypair();
         let issuer = keypair.public.to_bytes();
         let holder = [0x15; 32];
-        let domains = vec![("test".to_string(), vec![0u8])];
+        let toppings = vec![("test".to_string(), vec![0u8])];
         let mut doughnut = DoughnutV0 {
             issuer,
             holder,
-            domains,
+            toppings,
             ..Default::default()
         };
         doughnut.sign_ed25519(&keypair.secret.to_bytes()).unwrap();
@@ -242,11 +314,11 @@ mod test {
         let keypair = generate_sr25519_keypair();
         let issuer = keypair.public.to_bytes();
         let holder = [0x15; 32];
-        let domains = vec![("test".to_string(), vec![0u8])];
+        let toppings = vec![("test".to_string(), vec![0u8])];
         let mut doughnut = DoughnutV0 {
             issuer,
             holder,
-            domains,
+            toppings,
             ..Default::default()
         };
         doughnut
@@ -260,65 +332,18 @@ mod test {
     }
 
     #[test]
-    fn throw_error_when_sign_sr25519_signature_with_invalid_secret_key() {
-        let keypair = generate_sr25519_keypair();
-        let context = signing_context(CONTEXT_ID);
-
-        // Signature version = 0
-        // has not before (b0) and 2 domains (b1..7)
-        let header: Vec<u8> = vec![0, 0, 3];
-        let issuer = keypair.public.to_bytes().to_vec();
-        let holder = vec![0x15; 32];
-        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
-        let valid_signature_bytes = keypair.sign(context.bytes(&payload)).to_bytes().to_vec();
-        let encoded_with_valid_signature: Vec<u8> = [payload, valid_signature_bytes].concat();
-        let mut doughnut: DoughnutV0 =
-            Decode::decode(&mut &encoded_with_valid_signature[..]).expect("It is a valid doughnut");
-
-        let secret_key = "secret_key supposes to be keypair.secret.to_ed25519_bytes()".as_bytes();
-
-        assert_eq!(
-            doughnut.sign_sr25519(&secret_key),
-            Err(SigningError::InvalidSr25519SecretKey)
-        );
-    }
-
-    #[test]
-    fn throw_error_when_sign_ed25519_signature_with_invalid_secret_key() {
-        let keypair = generate_ed25519_keypair();
-
-        // Signature version = 1
-        // has not before (b0) and 2 domains (b1..7)
-        let header: Vec<u8> = vec![0, 0, 3];
-        let issuer = keypair.public.to_bytes().to_vec();
-        let holder = vec![0x15; 32];
-        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
-        let valid_signature_bytes = keypair.sign(&payload).to_bytes().to_vec();
-        let encoded_with_invalid_signature: Vec<u8> = [payload, valid_signature_bytes].concat();
-        let mut doughnut: DoughnutV0 = Decode::decode(&mut &encoded_with_invalid_signature[..])
-            .expect("It is a valid doughnut");
-
-        let secret_key = "secret_key supposes to be keypair.secret.as_bytes()".as_bytes();
-
-        assert_eq!(
-            doughnut.sign_ed25519(&secret_key),
-            Err(SigningError::InvalidEd25519Key)
-        );
-    }
-
-    #[test]
     fn sr25519_signed_doughnut_v0_has_invalid_signature() {
         let keypair = generate_sr25519_keypair();
         let keypair_invalid = generate_sr25519_keypair();
         let context = signing_context(CONTEXT_ID);
 
         // Signature version = 0
-        // has not before (b0) and 2 domains (b1..7)
+        // has not before (b0) and 2 toppings (b1..7)
         let header: Vec<u8> = vec![0, 0, 3];
         let issuer = keypair.public.to_bytes().to_vec();
         let holder = vec![0x15; 32];
 
-        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+        let payload: Vec<u8> = [header, issuer, holder, test_topping_data()].concat();
         let invalid_signature = keypair_invalid.sign(context.bytes(&payload));
 
         let encoded: Vec<u8> = [payload, invalid_signature.to_bytes().to_vec()].concat();
@@ -332,12 +357,12 @@ mod test {
         let keypair = generate_ed25519_keypair();
 
         // Signature version = 1 (b3)
-        // has not before (b0) and 2 domains (b1..7)
+        // has not before (b0) and 2 toppings (b1..7)
         let header: Vec<u8> = vec![0, 8, 3];
         let issuer = keypair.public.to_bytes().to_vec();
         let holder = vec![0x15; 32];
 
-        let payload: Vec<u8> = [header, issuer, holder, test_domain_data()].concat();
+        let payload: Vec<u8> = [header, issuer, holder, test_topping_data()].concat();
         let signature = keypair.sign(&payload);
 
         let mut encoded: Vec<u8> = [payload, signature.to_bytes().to_vec()].concat();

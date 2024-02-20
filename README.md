@@ -1,19 +1,18 @@
-# doughnut-rs
-[![CircleCI](https://circleci.com/gh/cennznet/doughnut-rs.svg?style=svg)](https://circleci.com/gh/cennznet/doughnut-rs)  
+# doughnut-rs 
 
 Rust implementation of the doughnut binary codec.  
-Currently compliant with version 0 spec.  
+Currently compliant with version 0, 1 spec.  
 
 ```rust
-use doughnut_rs::v0::DoughnutV0;
+use doughnut_rs::v1::DoughnutV1;
 
 let encoded_doughnut = vec![ <some bytes> ];
-let doughnut = DoughnutV0::new(&encoded_doughnut)?;
+let doughnut = DoughnutV1::new(&encoded_doughnut)?;
 ```
 
-Query permission domains
+Query permission topping
 ```rust
-let domain: &[u8] = doughnut.get_domain("something")?;
+let topping: &[u8] = doughnut.get_topping("something")?;
 ```
 
 Check a doughnut is valid to be used by a user (`who`) at a timestamp (`when`).  
@@ -35,11 +34,11 @@ assert!(doughnut.verify().is_ok());
 Sign a doughnut (requires `"crypto"` feature in `"no_std"` mode and rust nightly)
 ```rust
 use doughnut_rs::traits::Signing;
-let mut doughnut = DoughnutV0 { ... };
-// Schnorrkel
-assert!(doughnut.sign_sr25519(<secret_key_bytes>).is_ok());
-// Ed25519
-assert!(doughnut.sign_ed25519(<secret_key_bytes>).is_ok());
+let mut doughnut = DoughnutV1 { ... };
+// ECDSA
+assert!(doughnut.sign_ecdsa(<secret_key_bytes>).is_ok());
+// EIP191
+assert!(doughnut.sign_eip191(<secret_key_bytes>).is_ok());
 ```
 
 # Contributing
