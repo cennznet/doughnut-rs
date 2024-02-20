@@ -758,9 +758,9 @@ dependencies = [
 
 [[package]]
 name = "trn-pact"
-version = "0.1.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c9e8b39cbee577a1b769eb099238660ae60386fdf53521b3b81ded249460e51"
+checksum = "bf7908b82eaa1b6f6c88002a0aa970b13b222297b7ed18f6c9a197e5d977e096"
 dependencies = [
  "bit_reverse",
 ]
