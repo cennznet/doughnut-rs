@@ -1,6 +1,6 @@
 const Topping = require('../doughnut-nodejs').Topping;
 
-// The test used is same as it_works_decode_with_method_cooldown in rust
+// The test used is same as it_works_decode_with_method_cooldown in rust side tests ../../src/doughnut/topping/tests.rs
 const encodedTopping = new Uint8Array([
   0, 0, 0, 1, 109, 111, 100, 117, 108, 101, 95, 116, 101, 115, 116, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 81, 1, 0, 0, 109, 101, 116, 104, 111,
